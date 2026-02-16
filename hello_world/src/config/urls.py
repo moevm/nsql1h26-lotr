@@ -19,5 +19,5 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('lotr/', include('nosql_lotr.urls'))
+    path('', include('nosql_lotr.urls'))
 ]
