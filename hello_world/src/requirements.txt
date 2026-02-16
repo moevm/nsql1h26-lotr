@@ -1,0 +1,9 @@
+asgiref==3.11.1
+Django==5.2.11
+django_neomodel==0.2.0
+neo4j==5.19.0
+neomodel==5.3.3
+python-dotenv==1.2.1
+pytz==2025.2
+sqlparse==0.5.5
+typing_extensions==4.15.0
