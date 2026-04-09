@@ -173,7 +173,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 
 Ответ:
 ```
-{ "refresh": "abs..." }
+{ "access": "eyJ...", "refresh": "eyJ..." }
 ```
 
 Ответ 401 - токен истёк или в blacklist:
@@ -198,7 +198,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 
 Ответ 204:
 ```
-{} // Пустой
+// Пустой
 ```
 
 #### `GET /api/v1/auth/me/`
@@ -538,7 +538,7 @@ POST   /api/v1/pages/{slug}/import/
 
 Ответ 204:
 ```
-{} \\ Пустой
+\\ Пустой
 ```
 
 #### `POST /api/v1/pages/{slug}/like/`
@@ -1302,7 +1302,7 @@ Query parameters:
 }
 ```
 
-Ответ 400 - from == to:
+Ответ 422 - from == to:
 ```
 {
   "error": {
