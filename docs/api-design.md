@@ -29,7 +29,7 @@
 v1 это не версия приложения, а версия контракта API. Зачем это нужно и почему так делают почитайте в инете
 
 #### Заголовки:
-```
+```json
 Content-Type:  application/json
 Authorization: Bearer <access_token>    # для защищённых эндпоинтов
 ```
@@ -37,12 +37,12 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 #### Пагинация:
 
 Все списки пагинированы. Параметры:
-```
+```json
 ?page=1             # номер страницы, default: 1
 ?page_size=20       # размер страницы, default: 20, max: 100
 ```
 #### Формат ответа всегда:
-```
+```json
 {
   "count":    150,
   "next":     "/api/v1/.../?page=2&page_size=20",
@@ -53,7 +53,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 `next` и `previous` - полные URL со всеми query параметрами. Фронт вручную URL пагинацию не делает.
 
 #### Сортировка:
-```
+```json
 ?sort=name&order=asc    # order: asc | desc, default: asc
 ```
 Допустимые значения `sort` описаны в каждом каталоге отдельно
@@ -65,7 +65,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 #### Формат ошибок:
 
 Единый для всех эндпоинтов:
-```
+```json
 {
   "error": {
     "code":    "VALIDATION_ERROR",
@@ -88,7 +88,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 Регистрация нового пользователя. После успешной регистрации пользователь автоматически авторизован.
 
 Запрос:
-```
+```json
 {
   "username":         "bilbo_baggins",
   "email":            "bilbo@shire.me",
@@ -98,7 +98,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 ```
 
 Ответ 201:
-```
+```json
 {
   "user": {
     "username":  "bilbo_baggins",
@@ -115,7 +115,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 ```
 
 Ответ 400 - невалидные данные:
-```
+```json
 {
   "error": {
     "code": "VALIDATION_ERROR",
@@ -133,7 +133,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 Логин существующего пользователя.
 
 Запрос:
-```
+```json
 {
   "username": "bilbo_baggins",
   "password": "MyPrecious1!"
@@ -141,7 +141,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 ```
 
 Ответ 200:
-```
+```json
 {
   "user": {
     "username":  "bilbo_baggins",
@@ -158,7 +158,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 ```
 
 Ответ 401:
-```
+```json
 {
   "error": {
     "code":    "INVALID_CREDENTIALS",
@@ -171,17 +171,17 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 #### `POST /api/v1/auth/refresh/`
 
 Запрос:
-```
+```json
 { "refresh": "abs..." }
 ```
 
 Ответ:
-```
+```json
 { "refresh": "abs..." }
 ```
 
 Ответ 401 - токен истёк или в blacklist:
-```
+```json
 {
   "error": {
     "code":    "TOKEN_EXPIRED",
@@ -196,12 +196,12 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 Пользователь выходит из профиля.  Инвалидирует refresh token на бэкенде.
 
 Запрос:
-```
+```json
 { "refresh": "eyJ..." }
 ```
 
 Ответ 204:
-```
+```json
 {} // Пустой
 ```
 
@@ -210,7 +210,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 Требует авторизации. Показывает пользователю его страницу.
 
 Ответ 200:
-```
+```json
 {
   "username":  "bilbo_baggins",
   "email": "bilbo@shire.me",
@@ -229,7 +229,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 Требует авторизации. Все поля опциональны. При смене пароля `password_current` обязателен.
 
 Запрос:
-```
+```json
 {
   "username":         "bilbo_old_baggins",
   "email":            "newbilbo@shire.me",
@@ -244,7 +244,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 Новый объект пользователя, как `GET /.../me`
 
 Ответ 400:
-```
+```json
 {
   "error": {
     "code":    "VALIDATION_ERROR",
@@ -283,7 +283,7 @@ POST   /api/v1/pages/{slug}/import/
 <span style="color:red">Выбрали type-specific ответы:</span>
 
 Ответ 200:
-```
+```json
 2.
 {
   "slug": "frodo",
@@ -317,7 +317,7 @@ POST   /api/v1/pages/{slug}/import/
 Можно вынести `names[0]` в `name` для удобства.
 
 `attributes` по типам:
-```
+```json
 // type = "character"
 "attributes": {
   "titles":     ["Ring-bearer"],
@@ -397,7 +397,7 @@ POST   /api/v1/pages/{slug}/import/
 ```
 
 <span style="color:red">Для связей выбрали такой тип ответа:</span>
-```
+```json
 "relations": {
   "outgoing": {
     "BELONGS_TO_RACE": [
@@ -474,7 +474,7 @@ POST   /api/v1/pages/{slug}/import/
 * `properties` - всегда объект, минимум `{}`, чтобы не проверять, есть оно или нет. Поля `properties` описаны (или должны быть, если нет) в `/meta/relation-types/`.
 
 Ответ 404:
-```
+```json
 {
   "error": {
     "code":    "NOT_FOUND",
@@ -490,7 +490,7 @@ POST   /api/v1/pages/{slug}/import/
 
 Каждый элемент `relations` - объект `{ "slug": "...", "properties": { ... } }`. Поле `properties` опционально - если не передано, рёбро сохраняется без свойств (или свойства обнуляются).
 Запрос:
-```
+```json
 {
   "names":     ["Frodo Baggins", "Mr. Underhill", "Ring-bearer", "Elf-friend"],
   "attributes": {
@@ -527,17 +527,14 @@ POST   /api/v1/pages/{slug}/import/
 
 Требует роль `admin`. Удаляет ноду и все её ребра из графа.
 
-Ответ 204:
-```
-{} \\ Пустой
-```
+Ответ 204: пустой
 
 #### `PUT /api/v1/pages/{slug}/like/`
 
 Требует авторизации. Идемпотентен (!).
 
 Ответ 200:
-```
+```json
 { "likesCount": 43, "isLiked": true }
 ```
 
@@ -546,7 +543,7 @@ POST   /api/v1/pages/{slug}/import/
 Аналогично идемпотентен. Если лайка не было, и его удалили, то код 200.
 
 Ответ 200:
-```
+```json
 { "likesCount": 42, "isLiked": false }
 ```
 
@@ -556,12 +553,12 @@ POST   /api/v1/pages/{slug}/import/
 * их может быть очень много и нужна пагинация
 * страница кэшируется агрессивно, комменты - нет
 * фронт загружает их параллельно или после рендера страницы
-```
+```json
 ?page=1&page_size=20
 ```
 
 Ответ 200:
-```
+```json
 {
   "count":    7,
   "next":     null,
@@ -585,12 +582,12 @@ POST   /api/v1/pages/{slug}/import/
 Требует авторизации.
 
 Запрос:
-```
+```json
 { "text": "Amazing character arc." }
 ```
 
 Ответ 201:
-```
+```json
 {
   "id":   "9d8c7b6a-...",
   "text": "Amazing character arc.",
@@ -603,7 +600,7 @@ POST   /api/v1/pages/{slug}/import/
 ```
 
 Ответ 400 - пустой ответ:
-```
+```json
 {
   "error": {
     "code":    "VALIDATION_ERROR",
@@ -621,7 +618,7 @@ POST   /api/v1/pages/{slug}/import/
 Ответ 204: пустой
 
 Ответ 403 - попытка удалить чужой комментарий для `viewer`:
-```
+```json
 {
   "error": {
     "code":    "FORBIDDEN",
@@ -632,7 +629,7 @@ POST   /api/v1/pages/{slug}/import/
 ```
 
 Ответ 404 - комментарий не найден:
-```
+```json
 {
   "error": {
     "code":    "NOT_FOUND",
@@ -647,7 +644,7 @@ POST   /api/v1/pages/{slug}/import/
 Требует роль `admin`. Скачивает JSON или CSV с данными одной страницы. Если JSON, то формат как у `GET /pages/{slug}`
 
 Ответ 200:
-```
+```json
 Content-Disposition: attachment; filename="frodo-baggins.json"
 Content-Type: application/json
 ```
@@ -657,7 +654,7 @@ Content-Type: application/json
 Требует роль `admin`. Обновляет данные страницы из JSON или CSV. Семантически эквивалентен PATCH, но принимает файл.
 
 Запрос:
-```
+```json
 Content-Type: multipart/form-data
 file: <frodo-baggins.json>
 ```
@@ -667,7 +664,7 @@ file: <frodo-baggins.json>
 Полный объкет страницы после обновления.
 
 Ответ 400:
-```
+```json
 {
   "error": {
     "code":    "INVALID_FORMAT",
@@ -704,7 +701,7 @@ POST /api/v1/scripts/
 #### Формат элемента списка
 
 В списке возвращается саммари-объект, не полная страница. Полные данные - только через запрос к странице. Это по идее снижает нагрузку и трафик.
-```
+```json
 {
   "slug":       "frodo-baggins",
   "type":       "character",
@@ -717,7 +714,7 @@ POST /api/v1/scripts/
 
 #### `GET /api/v1/characters/`
 Ответ 200:
-```
+```json
 {
   "count": 150,
   "next":  "/api/v1/characters/?page=2",
@@ -765,7 +762,7 @@ Query parameters:
 Требует роль `admin`.
 
 Запрос:
-```
+```json
 {
   "slug":    "frodo-baggins",      // опционально - генерируется из names[0] если не передан
   "names":   ["Frodo Baggins"],    // обязательно
@@ -797,7 +794,7 @@ Query parameters:
 Полный объект страницы
 
 Ответ 409 - слаг занят:
-```
+```json
 {
   "error": {
     "code":    "CONFLICT",
@@ -810,7 +807,7 @@ Query parameters:
 #### `GET /api/v1/races/`
 
 Ответ 200:
-```
+```json
 // results item
 {
   "slug":         "hobbits",
@@ -843,7 +840,7 @@ Query parameters:
 #### `GET /api/v1/locations/`
 
 Ответ 200:
-```
+```json
 // results item
 {
   "slug":         "the-shire",
@@ -874,7 +871,7 @@ Query parameters:
 
 #### `GET /api/v1/events/`
 
-```
+```json
 // results item
 {
   "slug":      "war-of-the-ring",
@@ -904,7 +901,7 @@ Query parameters:
 
 #### `GET /api/v1/organizations/`
 
-```
+```json
 // results item
 {
   "slug":        "fellowship-of-the-ring",
@@ -936,7 +933,7 @@ Query parameters:
 
 #### `GET /api/v1/items/`
 
-```
+```json
 // results item
 {
   "slug":      "the-one-ring",
@@ -963,7 +960,7 @@ Query parameters:
 
 #### `GET /api/v1/timelines/`
 
-```
+```json
 // results item
 {
   "slug":         "third-age",
@@ -979,7 +976,7 @@ Query parameters: `name`, `abbreviation`, `start_date`, `end_date`, `sort=name|s
 
 #### `GET /api/v1/languages/`
 
-```
+```json
 // results item
 {
   "slug":   "quenya",
@@ -993,7 +990,7 @@ Query parameters: `names`, `family`, `sort=name`
 
 #### `GET /api/v1/scripts/`
 
-```
+```json
 // results item
 {
   "slug": "tengwar",
@@ -1028,7 +1025,7 @@ Query параметры:
 | `order`    | `asc\|desc` | default `asc`
 
 Ответ 200:
-```
+```json
 {
   "count": 24,
   "next":  null,
@@ -1068,7 +1065,7 @@ Query параметры:
 Публичный. Возвращает категории в виде дерева одним запросом - нужен фронту под капотом для рендера навигационного меню или breadcrumbs (если мы их будем делать) без серии запросов. Не пагинирован. Если категорий станет много - можно сделать параметр `?root=slug` для поддерева.
 
 Ответ 200:
-```
+```json
 [
   {
     "slug":        "characters",
@@ -1124,7 +1121,7 @@ Query parameters для списка сущностей:
 | `sort` | `name` | default `name` |
 
 Ответ 200:
-```
+```json
 {
   "slug":        "good-characters",
   "name":        "Good Characters",
@@ -1152,7 +1149,7 @@ Query parameters для списка сущностей:
 `children` - только прямые подкатегории, не пагинированы (обычно их мало). `pages` - пагинированный список всех сущностей напрямую в этой категории.
 
 Ответ 404:
-```
+```json
 {
   "error": {
     "code":    "NOT_FOUND",
@@ -1167,7 +1164,7 @@ Query parameters для списка сущностей:
 Требует роль `admin`.
 
 Запрос: 
-```
+```json
 {
   "slug":        "hobbits-of-the-shire",
   "name":        "Hobbits of the Shire",
@@ -1178,7 +1175,7 @@ Query parameters для списка сущностей:
 Слаг опиционален, если надо - генерится из имени. `parentSlug` - опичионален, если не передан - корневая категория. `desription` - тож опционален.
 
 Ответ 201:
-```
+```json
 {
   "slug":        "hobbits-of-the-shire",
   "name":        "Hobbits of the Shire",
@@ -1196,7 +1193,7 @@ Query parameters для списка сущностей:
 ```
 
 Ответ 409 - слаг занят:
-```
+```json
 {
   "error": {
     "code":    "CONFLICT",
@@ -1207,7 +1204,7 @@ Query parameters для списка сущностей:
 ```
 
 Ответ 404 - `parentSlug` не найден:
-```
+```json
 {
   "error": {
     "code":    "NOT_FOUND",
@@ -1223,7 +1220,7 @@ Query parameters для списка сущностей:
 
 Запрос:
 
-```
+```json
 {
   "name":        "Hobbits of the Shire (Updated)",
   "description": "All known Hobbits of the Shire.",
@@ -1236,7 +1233,7 @@ Query parameters для списка сущностей:
 Ответ 200: полные объект категории как по гету
 
 Ответ 422 - попытка создать цикл:
-```
+```json
 {
   "error": {
     "code":    "CYCLE_DETECTED",
@@ -1264,7 +1261,7 @@ DELETE /api/v1/users/{username}/         [admin]
 #### `GET /api/v1/users/`
 
 Требует роль `admin`. Возвращает расширенный объект с приватными полями (`email`, `role`).
-```
+```json
 ?page=1&page_size=20
 ?username=bilbo     # подстрока, регистронезависимо
 ?role=viewer        # viewer | admin
@@ -1272,7 +1269,7 @@ DELETE /api/v1/users/{username}/         [admin]
 ```
 
 Ответ 200:
-```
+```json
 {
   "count": 42,
   "next":  "/api/v1/users/?page=2",
@@ -1294,7 +1291,7 @@ DELETE /api/v1/users/{username}/         [admin]
 Публичный. Email и role не возвращаются — приватные данные. 
 
 Ответ 200:
-```
+```json
 {
   "username":     "bilbo_baggins",
   "avatarUrl":    "https://cdn.example.com/avatars/bilbo.jpg",
@@ -1308,7 +1305,7 @@ DELETE /api/v1/users/{username}/         [admin]
 ```
 
 Ответ 404:
-```
+```json
 {
   "error": {
     "code":    "NOT_FOUND",
@@ -1323,12 +1320,12 @@ DELETE /api/v1/users/{username}/         [admin]
 Требует роль `admin`. Только для управления ролью. Редактирование чужого профиля (`username`, `email`, `avatar`) через этот эндпоинт должно быть недоступно - пользователь делает это сам через `PATCH /auth/me/`.
 
 Запрос:
-```
+```json
 { "role": "admin" }
 ```
 
 Ответ 200:
-```
+```json
 {
   "username":  "bilbo_baggins",
   "email":     "bilbo@shire.me",
@@ -1339,7 +1336,7 @@ DELETE /api/v1/users/{username}/         [admin]
 ```
 
 Ответ 400 - невалидная роль:
-```
+```json
 {
   "error": {
     "code":    "VALIDATION_ERROR",
@@ -1358,7 +1355,7 @@ DELETE /api/v1/users/{username}/         [admin]
 Ответ 204: пустой
 
 Ответ 403 - попытка удалить себя:
-```
+```json
 {
   "error": {
     "code":    "FORBIDDEN",
@@ -1386,7 +1383,7 @@ Query parameters:
 Поиск по подстроке в `names` всех узлов через fulltext-индекс Neo4j - один запрос по всему графу.
 
 Ответ 200:
-```
+```json
 // GET /api/v1/search/?q=frod&limit=5
 [
   { "slug": "frodo-baggins", "type": "character", "name": "Frodo Baggins", "imageUrl": "..." },
@@ -1396,7 +1393,7 @@ Query parameters:
 ```
 
 Ответ 400 - слишком короткий запрос:
-```
+```json
 {
   "error": {
     "code":    "VALIDATION_ERROR",
@@ -1420,7 +1417,7 @@ Query parameters:
 Публичный. Агрегированная статистика по всей вселенной.
 
 Ответ 200:
-```
+```json
 {
   "counts": {
     "total":         540,
@@ -1479,7 +1476,7 @@ Query parameters:
 | `depth` | int | глубина обхода: `1` или `2`; default `1` |
 
 Ответ 200:
-```
+```json
 // GET /api/v1/analytics/neighbors/?entity=frodo-baggins&node_types=character,location
 {
   "root": {
@@ -1533,7 +1530,7 @@ Query parameters:
 Тут параметры точно поменяются, нужно придумать что-то покрасивее, мне пока лень :).
 
 Ответ 200:
-```
+```json
 // GET /api/v1/analytics/shortest-path/?from=frodo-baggins&to=aragorn&through=character,organization
 {
   "found":  true,
@@ -1560,7 +1557,7 @@ Query parameters:
 Ответ 200: путь не найден
 
 Не 404 - запрос корректен, это просто пути нет (ну или есть, но нулевой длины)
-```
+```json
 {
   "found":  false,
   "length": null,
@@ -1571,7 +1568,7 @@ Query parameters:
 ```
 
 Ответ 400 - from == to:
-```
+```json
 {
   "error": {
     "code":    "VALIDATION_ERROR",
@@ -1582,7 +1579,7 @@ Query parameters:
 ```
 
 Ответ 400 - какой-то из through_* не передан:
-```
+```json
 {
   "error": {
     "code":    "VALIDATION_ERROR",
@@ -1607,7 +1604,7 @@ Query parameters:
 | фильтры каталога | | те же параметры, что в `GET /characters/` и т.д. |
 
 Ответ 200:
-```
+```json
 // GET /api/v1/analytics/custom/?entity_type=character&x_attr=race&y_attr=gender&agg=count&is_alive=true
 {
   "entityType": "character",
@@ -1634,7 +1631,7 @@ Query parameters:
 Скачивает JSON с полными данными всего приложения.
 
 Ответ 200:
-```
+```json
 Content-Disposition: attachment; filename="lotr-wiki-export-2024-03-16.json"
 Content-Type: application/json
 ```
@@ -1644,13 +1641,13 @@ Content-Type: application/json
 Загружает файл в формате экспорта. Существующие сущности (по слагу) обновляются, новые — создаются.
 
 Запрос:
-```
+```json
 Content-Type: multipart/form-data
 file: <lotr-wiki-export.json>
 ```
 
 Ответ 200:
-```
+```json
 {
   "imported": {
     "characters":    12,
@@ -1671,7 +1668,7 @@ file: <lotr-wiki-export.json>
 ```
 
 Ответ 400 - невалидный формат файла:
-```
+```json
 {
   "error": {
     "code":    "INVALID_FORMAT",
@@ -1687,7 +1684,7 @@ file: <lotr-wiki-export.json>
 
 #### `GET /api/v1/meta/node-types/`
 
-```
+```json
 [
   { "type": "character",    "label": "Character",    "pluralLabel": "Characters"    },
   { "type": "race",         "label": "Race",         "pluralLabel": "Races"         },
@@ -1703,7 +1700,7 @@ file: <lotr-wiki-export.json>
 
 #### `GET /api/v1/meta/relation-types/`
 
-```
+```json
 [
   { "type": "BELONGS_TO_RACE", "label": "Belongs to race",   "from": ["character"],                "to": ["race"]         },
   { "type": "MEMBER_OF",       "label": "Member of",         "from": ["character"],                "to": ["organization"] },
