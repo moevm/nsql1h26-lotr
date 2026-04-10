@@ -16,6 +16,10 @@
 
 * Для разработки демо будут debug-пользователи, по одному на каждую роль. Будут создаваться какой-нибудь seed-командой при первом запуске.
 
+* Query параметры для фильтров максимально не устоявшиеся ни по составу, ни по виду.
+
+* Некоторые рёбра из модели могут поменятся, например `:PARENT_OF`  точно по итогу будет `:CHILD_OF`. Это будет видно в схеме, просто имейте в виду и не пугайтесь.
+
 ### Общее по всем эндпоинтам
 
 #### Base URL: 
@@ -173,7 +177,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 
 Ответ:
 ```
-{ "access": "eyJ...", "refresh": "eyJ..." }
+{ "refresh": "abs..." }
 ```
 
 Ответ 401 - токен истёк или в blacklist:
@@ -198,7 +202,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 
 Ответ 204:
 ```
-// Пустой
+{} // Пустой
 ```
 
 #### `GET /api/v1/auth/me/`
@@ -260,7 +264,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 GET    /api/v1/pages/{slug}/
 PATCH  /api/v1/pages/{slug}/
 DELETE /api/v1/pages/{slug}/
-POST   /api/v1/pages/{slug}/like/
+PUT   /api/v1/pages/{slug}/like/
 DELETE /api/v1/pages/{slug}/like/
 GET    /api/v1/pages/{slug}/comments/
 POST   /api/v1/pages/{slug}/comments/
@@ -276,84 +280,10 @@ POST   /api/v1/pages/{slug}/import/
 1. Все type-specific поля присутствуют в ответе всегда. Для данного типа они заполнены, для остальных - `null`. Это позволяет фронту иметь единый TypeScript-тип и не делать type narrowing при чтении ответа, но раздувает ответ. Мб это херня решение, но надо погуглить.
 2. Type-specific ответы. Вроде по феншую, но по коду сложнее. Гуглим ребята, гуглим.
 
+<span style="color:red">Выбрали type-specific ответы:</span>
+
 Ответ 200:
 ```
-1.
-{
-  "slug": "frodo-baggins",
-  "type": "character",
-  "names": ["Frodo Baggins", "Mr. Underhill", "Ring-bearer"],
-
-  // Character fields
-  "titles":    ["Ring-bearer"],
-  "gender":    "male",
-  "birthDate": "TA 2968",
-  "deathDate": "FO 61",
-  "hair":      "brown, curly",
-  "eyes":      "blue",
-  "height":    "3 feet 6 inches",
-  "weapon":    "Sting, Barrow-blade",
-  "clothing":  "Hobbit clothes, mithril coat",
-  "notableFor": "Destroyed the One Ring at Mount Doom",
-
-  // Race fields
-  "lifespan":     null,
-  "avgHeight":    null,
-  "skin":         null,
-  "distinctions": null,
-
-  // Location fields
-  "locationType":    null,
-  "population":      null,
-  "creationDate":    null,
-  "destructionDate": null,
-
-  // Event fields
-  "eventType":  null,
-  "startDate":  null,
-  "endDate":    null,
-  "casualties": null,
-
-  // Organization fields
-  "orgType":       null,
-  "foundedDate":   null,
-  "dissolvedDate": null,
-  "purpose":       null,
-  "weaponry":      null,
-
-  // Timeline fields
-  "abbreviation": null,
-
-  // Item fields
-  "itemType": null,
-  "material": null,
-
-  // Language fields
-  "family": null,
-
-  // Article — null если статья ещё не создана
-  "article": {
-    "text":      "Frodo Baggins was a hobbit of the Shire...",
-    "imageUrl":  "https://cdn.example.com/frodo.jpg",
-    "createdAt": "2024-01-01T00:00:00Z",
-    "updatedAt": "2024-03-15T12:30:00Z"
-  },
-
-  // Связи - ключ = тип ребра в Neo4j
-  // Возвращаются все известные типы рёбер, пустые - как []
-  // Фронт рендерит только непустые
-  "relations": { ... },
-
-  "categories": [
-    { "slug": "hobbits-of-the-shire", "name": "Hobbits of the Shire" },
-    { "slug": "fellowship-members",   "name": "Fellowship Members" }
-  ],
-
-  "likesCount":    42,
-  "isLiked":       true,
-  "commentsCount": 7
-}
-
 2.
 {
   "slug": "frodo",
@@ -364,137 +294,184 @@ POST   /api/v1/pages/{slug}/import/
     "weapon": "Sting"
     // ... only character fields
   },
-  "relations": { ... }
-}
-```
 
-Для связей тоже есть два варианта:
-```
-1.
-"relations": {
-    "BELONGS_TO_RACE": [
-      { "slug": "hobbits", "type": "race", "name": "Hobbits", "imageUrl": null }
-    ],
-    "MEMBER_OF": [
-      { "slug": "fellowship-of-the-ring", "type": "organization", "name": "Fellowship of the Ring", "imageUrl": "..." }
-    ],
-    "PARTICIPATED_IN": [
-      { "slug": "war-of-the-ring",      "type": "event", "name": "War of the Ring",      "imageUrl": null },
-      { "slug": "quest-of-mount-doom",  "type": "event", "name": "Quest of Mount Doom",  "imageUrl": null }
-    ],
-    "BORN_IN": [
-      { "slug": "the-shire", "type": "location", "name": "The Shire", "imageUrl": "..." }
-    ],
-    "LIVED_IN": [
-      { "slug": "bag-end",    "type": "location", "name": "Bag End",    "imageUrl": "..." },
-      { "slug": "rivendell",  "type": "location", "name": "Rivendell",  "imageUrl": "..." }
-    ],
-    "OWNS": [
-      { "slug": "the-one-ring", "type": "item", "name": "The One Ring", "imageUrl": "..." },
-      { "slug": "sting",        "type": "item", "name": "Sting",        "imageUrl": "..." }
-    ],
-    "KNOWS":     [ { "slug": "samwise-gamgee", "type": "character", "name": "Samwise Gamgee", "imageUrl": "..." } ],
-    "PARENT_OF": [],
-    "CHILD_OF":  [ { "slug": "drogo-baggins",  "type": "character", "name": "Drogo Baggins",  "imageUrl": null } ],
-    "SPEAKS":    [],
-    "RULED_BY":  [],
-    "LOCATED_IN":    [],
-    "HAPPENED_IN":   [],
-    "DURING":        [],
-    "PART_OF":       []
+  "article": {
+    "text":      "Frodo Baggins was a hobbit of the Shire...",
+    "imageUrl":  "https://cdn.example.com/frodo.jpg",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-03-15T12:30:00Z"
   },
 
-2.
-"relationships": {
-    "outgoing": [
-    {
-        "id": "rel_123", // Internal Neo4j ID или UUID
-        "type": "OF_RACE",
-        "target": {
-        "slug": "hobbits",
-        "type": "race",
-        "name": "Hobbits"
-        },
-        "properties": {}
-    },
-    {
-        "id": "rel_124",
-        "type": "MEMBER_OF",
-        "target": {
-        "slug": "fellowship-of-the-ring",
-        "type": "organization",
-        "name": "Fellowship of the Ring"
-        },
-        "properties": {
-        "role": "Ring-bearer",
-        "from_date": "TA 3018",
-        "to_date": "TA 3019"
-        }
-    },
-    {
-        "id": "rel_125",
-        "type": "BORN_IN",
-        "target": {
-        "slug": "the-shire",
-        "type": "location",
-        "name": "The Shire"
-        }
-    }
-    ],
-    "incoming": [
-    {
-        "id": "rel_126",
-        "type": "CHILD_OF",
-        "from": {
-        "slug": "bilbo-baggins",
-        "type": "character",
-        "name": "Bilbo Baggins"
-        },
-        "properties": {
-        "type": "adoptive"
-        }
-    }
-    ]
-},
+  "relations": { ... },
 
-Комбинированный??:
+  "categories": [
+    { "slug": "hobbits-of-the-shire", "name": "Hobbits of the Shire" },
+    { "slug": "fellowship-members",   "name": "Fellowship Members"   }
+  ],
+
+  "likesCount":    42,
+  "isLiked":       true,
+  "commentsCount": 7
+}
+```
+Можно вынести `names[0]` в `name` для удобства.
+
+`attributes` по типам:
+```
+// type = "character"
+"attributes": {
+  "titles":     ["Ring-bearer"],
+  "gender":     "male",
+  "birthDate":  "TA 2968",
+  "deathDate":  null,
+  "hair":       "brown, curly",
+  "eyes":       "blue",
+  "height":     "3 feet 6 inches",
+  "weapon":     "Sting, Barrow-blade",
+  "clothing":   "Hobbit clothes, mithril coat",
+  "notableFor": "Destroyed the One Ring at Mount Doom"
+}
+
+// type = "race"
+"attributes": {
+  "lifespan":     "100+ years",
+  "avgHeight":    "3-4 feet",
+  "hair":         "curly",
+  "eyes":         "varied",
+  "skin":         "fair",
+  "weaponry":     null,
+  "clothing":     null,
+  "distinctions": "Small stature, large hairy feet"
+}
+
+// type = "location"
+"attributes": {
+  "locationType":    "region",
+  "population":      "~20,000",
+  "creationDate":    "TA 1601",
+  "destructionDate": null,
+  "notableFor":      "Home of the Hobbits"
+}
+
+// type = "event"
+"attributes": {
+  "eventType":  "war",
+  "startDate":  "TA 3018",
+  "endDate":    "TA 3019",
+  "casualties": "Tens of thousands",
+  "notableFor": "Final defeat of Sauron"
+}
+
+// type = "organization"
+"attributes": {
+  "orgType":       "fellowship",
+  "foundedDate":   "TA 3018",
+  "dissolvedDate": "TA 3019",
+  "purpose":       "Destroy the One Ring",
+  "weaponry":      null,
+  "clothing":      null,
+  "notableFor":    null
+}
+
+// type = "timeline"
+"attributes": {
+  "abbreviation": "TA",
+  "startDate":    "SA 3441",
+  "endDate":      "TA 3021"
+}
+
+// type = "item"
+"attributes": {
+  "itemType":   "ring",
+  "material":   "gold",
+  "notableFor": "The One Ring to rule them all"
+}
+
+// type = "language"
+"attributes": {
+  "family": "Elvish"
+}
+
+// type = "script"
+"attributes": {}
+```
+
+<span style="color:red">Для связей выбрали такой тип ответа:</span>
+```
 "relations": {
   "outgoing": {
     "BELONGS_TO_RACE": [
       {
-        "target": { "slug": "hobbits", "type": "race", "name": "Hobbits", "imageUrl": null },
+        "target":     { "slug": "hobbits", "type": "race", "name": "Hobbits", "imageUrl": null },
         "properties": {}
       }
     ],
     "MEMBER_OF": [
       {
-        "target": { "slug": "fellowship-of-the-ring", "type": "organization", "name": "Fellowship of the Ring" },
-        "properties": {
-          "role": "Ring-bearer",
-          "from_date": "TA 3018",
-          "to_date": "TA 3019"
-        }
+        "target":     { "slug": "fellowship-of-the-ring", "type": "organization", "name": "Fellowship of the Ring", "imageUrl": "..." },
+        "properties": { "role": "Ring-bearer", "fromDate": "TA 3018", "toDate": "TA 3019" }
+      }
+    ],
+    "PARTICIPATED_IN": [
+      {
+        "target":     { "slug": "war-of-the-ring",     "type": "event", "name": "War of the Ring",     "imageUrl": null },
+        "properties": {}
+      },
+      {
+        "target":     { "slug": "quest-of-mount-doom", "type": "event", "name": "Quest of Mount Doom", "imageUrl": null },
+        "properties": {}
       }
     ],
     "BORN_IN": [
       {
-        "target": { "slug": "the-shire", "type": "location", "name": "The Shire" },
+        "target":     { "slug": "the-shire", "type": "location", "name": "The Shire", "imageUrl": "..." },
+        "properties": {}
+      }
+    ],
+    "LIVED_IN": [
+      {
+        "target":     { "slug": "bag-end",   "type": "location", "name": "Bag End",   "imageUrl": "..." },
+        "properties": {}
+      },
+      {
+        "target":     { "slug": "rivendell", "type": "location", "name": "Rivendell", "imageUrl": "..." },
+        "properties": {}
+      }
+    ],
+    "OWNS": [
+      {
+        "target":     { "slug": "the-one-ring", "type": "item", "name": "The One Ring", "imageUrl": "..." },
+        "properties": {}
+      },
+      {
+        "target":     { "slug": "sting",        "type": "item", "name": "Sting",        "imageUrl": null  },
+        "properties": {}
+      }
+    ],
+    "KNOWS": [
+      {
+        "target":     { "slug": "samwise-gamgee", "type": "character", "name": "Samwise Gamgee", "imageUrl": "..." },
         "properties": {}
       }
     ]
   },
   "incoming": {
-    "CHILD_OF": [
+    "PARENT_OF": [
       {
-        "from": { "slug": "bilbo-baggins", "type": "character", "name": "Bilbo Baggins" },
-        "properties": { "type": "adoptive" }
+        "from":       { "slug": "drogo-baggins", "type": "character", "name": "Drogo Baggins", "imageUrl": null },
+        "properties": {}
       }
     ]
   }
 }
 ```
+Обоснование:
 
-Вариантов много, надо обсудить.
+Так делают реальные проекты, которые работают с графами. Если они не нашли способа лучше/их такой устраивает, то а мы-то что. Направление рёбер графа разделяется на уровне структуры ответа, чтобы корректно отразить направленность рёбер. Для ненаправленных рёбер - либо чекать оба (входящие и выходящие), либо условиться что они будут только в каком-то одном из них. Начнём работать - решим. 
+
+* Ключи в 'outgoing` и в `incoming` - только непустые типа рёбер. Отсутствие ключа = нет связей этого типа.
+* `target`/`from` - всегда саммари-объект (слаг, тип, имя, урлик картинки)
+* `properties` - всегда объект, минимум `{}`, чтобы не проверять, есть оно или нет. Поля `properties` описаны (или должны быть, если нет) в `/meta/relation-types/`.
 
 Ответ 404:
 ```
@@ -509,21 +486,35 @@ POST   /api/v1/pages/{slug}/import/
 
 #### `PATCH /api/v1/pages/{slug}/`
 
-Требует роль `admin`. Принмает только изменяемые поля - патчу весь объект передавать странно. Для `relations`: передаётся полный список слагов для каждого типа ребра. Если типа ребра в запросе не указан, то он не изменяется. Если передан пустой массив - все рёбра этого типа удаляются.
+Требует роль `admin`. Принимает только изменяемые поля. Для `relations`: передаётся полный список для каждого указанного типа ребра. Если тип не упомянут - не трогается. Пустой массив `[]` - удаляет все рёбра этого типа.
 
+Каждый элемент `relations` - объект `{ "slug": "...", "properties": { ... } }`. Поле `properties` опционально - если не передано, рёбро сохраняется без свойств (или свойства обнуляются).
 Запрос:
 ```
 {
   "names":     ["Frodo Baggins", "Mr. Underhill", "Ring-bearer", "Elf-friend"],
-  "deathDate": "FO 61",
-  "notableFor": "Destroyed the One Ring. Later sailed to Valinor.",
+  "attributes": {
+    "deathDate":  "FO 61",
+    "notableFor": "Destroyed the One Ring. Later sailed to Valinor."
+  },
   "article": {
     "text":     "Updated article text...",
     "imageUrl": "https://cdn.example.com/frodo-new.jpg"
   },
   "categories": ["hobbits-of-the-shire", "ring-bearers"],
   "relations": {
-    "OWNS": ["the-one-ring", "sting", "red-book-of-westmarch"]
+    "OWNS": [
+      { "slug": "the-one-ring" },
+      { "slug": "sting" },
+      { "slug": "red-book-of-westmarch" }
+    ],
+    "MEMBER_OF": [
+      {
+        "slug":       "fellowship-of-the-ring",
+        "properties": { "role": "Ring-bearer", "fromDate": "TA 3018", "toDate": "TA 3019" }
+      }
+    ],
+    "KNOWS": []
   }
 }
 ```
@@ -538,10 +529,10 @@ POST   /api/v1/pages/{slug}/import/
 
 Ответ 204:
 ```
-\\ Пустой
+{} \\ Пустой
 ```
 
-#### `POST /api/v1/pages/{slug}/like/`
+#### `PUT /api/v1/pages/{slug}/like/`
 
 Требует авторизации. Идемпотентен (!).
 
@@ -551,6 +542,8 @@ POST   /api/v1/pages/{slug}/import/
 ```
 
 #### `DELETE /api/v1/pages/{slug}/like/`
+
+Аналогично идемпотентен. Если лайка не было, и его удалили, то код 200.
 
 Ответ 200:
 ```
@@ -618,6 +611,33 @@ POST   /api/v1/pages/{slug}/import/
     "fields": {
       "text": ["This field may not be blank."]
     }
+  }
+}
+```
+#### `DELETE /api/v1/pages/{slug}/comments/{id}/`
+
+Требует авторизации. `viewer` может удалить только свой комментарий, `admin` - любой.
+
+Ответ 204: пустой
+
+Ответ 403 - попытка удалить чужой комментарий для `viewer`:
+```
+{
+  "error": {
+    "code":    "FORBIDDEN",
+    "message": "You can only delete your own comments.",
+    "fields":  null
+  }
+}
+```
+
+Ответ 404 - комментарий не найден:
+```
+{
+  "error": {
+    "code":    "NOT_FOUND",
+    "message": "Comment not found.",
+    "fields":  null
   }
 }
 ```
@@ -984,6 +1004,254 @@ Query parameters: `names`, `family`, `sort=name`
 
 Query parameters: `names`, `sort=name`
 
+### Категории
+
+```
+GET    /api/v1/categories/
+GET    /api/v1/categories/tree/
+GET    /api/v1/categories/{slug}/
+POST   /api/v1/categories/         [admin]
+PATCH  /api/v1/categories/{slug}/  [admin]
+DELETE /api/v1/categories/{slug}/  [admin]
+```
+
+#### `GET /api/v1/categories/`
+
+Публичный. Пагинирован. Плоский список - для дропдаунов при создании/редактировании сущностей.
+
+Query параметры:
+| Параметр | Тип | Описание | 
+| -------- | --- | -------- |
+| `name`     | string | подстрока, регистронезависимо |
+| `parent`   | string | slug родителя; `?parent=root` - только корневые (без родителя) |
+| `sort`     | `name` | default `name` |
+| `order`    | `asc\|desc` | default `asc`
+
+Ответ 200:
+```
+{
+  "count": 24,
+  "next":  null,
+  "previous": null,
+  "results": [
+    {
+      "slug":        "characters",
+      "name":        "Characters",
+      "description": null,
+      "parentSlug":  null,
+      "childCount":  3,
+      "pageCount":   150
+    },
+    {
+      "slug":        "good-characters",
+      "name":        "Good Characters",
+      "description": "Characters aligned with the Free Peoples of Middle-earth.",
+      "parentSlug":  "characters",
+      "childCount":  2,
+      "pageCount":   89
+    },
+    {
+      "slug":        "hobbits-of-the-shire",
+      "name":        "Hobbits of the Shire",
+      "description": null,
+      "parentSlug":  "good-characters",
+      "childCount":  0,
+      "pageCount":   14
+    }
+  ]
+}
+```
+`pageCount` - количество страниц напрямую, без подкатегорий, `childCount` - количество прямых подкатегорий.
+
+#### `GET /api/v1/categories/tree/`
+
+Публичный. Возвращает категории в виде дерева одним запросом - нужен фронту под капотом для рендера навигационного меню или breadcrumbs (если мы их будем делать) без серии запросов. Не пагинирован. Если категорий станет много - можно сделать параметр `?root=slug` для поддерева.
+
+Ответ 200:
+```
+[
+  {
+    "slug":        "characters",
+    "name":        "Characters",
+    "pageCount":   150,
+    "children": [
+      {
+        "slug":      "good-characters",
+        "name":      "Good Characters",
+        "pageCount": 89,
+        "children": [
+          {
+            "slug":      "hobbits-of-the-shire",
+            "name":      "Hobbits of the Shire",
+            "pageCount": 14,
+            "children":  []
+          },
+          {
+            "slug":      "fellowship-members",
+            "name":      "Fellowship Members",
+            "pageCount": 9,
+            "children":  []
+          }
+        ]
+      },
+      {
+        "slug":      "evil-characters",
+        "name":      "Evil Characters",
+        "pageCount": 45,
+        "children":  []
+      }
+    ]
+  },
+  {
+    "slug":      "locations",
+    "name":      "Locations",
+    "pageCount": 80,
+    "children":  [ ... ]
+  }
+]
+```
+
+#### `GET /api/v1/categories/{slug}/`
+
+Публичный. Карточка категории: мета-информация, подкатегории, пагинированный список сущностей.
+
+Query parameters для списка сущностей: 
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `page` | int | default 1 |
+| `page_size` | int | default 20, max 100 |
+| `types` | string | типа сущностей через запятую, default - все |
+| `sort` | `name` | default `name` |
+
+Ответ 200:
+```
+{
+  "slug":        "good-characters",
+  "name":        "Good Characters",
+  "description": "Characters aligned with the Free Peoples of Middle-earth.",
+  "parentSlug":  "characters",
+  "parent": {
+    "slug": "characters",
+    "name": "Characters"
+  },
+  "children": [
+    { "slug": "hobbits-of-the-shire", "name": "Hobbits of the Shire", "pageCount": 14 },
+    { "slug": "fellowship-members",   "name": "Fellowship Members",   "pageCount":  9 }
+  ],
+  "pages": {
+    "count":    89,
+    "next":     "/api/v1/categories/good-characters/?page=2",
+    "previous": null,
+    "results": [
+      { "slug": "frodo-baggins", "type": "character", "name": "Frodo Baggins", "imageUrl": "..." },
+      { "slug": "aragorn",       "type": "character", "name": "Aragorn",       "imageUrl": "..." }
+    ]
+  }
+}
+```
+`children` - только прямые подкатегории, не пагинированы (обычно их мало). `pages` - пагинированный список всех сущностей напрямую в этой категории.
+
+Ответ 404:
+```
+{
+  "error": {
+    "code":    "NOT_FOUND",
+    "message": "Category 'good-charactres' does not exist.",
+    "fields":  null
+  }
+}
+```
+
+#### `POST /api/v1/categories/`
+
+Требует роль `admin`.
+
+Запрос: 
+```
+{
+  "slug":        "hobbits-of-the-shire",
+  "name":        "Hobbits of the Shire",
+  "description": "Hobbits who lived in the Shire.",
+  "parentSlug":  "good-characters"
+}
+```
+Слаг опиционален, если надо - генерится из имени. `parentSlug` - опичионален, если не передан - корневая категория. `desription` - тож опционален.
+
+Ответ 201:
+```
+{
+  "slug":        "hobbits-of-the-shire",
+  "name":        "Hobbits of the Shire",
+  "description": "Hobbits who lived in the Shire.",
+  "parentSlug":  "good-characters",
+  "parent": {
+    "slug": "good-characters",
+    "name": "Good Characters"
+  },
+  "children":  [],
+  "pages": {
+    "count": 0, "next": null, "previous": null, "results": []
+  }
+}
+```
+
+Ответ 409 - слаг занят:
+```
+{
+  "error": {
+    "code":    "CONFLICT",
+    "message": "Category with slug 'hobbits-of-the-shire' already exists.",
+    "fields":  { "slug": ["This slug is already taken."] }
+  }
+}
+```
+
+Ответ 404 - `parentSlug` не найден:
+```
+{
+  "error": {
+    "code":    "NOT_FOUND",
+    "message": "Parent category 'good-charactres' does not exist.",
+    "fields":  { "parentSlug": ["Category not found."] }
+  }
+}
+```
+
+#### `PATCH /api/v1/categories/{slug}/`
+
+Требует роль `admin`. Все поля опциональны.
+
+Запрос:
+
+```
+{
+  "name":        "Hobbits of the Shire (Updated)",
+  "description": "All known Hobbits of the Shire.",
+  "parentSlug":  "characters"
+}
+```
+
+Чтобы сделать категорию корневой (убрать родителя) — передать `"parentSlug": null`. Нельзя установить родителем собственного потомка - это создаст цикл. Бэкенд проверяет это в Neo4j перед сохранением.
+
+Ответ 200: полные объект категории как по гету
+
+Ответ 422 - попытка создать цикл:
+```
+{
+  "error": {
+    "code":    "CYCLE_DETECTED",
+    "message": "Cannot set 'good-characters' as parent: it is a descendant of 'hobbits-of-the-shire'.",
+    "fields":  { "parentSlug": ["This would create a cycle in the category tree."] }
+  }
+}
+```
+
+#### `DELETE /api/v1/categories/{slug}/`
+
+Требует роль `admin`. Удаляет категорию и все рёбра `:IN_CATEGORY` к ней. Не удаляет дочерние подкатегории - они становятся корневыми. Если нужно удалить вместе с потомками - это отдельная операция, пока не реализуется в v0.5, потом добавим флаг.
+Ответ 204: пустой.
+
+
 ### Пользователи
 ```
 GET    /api/v1/users/                    [admin]
@@ -1249,7 +1517,7 @@ Query parameters:
 
 Ответ 404: entity не найден
 
-### `GET /api/v1/analytics/shortest-path/`
+#### `GET /api/v1/analytics/shortest-path/`
 
 Публичный. `through` обязателен: без него граф слишком большой для обхода и запрос семантически некорректен.
 
@@ -1302,7 +1570,7 @@ Query parameters:
 }
 ```
 
-Ответ 422 - from == to:
+Ответ 400 - from == to:
 ```
 {
   "error": {
