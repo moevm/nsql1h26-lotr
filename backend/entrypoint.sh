@@ -50,11 +50,7 @@ python manage.py migrate --noinput
 # Neomodel (indexes, constraints)
 
 log "Installing neomodel labels and constraints..."
-python manage.py shell -c "
-from neomodel import install_all_labels
-install_all_labels()
-print('Labels and constraints installed.')
-"
+neomodel_install_labels apps.pages.models
 
 # Seed DB
 

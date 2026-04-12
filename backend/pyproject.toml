@@ -1,5 +1,5 @@
 [tool.mypy]
-python_version = "3.14"
+python_version = "3.12"
 strict = true
 plugins = [
     "mypy_django_plugin.main",
@@ -19,8 +19,13 @@ ignore_errors = true
 django_settings_module = "config.settings.base"
 
 [tool.pyright]
-pythonVersion = "3.14"
+pythonVersion = "3.12"
 typeCheckingMode = "standard"
 exclude = [
     "apps/pages/models.py",
 ]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["tests"]
