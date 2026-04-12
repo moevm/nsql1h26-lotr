@@ -1,0 +1,3956 @@
+openapi: 3.0.3
+info:
+  title: LotR Wiki API
+  description: "API contract version v1.
+
+    "
+  version: 0.5.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local dev server
+tags:
+  - name: auth
+    description: Authentication and profile management
+  - name: pages
+    description: Generic page operations (characters, locations, etc.)
+  - name: characters
+    description: Character catalog
+  - name: races
+    description: Race catalog
+  - name: locations
+    description: Location catalog
+  - name: events
+    description: Event catalog
+  - name: organizations
+    description: Organization catalog
+  - name: timelines
+    description: Timeline catalog
+  - name: items
+    description: Item catalog
+  - name: languages
+    description: Language catalog
+  - name: scripts
+    description: Script catalog
+  - name: categories
+    description: Page categories
+  - name: users
+    description: User management (admin)
+  - name: search
+    description: Global search
+  - name: analytics
+    description: Analytics and graph queries
+  - name: bulk
+    description: Bulk import/export
+  - name: meta
+    description: Metadata (node and relation types)
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained during login or registration.
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Page number (starting from 1)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSizeParam:
+      name: page_size
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    SortParam:
+      name: sort
+      in: query
+      description: Sort field (allowed values depend on the endpoint)
+      schema:
+        type: string
+    OrderParam:
+      name: order
+      in: query
+      description: Sort direction
+      schema:
+        type: string
+        enum:
+          - asc
+          - desc
+        default: asc
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Error code (for example, VALIDATION_ERROR)
+            message:
+              type: string
+              description: Human-readable description
+            fields:
+              type: object
+              nullable: true
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+              description: Field-level errors, if applicable
+    PaginatedResponse:
+      type: object
+      required:
+        - count
+        - next
+        - previous
+        - results
+      properties:
+        count:
+          type: integer
+          description: Total number of items
+        next:
+          type: string
+          nullable: true
+          format: uri
+          description: URL of the next page
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          description: URL of the previous page
+        results:
+          type: array
+          items: {}
+    User:
+      type: object
+      required:
+        - username
+        - email
+        - role
+        - createdAt
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+            - viewer
+            - admin
+        avatarUrl:
+          type: string
+          nullable: true
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+    Tokens:
+      type: object
+      required:
+        - access
+        - refresh
+      properties:
+        access:
+          type: string
+          description: JWT access token
+        refresh:
+          type: string
+          description: JWT refresh token
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        password_confirm:
+          type: string
+          description: May be omitted if validation is performed on the frontend
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    RefreshRequest:
+      type: object
+      required:
+        - refresh
+      properties:
+        refresh:
+          type: string
+    LogoutRequest:
+      type: object
+      required:
+        - refresh
+      properties:
+        refresh:
+          type: string
+    MeResponse:
+      allOf:
+        - $ref: "#/components/schemas/User"
+        - type: object
+          properties:
+            likedPages:
+              type: array
+              items:
+                $ref: "#/components/schemas/PageSummary"
+          required:
+            - likedPages
+    UpdateMeRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        avatarUrl:
+          type: string
+          format: uri
+        password:
+          type: string
+          minLength: 8
+        password_current:
+          type: string
+          description: Required when changing the password
+    PageSummary:
+      type: object
+      required:
+        - slug
+        - type
+        - name
+      properties:
+        slug:
+          type: string
+        type:
+          type: string
+          description: Page type (character, race, location, ...)
+        name:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+    Article:
+      type: object
+      properties:
+        text:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CategorySummary:
+      type: object
+      required:
+        - slug
+        - name
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+    RelationTarget:
+      type: object
+      required:
+        - slug
+        - type
+        - name
+      properties:
+        slug:
+          type: string
+        type:
+          type: string
+        name:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+    RelationItem:
+      type: object
+      required:
+        - target
+        - properties
+      properties:
+        target:
+          $ref: "#/components/schemas/RelationTarget"
+        properties:
+          type: object
+          additionalProperties: true
+          description: |
+            Edge properties. See GET /meta/relation-types/ for allowed fields per relation type.
+            Example for MEMBER_OF: { "role": "string", "fromDate": "string", "toDate": "string" }
+    Relations:
+      type: object
+      properties:
+        outgoing:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/RelationItem"
+          description: Outgoing relations grouped by relation type
+        incoming:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              required:
+                - from
+                - properties
+              properties:
+                from:
+                  $ref: "#/components/schemas/RelationTarget"
+                properties:
+                  type: object
+                  additionalProperties: true
+          description: Incoming relations grouped by relation type
+    CharacterAttributes:
+      type: object
+      properties:
+        titles:
+          type: array
+          items:
+            type: string
+        gender:
+          type: string
+          enum:
+            - male
+            - female
+            - unknown
+        birthDate:
+          type: string
+          nullable: true
+        deathDate:
+          type: string
+          nullable: true
+        hair:
+          type: string
+          nullable: true
+        eyes:
+          type: string
+          nullable: true
+        height:
+          type: string
+          nullable: true
+        weapon:
+          type: string
+          nullable: true
+        clothing:
+          type: string
+          nullable: true
+        notableFor:
+          type: string
+          nullable: true
+      description: Character page-specific attributes.
+    RaceAttributes:
+      type: object
+      properties:
+        lifespan:
+          type: string
+          nullable: true
+        avgHeight:
+          type: string
+          nullable: true
+        hair:
+          type: string
+          nullable: true
+        eyes:
+          type: string
+          nullable: true
+        skin:
+          type: string
+          nullable: true
+        weaponry:
+          type: string
+          nullable: true
+        clothing:
+          type: string
+          nullable: true
+        distinctions:
+          type: string
+          nullable: true
+      description: Race page-specific attributes.
+    LocationAttributes:
+      type: object
+      properties:
+        locationType:
+          type: string
+          nullable: true
+        population:
+          type: string
+          nullable: true
+        creationDate:
+          type: string
+          nullable: true
+        destructionDate:
+          type: string
+          nullable: true
+        notableFor:
+          type: string
+          nullable: true
+      description: Location page-specific attributes.
+    EventAttributes:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+          nullable: true
+        endDate:
+          type: string
+          nullable: true
+        casualties:
+          type: string
+          nullable: true
+        notableFor:
+          type: string
+          nullable: true
+      description: Event page-specific attributes.
+    OrganizationAttributes:
+      type: object
+      properties:
+        orgType:
+          type: string
+          nullable: true
+        foundedDate:
+          type: string
+          nullable: true
+        dissolvedDate:
+          type: string
+          nullable: true
+        purpose:
+          type: string
+          nullable: true
+        weaponry:
+          type: string
+          nullable: true
+        clothing:
+          type: string
+          nullable: true
+        notableFor:
+          type: string
+          nullable: true
+      description: Organization page-specific attributes.
+    TimelineAttributes:
+      type: object
+      properties:
+        abbreviation:
+          type: string
+        startDate:
+          type: string
+          nullable: true
+        endDate:
+          type: string
+          nullable: true
+      description: Timeline page-specific attributes.
+    ItemAttributes:
+      type: object
+      properties:
+        itemType:
+          type: string
+          nullable: true
+        material:
+          type: string
+          nullable: true
+        notableFor:
+          type: string
+          nullable: true
+      description: Item page-specific attributes.
+    LanguageAttributes:
+      type: object
+      properties:
+        family:
+          type: string
+          nullable: true
+      description: Language page-specific attributes.
+    ScriptAttributes:
+      type: object
+      properties: {}
+      description: Script page-specific attributes.
+    PageBase:
+      type: object
+      required:
+        - slug
+        - type
+        - names
+        - article
+        - relations
+        - categories
+        - likesCount
+        - commentsCount
+        - isLiked
+      properties:
+        slug:
+          type: string
+        type:
+          type: string
+        names:
+          type: array
+          items:
+            type: string
+        article:
+          $ref: "#/components/schemas/Article"
+        relations:
+          $ref: "#/components/schemas/Relations"
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategorySummary"
+        likesCount:
+          type: integer
+        isLiked:
+          type: boolean
+          nullable: true
+          description: null for unauthenticated users
+        commentsCount:
+          type: integer
+    CharacterPage:
+      allOf:
+        - $ref: "#/components/schemas/PageBase"
+        - type: object
+          required:
+            - attributes
+          properties:
+            type:
+              type: string
+              enum:
+                - character
+            attributes:
+              $ref: "#/components/schemas/CharacterAttributes"
+      description: Complete character page.
+    RacePage:
+      allOf:
+        - $ref: "#/components/schemas/PageBase"
+        - type: object
+          required:
+            - attributes
+          properties:
+            type:
+              type: string
+              enum:
+                - race
+            attributes:
+              $ref: "#/components/schemas/RaceAttributes"
+      description: Complete race page.
+    LocationPage:
+      allOf:
+        - $ref: "#/components/schemas/PageBase"
+        - type: object
+          required:
+            - attributes
+          properties:
+            type:
+              type: string
+              enum:
+                - location
+            attributes:
+              $ref: "#/components/schemas/LocationAttributes"
+      description: Complete location page.
+    EventPage:
+      allOf:
+        - $ref: "#/components/schemas/PageBase"
+        - type: object
+          required:
+            - attributes
+          properties:
+            type:
+              type: string
+              enum:
+                - event
+            attributes:
+              $ref: "#/components/schemas/EventAttributes"
+      description: Complete event page.
+    OrganizationPage:
+      allOf:
+        - $ref: "#/components/schemas/PageBase"
+        - type: object
+          required:
+            - attributes
+          properties:
+            type:
+              type: string
+              enum:
+                - organization
+            attributes:
+              $ref: "#/components/schemas/OrganizationAttributes"
+      description: Complete organization page.
+    TimelinePage:
+      allOf:
+        - $ref: "#/components/schemas/PageBase"
+        - type: object
+          required:
+            - attributes
+          properties:
+            type:
+              type: string
+              enum:
+                - timeline
+            attributes:
+              $ref: "#/components/schemas/TimelineAttributes"
+      description: Complete timeline page.
+    ItemPage:
+      allOf:
+        - $ref: "#/components/schemas/PageBase"
+        - type: object
+          required:
+            - attributes
+          properties:
+            type:
+              type: string
+              enum:
+                - item
+            attributes:
+              $ref: "#/components/schemas/ItemAttributes"
+      description: Complete item page.
+    LanguagePage:
+      allOf:
+        - $ref: "#/components/schemas/PageBase"
+        - type: object
+          required:
+            - attributes
+          properties:
+            type:
+              type: string
+              enum:
+                - language
+            attributes:
+              $ref: "#/components/schemas/LanguageAttributes"
+      description: Complete language page.
+    ScriptPage:
+      allOf:
+        - $ref: "#/components/schemas/PageBase"
+        - type: object
+          required:
+            - attributes
+          properties:
+            type:
+              type: string
+              enum:
+                - script
+            attributes:
+              $ref: "#/components/schemas/ScriptAttributes"
+      description: Complete script page.
+    PageUpdateRequest:
+      type: object
+      properties:
+        names:
+          type: array
+          items:
+            type: string
+        attributes:
+          type: object
+          description: Type-specific attributes
+        article:
+          type: object
+          properties:
+            text:
+              type: string
+            imageUrl:
+              type: string
+        categories:
+          type: array
+          items:
+            type: string
+            description: Category slug
+        relations:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              required:
+                - slug
+              properties:
+                slug:
+                  type: string
+                properties:
+                  type: object
+                  additionalProperties: true
+                  description:
+                    Arbitrary edge properties. See /meta/relation-types/
+                    for allowed fields per relation type.
+          description: |
+            Key: relation type (see /meta/relation-types/); 
+            Value: array of { "slug": string, "properties"?: object }.
+            Example: { "MEMBER_OF": [ { "slug": "fellowship", "properties": { "role": "member" } } ] }
+    CharacterListItem:
+      allOf:
+        - $ref: "#/components/schemas/PageSummary"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - character
+            notableFor:
+              type: string
+              nullable: true
+            gender:
+              type: string
+            birthDate:
+              type: string
+              nullable: true
+            race:
+              $ref: "#/components/schemas/PageSummary"
+      description: Character catalog list item.
+    RaceListItem:
+      allOf:
+        - $ref: "#/components/schemas/PageSummary"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - race
+            distinctions:
+              type: string
+              nullable: true
+            lifespan:
+              type: string
+              nullable: true
+            avgHeight:
+              type: string
+              nullable: true
+      description: Race catalog list item.
+    LocationListItem:
+      allOf:
+        - $ref: "#/components/schemas/PageSummary"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - location
+            locationType:
+              type: string
+              nullable: true
+            notableFor:
+              type: string
+              nullable: true
+            creationDate:
+              type: string
+              nullable: true
+      description: Location catalog list item.
+    EventListItem:
+      allOf:
+        - $ref: "#/components/schemas/PageSummary"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - event
+            eventType:
+              type: string
+              nullable: true
+            startDate:
+              type: string
+              nullable: true
+            endDate:
+              type: string
+              nullable: true
+      description: Event catalog list item.
+    OrganizationListItem:
+      allOf:
+        - $ref: "#/components/schemas/PageSummary"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - organization
+            orgType:
+              type: string
+              nullable: true
+            foundedDate:
+              type: string
+              nullable: true
+            purpose:
+              type: string
+              nullable: true
+      description: Organization catalog list item.
+    TimelineListItem:
+      allOf:
+        - $ref: "#/components/schemas/PageSummary"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - timeline
+            abbreviation:
+              type: string
+            startDate:
+              type: string
+              nullable: true
+            endDate:
+              type: string
+              nullable: true
+      description: Timeline catalog list item.
+    ItemListItem:
+      allOf:
+        - $ref: "#/components/schemas/PageSummary"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - item
+            itemType:
+              type: string
+              nullable: true
+            material:
+              type: string
+              nullable: true
+            notableFor:
+              type: string
+              nullable: true
+      description: Item catalog list item.
+    LanguageListItem:
+      allOf:
+        - $ref: "#/components/schemas/PageSummary"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - language
+            family:
+              type: string
+              nullable: true
+      description: Language catalog list item.
+    ScriptListItem:
+      allOf:
+        - $ref: "#/components/schemas/PageSummary"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - script
+      description: Script catalog list item.
+    Comment:
+      type: object
+      required:
+        - id
+        - text
+        - author
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        author:
+          type: object
+          properties:
+            username:
+              type: string
+            avatarUrl:
+              type: string
+              nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    CommentRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+    Category:
+      type: object
+      required:
+        - slug
+        - name
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        parentSlug:
+          type: string
+          nullable: true
+        childCount:
+          type: integer
+        pageCount:
+          type: integer
+    CategoryDetail:
+      allOf:
+        - $ref: "#/components/schemas/Category"
+        - type: object
+          properties:
+            parent:
+              type: object
+              nullable: true
+              properties:
+                slug:
+                  type: string
+                name:
+                  type: string
+            children:
+              type: array
+              items:
+                type: object
+                properties:
+                  slug:
+                    type: string
+                  name:
+                    type: string
+                  pageCount:
+                    type: integer
+            pages:
+              allOf:
+                - $ref: "#/components/schemas/PaginatedResponse"
+                - type: object
+                  properties:
+                    results:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/PageSummary"
+          required:
+            - parent
+            - children
+            - pages
+    CategoryCreateRequest:
+      type: object
+      required:
+        - name
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        parentSlug:
+          type: string
+    CategoryUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        parentSlug:
+          type: string
+          nullable: true
+    AdminUser:
+      allOf:
+        - $ref: "#/components/schemas/User"
+        - type: object
+          properties:
+            email:
+              type: string
+            role:
+              type: string
+              enum:
+                - viewer
+                - admin
+    PublicUserProfile:
+      type: object
+      required:
+        - username
+        - createdAt
+      properties:
+        username:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        commentsCount:
+          type: integer
+        likedPages:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageSummary"
+    UserRoleUpdateRequest:
+      type: object
+      required:
+        - role
+      properties:
+        role:
+          type: string
+          enum:
+            - viewer
+            - admin
+    SearchResultItem:
+      type: object
+      required:
+        - slug
+        - type
+        - name
+      properties:
+        slug:
+          type: string
+        type:
+          type: string
+        name:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+    GlobalStats:
+      type: object
+      properties:
+        counts:
+          type: object
+          properties:
+            total:
+              type: integer
+            characters:
+              type: integer
+            races:
+              type: integer
+            locations:
+              type: integer
+            events:
+              type: integer
+            organizations:
+              type: integer
+            timelines:
+              type: integer
+            items:
+              type: integer
+            languages:
+              type: integer
+            scripts:
+              type: integer
+            articles:
+              type: integer
+        charactersByRace:
+          type: array
+          items:
+            type: object
+            properties:
+              slug:
+                type: string
+              name:
+                type: string
+              count:
+                type: integer
+        charactersBySide:
+          type: array
+          items:
+            type: object
+            properties:
+              side:
+                type: string
+              count:
+                type: integer
+        topConnected:
+          type: object
+          properties:
+            characters:
+              type: array
+              items:
+                $ref: "#/components/schemas/TopConnectedItem"
+            locations:
+              type: array
+              items:
+                $ref: "#/components/schemas/TopConnectedItem"
+            events:
+              type: array
+              items:
+                $ref: "#/components/schemas/TopConnectedItem"
+            organizations:
+              type: array
+              items:
+                $ref: "#/components/schemas/TopConnectedItem"
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/TopConnectedItem"
+    TopConnectedItem:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        connectionsCount:
+          type: integer
+    NeighborsResponse:
+      type: object
+      properties:
+        root:
+          $ref: "#/components/schemas/PageSummary"
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageSummary"
+        edges:
+          type: array
+          items:
+            type: object
+            properties:
+              from:
+                type: string
+              to:
+                type: string
+              type:
+                type: string
+        stats:
+          type: object
+          properties:
+            totalNeighbors:
+              type: integer
+            byType:
+              type: object
+              additionalProperties:
+                type: integer
+            byRelation:
+              type: object
+              additionalProperties:
+                type: integer
+    ShortestPathResponse:
+      type: object
+      properties:
+        found:
+          type: boolean
+        length:
+          type: integer
+          nullable: true
+        from:
+          $ref: "#/components/schemas/PageSummary"
+        to:
+          $ref: "#/components/schemas/PageSummary"
+        path:
+          type: array
+          items:
+            type: object
+            properties:
+              node:
+                $ref: "#/components/schemas/PageSummary"
+              edgeToNext:
+                type: object
+                nullable: true
+                properties:
+                  type:
+                    type: string
+                  label:
+                    type: string
+    CustomAnalyticsData:
+      type: object
+      properties:
+        entityType:
+          type: string
+        xAttr:
+          type: string
+        yAttr:
+          type: string
+        agg:
+          type: string
+          enum:
+            - count
+          description: Aggregation function. Current contract supports count only.
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              x:
+                type: string
+              y:
+                type: string
+              value:
+                type: integer
+    BulkImportResponse:
+      type: object
+      properties:
+        imported:
+          type: object
+          additionalProperties:
+            type: integer
+        skipped:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              slug:
+                type: string
+              reason:
+                type: string
+    NodeType:
+      oneOf:
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [character] }
+            label: { type: string, enum: [Character] }
+            pluralLabel: { type: string, enum: [Characters] }
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [race] }
+            label: { type: string, enum: [Race] }
+            pluralLabel: { type: string, enum: [Races] }
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [location] }
+            label: { type: string, enum: [Location] }
+            pluralLabel: { type: string, enum: [Locations] }
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [event] }
+            label: { type: string, enum: [Event] }
+            pluralLabel: { type: string, enum: [Events] }
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [organization] }
+            label: { type: string, enum: [Organization] }
+            pluralLabel: { type: string, enum: [Organizations] }
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [timeline] }
+            label: { type: string, enum: [Timeline] }
+            pluralLabel: { type: string, enum: [Timelines] }
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [item] }
+            label: { type: string, enum: [Item] }
+            pluralLabel: { type: string, enum: [Items] }
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [language] }
+            label: { type: string, enum: [Language] }
+            pluralLabel: { type: string, enum: [Languages] }
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [script] }
+            label: { type: string, enum: [Script] }
+            pluralLabel: { type: string, enum: [Scripts] }
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [article] }
+            label: { type: string, enum: [Article] }
+            pluralLabel: { type: string, enum: [Articles] }
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [category] }
+            label: { type: string, enum: [Category] }
+            pluralLabel: { type: string, enum: [Categories] }
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [user] }
+            label: { type: string, enum: [User] }
+            pluralLabel: { type: string, enum: [Users] }
+        - type: object
+          required: [type, label, pluralLabel]
+          properties:
+            type: { type: string, enum: [comment] }
+            label: { type: string, enum: [Comment] }
+            pluralLabel: { type: string, enum: [Comments] }
+    RelationType:
+      oneOf:
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [CHILD_OF] }
+            label: { type: string, enum: [Child of] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [MARRIED_TO] }
+            label: { type: string, enum: [Married to] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [SIBLING_OF] }
+            label: { type: string, enum: [Sibling of] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [OF_RACE] }
+            label: { type: string, enum: [Of race] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [race] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [BORN_IN] }
+            label: { type: string, enum: [Born in] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [location] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [DIED_IN] }
+            label: { type: string, enum: [Died in] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [location] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [DWELLED_IN] }
+            label: { type: string, enum: [Dwelled in] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [location] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [SPEAKS] }
+            label: { type: string, enum: [Speaks] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [language] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [MEMBER_OF] }
+            label: { type: string, enum: [Member of] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [organization] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [PARTICIPATED_IN] }
+            label: { type: string, enum: [Participated in] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [event] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [LIVED_DURING] }
+            label: { type: string, enum: [Lived during] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [timeline] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [RULED] }
+            label: { type: string, enum: [Ruled] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [location, race] },
+                minItems: 2,
+                maxItems: 2,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [WIELDS] }
+            label: { type: string, enum: [Wields] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [item] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [OWNS] }
+            label: { type: string, enum: [Owns] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [item] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [BORE] }
+            label: { type: string, enum: [Bore] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [item] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [CRAFTED] }
+            label: { type: string, enum: [Crafted] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [character] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [item] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [SUBRACE_OF] }
+            label: { type: string, enum: [Subrace of] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [race] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [race] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [INHABITS] }
+            label: { type: string, enum: [Inhabits] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [race] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [location] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [REGION_OF] }
+            label: { type: string, enum: [Region of] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [location] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [location] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [TOOK_PLACE_IN] }
+            label: { type: string, enum: [Took place in] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [event] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [location] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [PART_OF] }
+            label: { type: string, enum: [Part of] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [event] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [event] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [OCCURRED_DURING] }
+            label: { type: string, enum: [Occurred during] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [event] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [timeline] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [BASED_IN] }
+            label: { type: string, enum: [Based in] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [organization] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [location] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [IS_SPOKEN_BY] }
+            label: { type: string, enum: [Is spoken by] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [race] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [language] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [SPOKEN_IN] }
+            label: { type: string, enum: [Spoken in] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [language] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [location] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [WRITTEN_IN] }
+            label: { type: string, enum: [Written in] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [language] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [script] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [HAS_ARTICLE] }
+            label: { type: string, enum: [Has article] }
+            from:
+              {
+                type: array,
+                items:
+                  {
+                    type: string,
+                    enum:
+                      [
+                        character,
+                        race,
+                        location,
+                        event,
+                        organization,
+                        timeline,
+                        item,
+                        language,
+                        script,
+                      ],
+                  },
+                minItems: 9,
+                maxItems: 9,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [article] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [IN_CATEGORY] }
+            label: { type: string, enum: [In category] }
+            from:
+              {
+                type: array,
+                items:
+                  {
+                    type: string,
+                    enum:
+                      [
+                        character,
+                        race,
+                        location,
+                        event,
+                        organization,
+                        timeline,
+                        item,
+                        language,
+                        script,
+                      ],
+                  },
+                minItems: 9,
+                maxItems: 9,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [category] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [SUBCATEGORY_OF] }
+            label: { type: string, enum: [Subcategory of] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [category] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [category] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [WROTE] }
+            label: { type: string, enum: [Wrote] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [user] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [comment] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [ON] }
+            label: { type: string, enum: [On] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [comment] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items:
+                  {
+                    type: string,
+                    enum:
+                      [
+                        character,
+                        race,
+                        location,
+                        event,
+                        organization,
+                        timeline,
+                        item,
+                        language,
+                        script,
+                      ],
+                  },
+                minItems: 9,
+                maxItems: 9,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [REPLY_TO] }
+            label: { type: string, enum: [Reply to] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [comment] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items: { type: string, enum: [comment] },
+                minItems: 1,
+                maxItems: 1,
+              }
+        - type: object
+          required: [type, label, from, to]
+          properties:
+            type: { type: string, enum: [LIKED] }
+            label: { type: string, enum: [Liked] }
+            from:
+              {
+                type: array,
+                items: { type: string, enum: [user] },
+                minItems: 1,
+                maxItems: 1,
+              }
+            to:
+              {
+                type: array,
+                items:
+                  {
+                    type: string,
+                    enum:
+                      [
+                        character,
+                        race,
+                        location,
+                        event,
+                        organization,
+                        timeline,
+                        item,
+                        language,
+                        script,
+                      ],
+                  },
+                minItems: 9,
+                maxItems: 9,
+              }
+    AuthResponse:
+      type: object
+      required:
+        - user
+        - tokens
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        tokens:
+          $ref: "#/components/schemas/Tokens"
+    LikeStateResponse:
+      type: object
+      required:
+        - likesCount
+        - isLiked
+      properties:
+        likesCount:
+          type: integer
+        isLiked:
+          type: boolean
+    PageResponse:
+      oneOf:
+        - $ref: "#/components/schemas/CharacterPage"
+        - $ref: "#/components/schemas/RacePage"
+        - $ref: "#/components/schemas/LocationPage"
+        - $ref: "#/components/schemas/EventPage"
+        - $ref: "#/components/schemas/OrganizationPage"
+        - $ref: "#/components/schemas/TimelinePage"
+        - $ref: "#/components/schemas/ItemPage"
+        - $ref: "#/components/schemas/LanguagePage"
+        - $ref: "#/components/schemas/ScriptPage"
+      discriminator:
+        propertyName: type
+        mapping:
+          character: "#/components/schemas/CharacterPage"
+          race: "#/components/schemas/RacePage"
+          location: "#/components/schemas/LocationPage"
+          event: "#/components/schemas/EventPage"
+          organization: "#/components/schemas/OrganizationPage"
+          timeline: "#/components/schemas/TimelinePage"
+          item: "#/components/schemas/ItemPage"
+          language: "#/components/schemas/LanguagePage"
+          script: "#/components/schemas/ScriptPage"
+    CategoryTreeItem:
+      type: object
+      required:
+        - slug
+        - name
+        - pageCount
+        - children
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        pageCount:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryTreeItem"
+paths:
+  /auth/register:
+    post:
+      tags:
+        - auth
+      summary: Register a new user
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Successful registration; the user is authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: User login
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/refresh:
+    post:
+      tags:
+        - auth
+      summary: Refresh the access token using a refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: New refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - refresh
+                properties:
+                  refresh:
+                    type: string
+        "401":
+          description: Token has expired or is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/logout:
+    post:
+      tags:
+        - auth
+      summary: Log out (invalidate the refresh token)
+      operationId: logout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "204":
+          description: Successful logout
+  /auth/me:
+    get:
+      tags:
+        - auth
+      summary: Retrieve the current user profile
+      operationId: getMe
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Profile data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+    patch:
+      tags:
+        - auth
+      summary: Update the current user profile
+      operationId: updateMe
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeRequest"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /pages/{slug}:
+    get:
+      tags:
+        - pages
+      summary: Retrieve a page by slug
+      operationId: getPage
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique page identifier
+      responses:
+        "200":
+          description: Page data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResponse"
+        "404":
+          description: Page not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - pages
+      summary: Update a page (admin only)
+      operationId: updatePage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PageUpdateRequest"
+      responses:
+        "200":
+          description: Updated page (same shape as GET)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+    delete:
+      tags:
+        - pages
+      summary: Delete a page (admin only)
+      operationId: deletePage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Page deleted
+  /pages/{slug}/like:
+    put:
+      tags:
+        - pages
+      summary: Like a page
+      operationId: likePage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Like created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeStateResponse"
+    delete:
+      tags:
+        - pages
+      summary: Remove a like from a page
+      operationId: unlikePage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Like removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeStateResponse"
+  /pages/{slug}/comments:
+    get:
+      tags:
+        - pages
+      summary: Retrieve comments for a page
+      operationId: getComments
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+      responses:
+        "200":
+          description: Comments list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Comment"
+    post:
+      tags:
+        - pages
+      summary: Add a comment to a page
+      operationId: addComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentRequest"
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /pages/{slug}/comments/{id}:
+    delete:
+      tags:
+        - pages
+      summary: Delete a comment
+      operationId: deleteComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Comment deleted
+        "403":
+          description: No permission to delete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Comment not found
+  /pages/{slug}/export:
+    get:
+      tags:
+        - pages
+      summary: Export data for a single page (admin)
+      operationId: exportPage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Export file (JSON)
+          content:
+            application/json:
+              schema:
+                type: object
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="frodo-baggins.json"
+  /pages/{slug}/import:
+    post:
+      tags:
+        - pages
+      summary: Import data for a single page from a file (admin)
+      operationId: importPage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Page updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResponse"
+        "400":
+          description: Invalid file format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /characters:
+    get:
+      tags:
+        - characters
+      summary: List of characters with filtering
+      operationId: listCharacters
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: names
+          in: query
+          schema:
+            type: string
+          description: Substring match in names
+        - name: gender
+          in: query
+          schema:
+            type: string
+            enum:
+              - male
+              - female
+              - unknown
+        - name: birth_date
+          in: query
+          schema:
+            type: string
+        - name: death_date
+          in: query
+          schema:
+            type: string
+        - name: is_alive
+          in: query
+          schema:
+            type: boolean
+        - name: hair
+          in: query
+          schema:
+            type: string
+        - name: eyes
+          in: query
+          schema:
+            type: string
+        - name: height
+          in: query
+          schema:
+            type: string
+        - name: weapon
+          in: query
+          schema:
+            type: string
+        - name: clothing
+          in: query
+          schema:
+            type: string
+        - name: notable_for
+          in: query
+          schema:
+            type: string
+        - name: race
+          in: query
+          schema:
+            type: string
+            description: Race slug
+        - name: organization
+          in: query
+          schema:
+            type: string
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: event
+          in: query
+          schema:
+            type: string
+        - name: item
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/OrderParam"
+      responses:
+        "200":
+          description: Character list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/CharacterListItem"
+    post:
+      tags:
+        - characters
+      summary: Create a new character (admin)
+      operationId: createCharacter
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - names
+                - gender
+              properties:
+                slug:
+                  type: string
+                names:
+                  type: array
+                  items:
+                    type: string
+                titles:
+                  type: array
+                  items:
+                    type: string
+                gender:
+                  type: string
+                  enum:
+                    - male
+                    - female
+                    - unknown
+                birthDate:
+                  type: string
+                deathDate:
+                  type: string
+                hair:
+                  type: string
+                eyes:
+                  type: string
+                height:
+                  type: string
+                weapon:
+                  type: string
+                clothing:
+                  type: string
+                notableFor:
+                  type: string
+                article:
+                  type: object
+                  properties:
+                    text:
+                      type: string
+                    imageUrl:
+                      type: string
+                categories:
+                  type: array
+                  items:
+                    type: string
+                relations:
+                  type: object
+                  additionalProperties:
+                    type: array
+                    items:
+                      type: string
+      responses:
+        "201":
+          description: Character created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CharacterPage"
+        "400":
+          description: Validation error
+        "409":
+          description: Slug is already taken
+  /races:
+    get:
+      tags:
+        - races
+      summary: Race list
+      operationId: listRaces
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: names
+          in: query
+          schema:
+            type: string
+        - name: lifespan
+          in: query
+          schema:
+            type: string
+        - name: avg_height
+          in: query
+          schema:
+            type: string
+        - name: hair
+          in: query
+          schema:
+            type: string
+        - name: eyes
+          in: query
+          schema:
+            type: string
+        - name: skin
+          in: query
+          schema:
+            type: string
+        - name: weaponry
+          in: query
+          schema:
+            type: string
+        - name: clothing
+          in: query
+          schema:
+            type: string
+        - name: distinctions
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/OrderParam"
+      responses:
+        "200":
+          description: Race list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RaceListItem"
+    post:
+      tags:
+        - races
+      summary: Create a new race (admin)
+      operationId: createRace
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - names
+              properties:
+                slug:
+                  type: string
+                names:
+                  type: array
+                  items:
+                    type: string
+                lifespan:
+                  type: string
+                avgHeight:
+                  type: string
+                hair:
+                  type: string
+                eyes:
+                  type: string
+                skin:
+                  type: string
+                weaponry:
+                  type: string
+                clothing:
+                  type: string
+                distinctions:
+                  type: string
+                article:
+                  $ref: "#/components/schemas/Article"
+                categories:
+                  type: array
+                  items:
+                    type: string
+                relations:
+                  type: object
+      responses:
+        "201":
+          description: Race created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RacePage"
+  /locations:
+    get:
+      tags:
+        - locations
+      summary: Location list
+      operationId: listLocations
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: names
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: population
+          in: query
+          schema:
+            type: string
+        - name: creation_date
+          in: query
+          schema:
+            type: string
+        - name: destruction_date
+          in: query
+          schema:
+            type: string
+        - name: is_destroyed
+          in: query
+          schema:
+            type: boolean
+        - name: notable_for
+          in: query
+          schema:
+            type: string
+        - name: character
+          in: query
+          schema:
+            type: string
+        - name: event
+          in: query
+          schema:
+            type: string
+        - name: organization
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/OrderParam"
+      responses:
+        "200":
+          description: Location list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/LocationListItem"
+    post:
+      tags:
+        - locations
+      summary: Create a new location (admin)
+      operationId: createLocation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - names
+              properties:
+                slug:
+                  type: string
+                names:
+                  type: array
+                  items:
+                    type: string
+                locationType:
+                  type: string
+                population:
+                  type: string
+                creationDate:
+                  type: string
+                destructionDate:
+                  type: string
+                notableFor:
+                  type: string
+                article:
+                  $ref: "#/components/schemas/Article"
+                categories:
+                  type: array
+                  items:
+                    type: string
+                relations:
+                  type: object
+      responses:
+        "201":
+          description: Location created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationPage"
+        "400":
+          description: Validation error
+        "409":
+          description: Slug is already taken
+  /events:
+    get:
+      tags:
+        - events
+      summary: Event list
+      operationId: listEvents
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: names
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: start_date
+          in: query
+          schema:
+            type: string
+        - name: end_date
+          in: query
+          schema:
+            type: string
+        - name: casualties
+          in: query
+          schema:
+            type: string
+        - name: notable_for
+          in: query
+          schema:
+            type: string
+        - name: character
+          in: query
+          schema:
+            type: string
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: organization
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/OrderParam"
+      responses:
+        "200":
+          description: Event list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/EventListItem"
+    post:
+      tags:
+        - events
+      summary: Create a new event (admin)
+      operationId: createEvent
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - names
+              properties:
+                slug:
+                  type: string
+                names:
+                  type: array
+                  items:
+                    type: string
+                eventType:
+                  type: string
+                startDate:
+                  type: string
+                endDate:
+                  type: string
+                casualties:
+                  type: string
+                notableFor:
+                  type: string
+                article:
+                  $ref: "#/components/schemas/Article"
+                categories:
+                  type: array
+                  items:
+                    type: string
+                relations:
+                  type: object
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventPage"
+        "400":
+          description: Validation error
+        "409":
+          description: Slug is already taken
+  /organizations:
+    get:
+      tags:
+        - organizations
+      summary: Organization list
+      operationId: listOrganizations
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: names
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: founded_date
+          in: query
+          schema:
+            type: string
+        - name: dissolved_date
+          in: query
+          schema:
+            type: string
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+        - name: clothing
+          in: query
+          schema:
+            type: string
+        - name: weaponry
+          in: query
+          schema:
+            type: string
+        - name: purpose
+          in: query
+          schema:
+            type: string
+        - name: notable_for
+          in: query
+          schema:
+            type: string
+        - name: character
+          in: query
+          schema:
+            type: string
+        - name: location
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/OrderParam"
+      responses:
+        "200":
+          description: Organization list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/OrganizationListItem"
+    post:
+      tags:
+        - organizations
+      summary: Create a new organization (admin)
+      operationId: createOrganization
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - names
+              properties:
+                slug:
+                  type: string
+                names:
+                  type: array
+                  items:
+                    type: string
+                orgType:
+                  type: string
+                foundedDate:
+                  type: string
+                dissolvedDate:
+                  type: string
+                clothing:
+                  type: string
+                weaponry:
+                  type: string
+                purpose:
+                  type: string
+                notableFor:
+                  type: string
+                article:
+                  $ref: "#/components/schemas/Article"
+                categories:
+                  type: array
+                  items:
+                    type: string
+                relations:
+                  type: object
+      responses:
+        "201":
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationPage"
+        "400":
+          description: Validation error
+        "409":
+          description: Slug is already taken
+  /timelines:
+    get:
+      tags:
+        - timelines
+      summary: Timeline list
+      operationId: listTimelines
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: abbreviation
+          in: query
+          schema:
+            type: string
+        - name: start_date
+          in: query
+          schema:
+            type: string
+        - name: end_date
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/OrderParam"
+      responses:
+        "200":
+          description: Timeline list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/TimelineListItem"
+    post:
+      tags:
+        - timelines
+      summary: Create a new timeline (admin)
+      operationId: createTimeline
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - names
+                - abbreviation
+              properties:
+                slug:
+                  type: string
+                names:
+                  type: array
+                  items:
+                    type: string
+                abbreviation:
+                  type: string
+                startDate:
+                  type: string
+                endDate:
+                  type: string
+                article:
+                  $ref: "#/components/schemas/Article"
+                categories:
+                  type: array
+                  items:
+                    type: string
+                relations:
+                  type: object
+      responses:
+        "201":
+          description: Timeline created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelinePage"
+        "400":
+          description: Validation error
+        "409":
+          description: Slug is already taken
+  /items:
+    get:
+      tags:
+        - items
+      summary: Item list
+      operationId: listItems
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: names
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: material
+          in: query
+          schema:
+            type: string
+        - name: notable_for
+          in: query
+          schema:
+            type: string
+        - name: owner
+          in: query
+          schema:
+            type: string
+        - name: location
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/OrderParam"
+      responses:
+        "200":
+          description: Item list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ItemListItem"
+    post:
+      tags:
+        - items
+      summary: Create a new item (admin)
+      operationId: createItem
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - names
+              properties:
+                slug:
+                  type: string
+                names:
+                  type: array
+                  items:
+                    type: string
+                itemType:
+                  type: string
+                material:
+                  type: string
+                notableFor:
+                  type: string
+                article:
+                  $ref: "#/components/schemas/Article"
+                categories:
+                  type: array
+                  items:
+                    type: string
+                relations:
+                  type: object
+      responses:
+        "201":
+          description: Item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemPage"
+        "400":
+          description: Validation error
+        "409":
+          description: Slug is already taken
+  /languages:
+    get:
+      tags:
+        - languages
+      summary: Language list
+      operationId: listLanguages
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: names
+          in: query
+          schema:
+            type: string
+        - name: family
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/OrderParam"
+      responses:
+        "200":
+          description: Language list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/LanguageListItem"
+    post:
+      tags:
+        - languages
+      summary: Create a new language (admin)
+      operationId: createLanguage
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - names
+              properties:
+                slug:
+                  type: string
+                names:
+                  type: array
+                  items:
+                    type: string
+                family:
+                  type: string
+                article:
+                  $ref: "#/components/schemas/Article"
+                categories:
+                  type: array
+                  items:
+                    type: string
+                relations:
+                  type: object
+      responses:
+        "201":
+          description: Language created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LanguagePage"
+        "400":
+          description: Validation error
+        "409":
+          description: Slug is already taken
+  /scripts:
+    get:
+      tags:
+        - scripts
+      summary: Script list
+      operationId: listScripts
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: names
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/OrderParam"
+      responses:
+        "200":
+          description: Script list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ScriptListItem"
+    post:
+      tags:
+        - scripts
+      summary: Create a new script (admin)
+      operationId: createScript
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - names
+              properties:
+                slug:
+                  type: string
+                names:
+                  type: array
+                  items:
+                    type: string
+                article:
+                  $ref: "#/components/schemas/Article"
+                categories:
+                  type: array
+                  items:
+                    type: string
+                relations:
+                  type: object
+      responses:
+        "201":
+          description: Script created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScriptPage"
+        "400":
+          description: Validation error
+        "409":
+          description: Slug is already taken
+  /categories:
+    get:
+      tags:
+        - categories
+      summary: Flat list of categories
+      operationId: listCategories
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: parent
+          in: query
+          schema:
+            type: string
+            description: Parent slug; use 'root' for root categories
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/OrderParam"
+      responses:
+        "200":
+          description: Category list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Category"
+    post:
+      tags:
+        - categories
+      summary: Create a category (admin)
+      operationId: createCategory
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryCreateRequest"
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryDetail"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Slug is already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /categories/tree:
+    get:
+      tags:
+        - categories
+      summary: Category tree
+      operationId: categoryTree
+      responses:
+        "200":
+          description: Category tree
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryTreeItem"
+      parameters:
+        - name: root
+          in: query
+          schema:
+            type: string
+          description: Slug of a root category to return a subtree
+  /categories/{slug}:
+    get:
+      tags:
+        - categories
+      summary: Category details with a paginated list of pages
+      operationId: getCategory
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: types
+          in: query
+          schema:
+            type: string
+            description: Comma-separated page types
+        - $ref: "#/components/parameters/SortParam"
+      responses:
+        "200":
+          description: Category details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryDetail"
+        "404":
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - categories
+      summary: Update a category (admin)
+      operationId: updateCategory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdateRequest"
+      responses:
+        "200":
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryDetail"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Attempt to create a cycle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - categories
+      summary: Delete a category (admin)
+      operationId: deleteCategory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Category deleted
+  /users:
+    get:
+      tags:
+        - users
+      summary: User list (admin)
+      operationId: listUsers
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: username
+          in: query
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum:
+              - viewer
+              - admin
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/OrderParam"
+      responses:
+        "200":
+          description: User list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/AdminUser"
+  /users/{username}:
+    get:
+      tags:
+        - users
+      summary: Public user profile
+      operationId: getUserProfile
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicUserProfile"
+        "404":
+          description: User not found
+    patch:
+      tags:
+        - users
+      summary: Change a user role (admin)
+      operationId: updateUserRole
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleUpdateRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "400":
+          description: Validation error
+    delete:
+      tags:
+        - users
+      summary: Delete a user (admin)
+      operationId: deleteUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: User deleted
+        "403":
+          description: You cannot delete your own account
+  /search:
+    get:
+      tags:
+        - search
+      summary: Global search by page names
+      operationId: search
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+        - name: types
+          in: query
+          schema:
+            type: string
+            description: Comma-separated types
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 5
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SearchResultItem"
+        "400":
+          description: Query is too short
+  /analytics/global:
+    get:
+      tags:
+        - analytics
+      summary: Global statistics
+      operationId: globalStats
+      responses:
+        "200":
+          description: Statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GlobalStats"
+  /analytics/neighbors:
+    get:
+      tags:
+        - analytics
+      summary: Node neighbors graph
+      operationId: neighbors
+      parameters:
+        - name: entity
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: node_types
+          in: query
+          schema:
+            type: string
+        - name: rel_types
+          in: query
+          schema:
+            type: string
+        - name: depth
+          in: query
+          schema:
+            type: integer
+            enum:
+              - 1
+              - 2
+            default: 1
+      responses:
+        "200":
+          description: Neighbors graph
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NeighborsResponse"
+        "400":
+          description: entity is not specified
+        "404":
+          description: Node not found
+  /analytics/shortest-path:
+    get:
+      tags:
+        - analytics
+      summary: Shortest path between nodes
+      operationId: shortestPath
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: through-nodes
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: through-rels
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Path (or absence information)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShortestPathResponse"
+        "400":
+          description: Invalid parameters
+  /analytics/custom:
+    get:
+      tags:
+        - analytics
+      summary: Custom analytics
+      operationId: customAnalytics
+      parameters:
+        - name: entity_type
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: x_attr
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: y_attr
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: agg
+          in: query
+          schema:
+            type: string
+            default: count
+      responses:
+        "200":
+          description: Chart data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomAnalyticsData"
+        "400":
+          description: entity_type is not specified
+  /bulk/export:
+    get:
+      tags:
+        - bulk
+      summary: Bulk export of all data (admin)
+      operationId: bulkExport
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: JSON file with the data
+          content:
+            application/json:
+              schema:
+                type: object
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="lotr-wiki-export-2024-03-16.json"
+  /bulk/import:
+    post:
+      tags:
+        - bulk
+      summary: Bulk import of data (admin)
+      operationId: bulkImport
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkImportResponse"
+        "400":
+          description: Invalid file format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /meta/node-types:
+    get:
+      tags:
+        - meta
+      summary: List of node types
+      operationId: nodeTypes
+      responses:
+        "200":
+          description: Node types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NodeType"
+  /meta/relation-types:
+    get:
+      tags:
+        - meta
+      summary: List of relation types
+      operationId: relationTypes
+      responses:
+        "200":
+          description: Relation types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RelationType"
