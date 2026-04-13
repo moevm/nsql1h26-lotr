@@ -231,8 +231,14 @@ class Character(PageNode):
         'LIVED_DURING',
         cardinality=ZeroOrMore,
     )
-    ruled = RelationshipTo(
+    ruled_location = RelationshipTo(
         'Location',
+        'RULED',
+        cardinality=ZeroOrMore,
+        model=RuledRel,
+    )
+    ruled_race = RelationshipTo(
+        'Race',
         'RULED',
         cardinality=ZeroOrMore,
         model=RuledRel,
