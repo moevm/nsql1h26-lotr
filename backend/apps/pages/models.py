@@ -22,7 +22,9 @@ from neomodel import (
     IntegerProperty,  # type: ignore
     ArrayProperty,  # type: ignore
     RelationshipTo,  # type: ignore
+    RelationshipFrom,  # type: ignore
     ZeroOrMore,  # type: ignore
+    ZeroOrOne,  # type: ignore
 )
 
 
@@ -111,7 +113,7 @@ class UserRef(StructuredNode):
     The graph stores social data (likes, comments).
     '''
 
-    __lavel__ = 'User'
+    __label__ = 'User'
 
     django_id = IntegerProperty(unique_index=True, required=True)
 
@@ -152,7 +154,7 @@ class PageNode(StructuredNode):
     names = ArrayProperty(StringProperty())
 
     # Every apge may have an artcile and belong to categories
-    article = RelationshipTo('Article', 'HAS_ARTICLE', cardinality=ZeroOrMore)
+    article = RelationshipTo('Article', 'HAS_ARTICLE', cardinality=ZeroOrOne)
     categories = RelationshipTo(
         'Category',
         'IN_CATEGORY',
@@ -160,13 +162,13 @@ class PageNode(StructuredNode):
     )
 
     # Inbound social edges
-    liked_by = RelationshipTo(
+    liked_by = RelationshipFrom(
         'UserRef',
         'LIKED',
         cardinality=ZeroOrMore,
         model=LikedRel,
     )
-    comments = RelationshipTo('Comment', 'ON', cardinality=ZeroOrMore)
+    comments = RelationshipFrom('Comment', 'ON', cardinality=ZeroOrMore)
 
 
 class Character(PageNode):
@@ -192,16 +194,16 @@ class Character(PageNode):
     titles = ArrayProperty(StringProperty())
 
     # relationships
-    race = RelationshipTo('Race', 'OF_RACE', cardinality=ZeroOrMore)
-    born_in = RelationshipTo('Location', 'BORN_IN', cardinality=ZeroOrMore)
-    died_in = RelationshipTo('Location', 'DIED_IN', cardinality=ZeroOrMore)
+    race = RelationshipTo('Race', 'OF_RACE', cardinality=ZeroOrOne)
+    born_in = RelationshipTo('Location', 'BORN_IN', cardinality=ZeroOrOne)
+    died_in = RelationshipTo('Location', 'DIED_IN', cardinality=ZeroOrOne)
     dwelled_in = RelationshipTo(
         'Location',
         'DWELLED_IN',
         cardinality=ZeroOrMore,
     )
     speaks = RelationshipTo('Language', 'SPEAKS', cardinality=ZeroOrMore)
-    child_od = RelationshipTo(
+    child_of = RelationshipTo(
         'Character',
         'CHILD_OF',
         cardinality=ZeroOrMore,
@@ -234,6 +236,12 @@ class Character(PageNode):
         'RULED',
         cardinality=ZeroOrMore,
         model=RuledRel,
+    )
+    member_of = RelationshipTo(
+        'Organization',
+        'MEMBER_OF',
+        cardinality=ZeroOrMore,
+        model=MemberOfRel,
     )
     wields = RelationshipTo('Item', 'WIELDS', cardinality=ZeroOrMore)
     owns = RelationshipTo('Item', 'OWNS', cardinality=ZeroOrMore)
@@ -329,7 +337,7 @@ class Item(PageNode):
 
     __label__ = 'Item'
 
-    entuty_type = StringProperty(db_property='type')
+    entity_type = StringProperty(db_property='type')
     material = StringProperty()
     notable_for = StringProperty()
 
