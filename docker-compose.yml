@@ -1,0 +1,76 @@
+# Ребята, если у вас не пашет из-за проблем с тлс хендшейком, включите впн или настройте зеркала для докера
+services:
+  db:
+    image: neo4j:2026.03-community
+    container_name: lotr_neo4j
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
+
+      # APOC plugin for bulk import/export later
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+      NEO4J_dbms_security_procedures_allowlist: "apoc.*"
+
+      NEO4J_server_memory_heap_initial__size: "256m"
+      NEO4J_server_memory_heap_max__size: "512m"
+      NEO4J_server_memory_pagecache_size: "256m"
+
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - >
+          cypher-shell
+          -u neo4j
+          -p ${NEO4J_PASSWORD}
+          -a bolt://localhost:7687
+          "RETURN 1"
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+    networks:
+      - lotr_net
+
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lotr_backend
+    image: lotr_backend:local
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+
+    env_file:
+      - .env
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    volumes:
+      - sqlite_data:/app/db
+
+    networks:
+      - lotr_net
+
+    restart: unless-stopped
+
+networks:
+  lotr_net:
+    driver: bridge
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  sqlite_data:
