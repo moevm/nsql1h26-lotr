@@ -35,7 +35,7 @@ urlpatterns = [
     # API - each app includes its urls
     path('api/v1/auth/', include('apps.users.urls')),
     path('api/v1/', include('apps.pages.urls')),
-    path('api/v1/', include('apps.catalogs.urls')),
+    path('api/v1/', include('apps.catalogs.urls', namespace='catalogs')),
     path('api/v1/analytics/', include('apps.analytics.urls')),
     path('api/v1/bulk/', include('apps.bulk.urls')),
     path('api/v1/meta/', include('apps.meta.urls')),
