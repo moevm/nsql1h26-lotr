@@ -3,10 +3,10 @@
 
 CHARACTER_LIST_QUERY = """\
 MATCH (c:Character)
-{where}
     OPTIONAL MATCH (c)-[:OF_RACE]->(race:Race)
     OPTIONAL MATCH (c)-[:BORN_IN]->(born_loc:Location)
 WITH c, race, born_loc
+{where}
 ORDER BY {order_by}
 SKIP $skip
 LIMIT $limit
@@ -31,9 +31,10 @@ RETURN
 
 CHARACTER_COUNT_QUERY = """\
 MATCH (c:Character)
-{where}
     OPTIONAL MATCH (c)-[:OF_RACE]->(race:Race)
     OPTIONAL MATCH (c)-[:BORN_IN]->(born_loc:Location)
+WITH c, race, born_loc
+{where}
 RETURN count(c) AS total
 """
 

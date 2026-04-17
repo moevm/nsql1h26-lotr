@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from apps.users.permissions import IsAdminRole
 
 from .filters import (
+    _HasCypherWhere,
     CharacterFilter,
     RaceFilter,
     LocationFilter,
@@ -38,6 +39,7 @@ from .services import (
     list_catalog,
     create_entity,
     slug_exists,
+    EntityConfig,
     CHARACTER_CONFIG,
     RACE_CONFIG,
     LOCATION_CONFIG,
@@ -52,7 +54,7 @@ from .services import (
 )
 
 
-# Helper functions
+# Parsing helper functions
 
 
 def _parse_bool(value: str | None) -> bool | None:
@@ -60,7 +62,14 @@ def _parse_bool(value: str | None) -> bool | None:
     if value is None:
         return None
 
-    return value.strip().lower() in ('true', '1', 'yes')
+    normalized = value.strip().lower()
+
+    if normalized in ('true', '1', 'yes'):
+        return True
+    if normalized in ('false', '0', 'no'):
+        return False
+
+    return None
 
 
 def _parse_int(value: str | None, default: int) -> int:
@@ -74,9 +83,12 @@ def _get_pagination_params(request: Request) -> tuple[int, int]:
     page = max(1, _parse_int(request.query_params.get('page'), 1))
     page_size = min(
         _MAX_PAGE_SIZE,
-        max(1, _parse_int(
-            request.query_params.get('page_size'), _DEFAULT_PAGE_SIZE
-        ))
+        max(
+            1,
+            _parse_int(
+                request.query_params.get('page_size'), _DEFAULT_PAGE_SIZE
+            )
+        )
     )
 
     return page, page_size
@@ -125,12 +137,25 @@ def _conflict_response(slug: str) -> Response:
 
 
 # Base class for similar catalog views
-class _BaseCatalogView(APIView):
+# Concrete views declare three class attributes and override build_filter()
+# GET and POST logic is implemented once here and never repeated
+class CatalogView(APIView):
     '''
-    Base view for catalogs.
+    Abstract base for catalog list/create endpoints.
     GET: AllowAny
     POST: IsAdminRole
+
+    Subclass protocol:
+        config = <EntityConfig>
+        output_serializer_class = <OutputSerializer>
+        create_serializer_class = <CreateSerializer>
+
+        def build_filter(self, request) -> <FilterDataclass>: ...
     '''
+
+    config: EntityConfig
+    output_serializer_class: type
+    create_serializer_class: type
 
     def get_permissions(self) -> list[Any]:
         if self.request.method == 'POST':
@@ -138,11 +163,54 @@ class _BaseCatalogView(APIView):
 
         return [AllowAny()]
 
-
-class CharacterListView(_BaseCatalogView):
+    def build_filter(self, request: Request) -> _HasCypherWhere:
+        raise NotImplementedError
 
     def get(self, request: Request) -> Response:
-        f = CharacterFilter(
+        filters = self.build_filter(request)
+        page, page_size = _get_pagination_params(request)
+        sort, order = _get_sort_params(request)
+        result = list_catalog(
+            config=self.config,
+            filters=filters,
+            page=page,
+            page_size=page_size,
+            sort=sort,
+            order=order,
+            base_url=request.build_absolute_uri(request.path),
+            filter_params=_filter_params_for_pagination(request)
+        )
+
+        return _paginated_response(result, self.output_serializer_class)
+
+    def post(self, request: Request) -> Response:
+        serializer = self.create_serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data: dict[str, Any] = serializer.validated_data
+
+        # Pre-check avoids a round-trip on the happy path;
+        # ConstraintError handles the TOCTOU race in unlikely concurrent case.
+        if slug_exists(data['slug']):
+            return _conflict_response(data['slug'])
+
+        try:
+            created = create_entity(self.config, data)
+        except ConstraintError:
+            return _conflict_response(data['slug'])
+
+        return Response(
+            self.output_serializer_class(created).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class CharacterListView(CatalogView):
+    config = CHARACTER_CONFIG
+    output_serializer_class = CharacterOutputSerializer
+    create_serializer_class = CharacterCreateSerializer
+
+    def build_filter(self, request: Request) -> CharacterFilter:
+        return CharacterFilter(
             name=request.query_params.get('name'),
             titles=request.query_params.get('titles'),
             gender=request.query_params.get('gender'),
@@ -160,46 +228,14 @@ class CharacterListView(_BaseCatalogView):
             born_in_slug=request.query_params.get('born_in_slug'),
         )
 
-        page, page_size = _get_pagination_params(request)
-        sort, order = _get_sort_params(request)
 
-        result = list_catalog(
-            config=CHARACTER_CONFIG,
-            filters=f,
-            page=page,
-            page_size=page_size,
-            sort=sort,
-            order=order,
-            base_url=request.build_absolute_uri(request.path),
-            filter_params=_filter_params_for_pagination(request),
-        )
+class RaceListView(CatalogView):
+    config = RACE_CONFIG
+    output_serializer_class = RaceOutputSerializer
+    create_serializer_class = RaceCreateSerializer
 
-        return _paginated_response(result, CharacterOutputSerializer)
-
-    def post(self, request: Request) -> Response:
-        serializer = CharacterCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data: dict[str, Any] = serializer.validated_data
-
-        # Needed in case of race condition
-        if slug_exists(data['slug']):
-            return _conflict_response(data['slug'])
-
-        try:
-            created = create_entity(CHARACTER_CONFIG, data)
-        except ConstraintError:
-            return _conflict_response(data['slug'])
-
-        return Response(
-            CharacterOutputSerializer(created).data,
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class RaceListView(_BaseCatalogView):
-
-    def get(self, request: Request) -> Response:
-        f = RaceFilter(
+    def build_filter(self, request: Request) -> RaceFilter:
+        return RaceFilter(
             name=request.query_params.get('name'),
             lifespan=request.query_params.get('lifespan'),
             avg_height=request.query_params.get('avg_height'),
@@ -211,45 +247,14 @@ class RaceListView(_BaseCatalogView):
             distinctions=request.query_params.get('distinctions'),
         )
 
-        page, page_size = _get_pagination_params(request)
-        sort, order = _get_sort_params(request)
 
-        result = list_catalog(
-            config=RACE_CONFIG,
-            filters=f,
-            page=page,
-            page_size=page_size,
-            sort=sort,
-            order=order,
-            base_url=request.build_absolute_uri(request.path),
-            filter_params=_filter_params_for_pagination(request),
-        )
+class LocationListView(CatalogView):
+    config = LOCATION_CONFIG
+    output_serializer_class = LocationOutputSerializer
+    create_serializer_class = LocationCreateSerializer
 
-        return _paginated_response(result, RaceOutputSerializer)
-
-    def post(self, request: Request) -> Response:
-        serializer = RaceCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data: dict[str, Any] = serializer.validated_data
-
-        if slug_exists(data['slug']):
-            return _conflict_response(data['slug'])
-
-        try:
-            created = create_entity(RACE_CONFIG, data)
-        except ConstraintError:
-            return _conflict_response(data['slug'])
-
-        return Response(
-            RaceOutputSerializer(created).data,
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class LocationListView(_BaseCatalogView):
-
-    def get(self, request: Request) -> Response:
-        f = LocationFilter(
+    def build_filter(self, request: Request) -> LocationFilter:
+        return LocationFilter(
             name=request.query_params.get('name'),
             entity_type=request.query_params.get('entity_type'),
             population=request.query_params.get('population'),
@@ -259,44 +264,14 @@ class LocationListView(_BaseCatalogView):
             is_destroyed=_parse_bool(request.query_params.get('is_destroyed')),
         )
 
-        page, page_size = _get_pagination_params(request)
-        sort, order = _get_sort_params(request)
 
-        result = list_catalog(
-            config=LOCATION_CONFIG,
-            filters=f,
-            page=page,
-            page_size=page_size,
-            sort=sort,
-            order=order,
-            base_url=request.build_absolute_uri(request.path),
-            filter_params=_filter_params_for_pagination(request),
-        )
+class EventListView(CatalogView):
+    config = EVENT_CONFIG
+    output_serializer_class = EventOutputSerializer
+    create_serializer_class = EventCreateSerializer
 
-        return _paginated_response(result, LocationOutputSerializer)
-
-    def post(self, request: Request) -> Response:
-        serializer = LocationCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data: dict[str, Any] = serializer.validated_data
-
-        if slug_exists(data['slug']):
-            return _conflict_response(data['slug'])
-
-        try:
-            created = create_entity(LOCATION_CONFIG, data)
-        except ConstraintError:
-            return _conflict_response(data['slug'])
-
-        return Response(
-            LocationOutputSerializer(created).data,
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class EventListView(_BaseCatalogView):
-    def get(self, request: Request) -> Response:
-        f = EventFilter(
+    def build_filter(self, request: Request) -> EventFilter:
+        return EventFilter(
             name=request.query_params.get('name'),
             entity_type=request.query_params.get('entity_type'),
             start_date=request.query_params.get('start_date'),
@@ -305,45 +280,14 @@ class EventListView(_BaseCatalogView):
             notable_for=request.query_params.get('notable_for'),
         )
 
-        page, page_size = _get_pagination_params(request)
-        sort, order = _get_sort_params(request)
 
-        result = list_catalog(
-            config=EVENT_CONFIG,
-            filters=f,
-            page=page,
-            page_size=page_size,
-            sort=sort,
-            order=order,
-            base_url=request.build_absolute_uri(request.path),
-            filter_params=_filter_params_for_pagination(request),
-        )
+class OrganizationListView(CatalogView):
+    config = ORGANIZATION_CONFIG
+    output_serializer_class = OrganizationOutputSerializer
+    create_serializer_class = OrganizationCreateSerializer
 
-        return _paginated_response(result, EventOutputSerializer)
-
-    def post(self, request: Request) -> Response:
-        serializer = EventCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data: dict[str, Any] = serializer.validated_data
-
-        if slug_exists(data['slug']):
-            return _conflict_response(data['slug'])
-
-        try:
-            created = create_entity(EVENT_CONFIG, data)
-        except ConstraintError:
-            return _conflict_response(data['slug'])
-
-        return Response(
-            EventOutputSerializer(created).data,
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class OrganizationListView(_BaseCatalogView):
-
-    def get(self, request: Request) -> Response:
-        f = OrganizationFilter(
+    def build_filter(self, request: Request) -> OrganizationFilter:
+        return OrganizationFilter(
             name=request.query_params.get('name'),
             entity_type=request.query_params.get('entity_type'),
             founded_date=request.query_params.get('founded_date'),
@@ -355,209 +299,51 @@ class OrganizationListView(_BaseCatalogView):
             is_dissolved=_parse_bool(request.query_params.get('is_dissolved')),
         )
 
-        page, page_size = _get_pagination_params(request)
-        sort, order = _get_sort_params(request)
 
-        result = list_catalog(
-            config=ORGANIZATION_CONFIG,
-            filters=f,
-            page=page,
-            page_size=page_size,
-            sort=sort,
-            order=order,
-            base_url=request.build_absolute_uri(request.path),
-            filter_params=_filter_params_for_pagination(request),
-        )
+class TimelineListView(CatalogView):
+    config = TIMELINE_CONFIG
+    output_serializer_class = TimelineOutputSerializer
+    create_serializer_class = TimelineCreateSerializer
 
-        return _paginated_response(result, OrganizationOutputSerializer)
-
-    def post(self, request: Request) -> Response:
-        serializer = OrganizationCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data: dict[str, Any] = serializer.validated_data
-
-        if slug_exists(data['slug']):
-            return _conflict_response(data['slug'])
-
-        try:
-            created = create_entity(ORGANIZATION_CONFIG, data)
-        except ConstraintError:
-            return _conflict_response(data['slug'])
-
-        return Response(
-            OrganizationOutputSerializer(created).data,
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class TimelineListView(_BaseCatalogView):
-
-    def get(self, request: Request) -> Response:
-        f = TimelineFilter(
+    def build_filter(self, request: Request) -> TimelineFilter:
+        return TimelineFilter(
             name=request.query_params.get('name'),
             abbreviation=request.query_params.get('abbreviation'),
             start_date=request.query_params.get('start_date'),
             end_date=request.query_params.get('end_date'),
         )
 
-        page, page_size = _get_pagination_params(request)
-        sort, order = _get_sort_params(request)
 
-        result = list_catalog(
-            config=TIMELINE_CONFIG,
-            filters=f,
-            page=page,
-            page_size=page_size,
-            sort=sort,
-            order=order,
-            base_url=request.build_absolute_uri(request.path),
-            filter_params=_filter_params_for_pagination(request),
-        )
+class ItemListView(CatalogView):
+    config = ITEM_CONFIG
+    output_serializer_class = ItemOutputSerializer
+    create_serializer_class = ItemCreateSerializer
 
-        return _paginated_response(result, TimelineOutputSerializer)
-
-    def post(self, request: Request) -> Response:
-        serializer = TimelineCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data: dict[str, Any] = serializer.validated_data
-
-        if slug_exists(data['slug']):
-            return _conflict_response(data['slug'])
-
-        try:
-            created = create_entity(TIMELINE_CONFIG, data)
-        except ConstraintError:
-            return _conflict_response(data['slug'])
-
-        return Response(
-            TimelineOutputSerializer(created).data,
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class ItemListView(_BaseCatalogView):
-
-    def get(self, request: Request) -> Response:
-        f = ItemFilter(
+    def build_filter(self, request: Request) -> ItemFilter:
+        return ItemFilter(
             name=request.query_params.get('name'),
             entity_type=request.query_params.get('entity_type'),
             material=request.query_params.get('material'),
             notable_for=request.query_params.get('notable_for'),
         )
 
-        page, page_size = _get_pagination_params(request)
-        sort, order = _get_sort_params(request)
 
-        result = list_catalog(
-            config=ITEM_CONFIG,
-            filters=f,
-            page=page,
-            page_size=page_size,
-            sort=sort,
-            order=order,
-            base_url=request.build_absolute_uri(request.path),
-            filter_params=_filter_params_for_pagination(request),
-        )
+class LanguageListView(CatalogView):
+    config = LANGUAGE_CONFIG
+    output_serializer_class = LanguageOutputSerializer
+    create_serializer_class = LanguageCreateSerializer
 
-        return _paginated_response(result, ItemOutputSerializer)
-
-    def post(self, request: Request) -> Response:
-        serializer = ItemCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data: dict[str, Any] = serializer.validated_data
-
-        if slug_exists(data['slug']):
-            return _conflict_response(data['slug'])
-
-        try:
-            created = create_entity(ITEM_CONFIG, data)
-        except ConstraintError:
-            return _conflict_response(data['slug'])
-
-        return Response(
-            ItemOutputSerializer(created).data,
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class LanguageListView(_BaseCatalogView):
-
-    def get(self, request: Request) -> Response:
-        f = LanguageFilter(
+    def build_filter(self, request: Request) -> LanguageFilter:
+        return LanguageFilter(
             name=request.query_params.get('name'),
             family=request.query_params.get('family'),
         )
 
-        page, page_size = _get_pagination_params(request)
-        sort, order = _get_sort_params(request)
 
-        result = list_catalog(
-            config=LANGUAGE_CONFIG,
-            filters=f,
-            page=page,
-            page_size=page_size,
-            sort=sort,
-            order=order,
-            base_url=request.build_absolute_uri(request.path),
-            filter_params=_filter_params_for_pagination(request),
-        )
+class ScriptListView(CatalogView):
+    config = SCRIPT_CONFIG
+    output_serializer_class = ScriptOutputSerializer
+    create_serializer_class = ScriptCreateSerializer
 
-        return _paginated_response(result, LanguageOutputSerializer)
-
-    def post(self, request: Request) -> Response:
-        serializer = LanguageCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data: dict[str, Any] = serializer.validated_data
-
-        if slug_exists(data['slug']):
-            return _conflict_response(data['slug'])
-
-        try:
-            created = create_entity(LANGUAGE_CONFIG, data)
-        except ConstraintError:
-            return _conflict_response(data['slug'])
-
-        return Response(
-            LanguageOutputSerializer(created).data,
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class ScriptListView(_BaseCatalogView):
-
-    def get(self, request: Request) -> Response:
-        f = ScriptFilter(name=request.query_params.get('name'))
-
-        page, page_size = _get_pagination_params(request)
-        sort, order = _get_sort_params(request)
-
-        result = list_catalog(
-            config=SCRIPT_CONFIG,
-            filters=f,
-            page=page,
-            page_size=page_size,
-            sort=sort,
-            order=order,
-            base_url=request.build_absolute_uri(request.path),
-            filter_params=_filter_params_for_pagination(request),
-        )
-
-        return _paginated_response(result, ScriptOutputSerializer)
-
-    def post(self, request: Request) -> Response:
-        serializer = ScriptCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data: dict[str, Any] = serializer.validated_data
-
-        if slug_exists(data['slug']):
-            return _conflict_response(data['slug'])
-
-        try:
-            created = create_entity(SCRIPT_CONFIG, data)
-        except ConstraintError:
-            return _conflict_response(data['slug'])
-
-        return Response(
-            ScriptOutputSerializer(created).data,
-            status=status.HTTP_201_CREATED,
-        )
+    def build_filter(self, request: Request) -> ScriptFilter:
+        return ScriptFilter(name=request.query_params.get('name'))

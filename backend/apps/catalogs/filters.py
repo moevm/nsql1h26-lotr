@@ -8,18 +8,61 @@ class _HasCypherWhere(Protocol):
         raise NotImplementedError
 
 
+# Helpers
+
+
+def _text(
+        alias: str,
+        field: str,
+        param: str,
+        value: str | None,
+) -> tuple[str, str] | None:
+    '''Case-insensitive substring condition for a scalar string property.'''
+    if not value:
+        return None
+
+    return (
+        f'toLower({alias}.{field}) CONTAINS toLower(${param})',
+        param,
+    )
+
+
+def _list_text(
+        alias: str,
+        field: str,
+        param: str,
+        value: str | None,
+) -> tuple[str, str] | None:
+    if not value:
+        return None
+
+    return (
+        (f'ANY(n IN {alias}.{field} WHERE toLower(n) '
+         f'CONTAINS toLower(${param}))'),
+        param,
+    )
+
+
+def _build_where(conditions: list[str]) -> str:
+    return ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
+
+
+# Filter dataclasses
+
+
 @dataclass
 class CharacterFilter:
     '''
     Filters for character catalog.
     Each field is a separate input on the frontend.
     Text fields: case-insensitive substring search.
+    JOIN fields: require OPTIONAL MATCH in the query (race, born_in)
     '''
 
     name: str | None = None
     titles: str | None = None
     gender: str | None = None
-    is_alive: bool | None = None  # None -> all
+    is_alive: bool | None = None  # None -> no filter
     birth_date: str | None = None
     death_date: str | None = None
     hair: str | None = None
@@ -37,17 +80,16 @@ class CharacterFilter:
         conditions: list[str] = []
         params: dict[str, Any] = {}
 
-        if self.name:
-            conditions.append(
-                'ANY(n IN c.names WHERE toLower(n) CONTAINS toLower($name))'
-            )
-            params['name'] = self.name
-
-        if self.titles:
-            conditions.append(
-                'ANY(t in c.titles WHERE toLower(t) CONTAINS toLower($titles))'
-            )
-            params['titles'] = self.titles
+        for value, param_key, alias, field in [
+            (self.name, 'name', 'c', 'names'),
+            (self.titles, 'titles', 'c', 'titles'),
+        ]:
+            if value:
+                conditions.append(
+                    (f'ANY(n IN {alias}.{field} WHERE toLower(n) '
+                     f'CONTAINS toLower(${param_key}))')
+                )
+                params[param_key] = value
 
         if self.gender:
             conditions.append(
@@ -64,7 +106,7 @@ class CharacterFilter:
                 'c.deathDate IS NOT NULL'
             )
 
-        for field, param_key, cypher_prop in [
+        for value, param_key, cypher_prop in [
             (self.birth_date, 'birth_date', 'c.birthDate'),
             (self.death_date, 'death_date', 'c.deathDate'),
             (self.hair, 'hair', 'c.hair'),
@@ -74,11 +116,11 @@ class CharacterFilter:
             (self.clothing, 'clothing', 'c.clothing'),
             (self.notable_for, 'notable_for', 'c.notableFor'),
         ]:
-            if field:
+            if value:
                 conditions.append(
                     f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
                 )
-                params[param_key] = field
+                params[param_key] = value
 
         # JOIN-filters: OPTIONAL MATCH in main query
         # NULL = $param is always FALSE, so nodes w/o the relation will be
@@ -91,12 +133,7 @@ class CharacterFilter:
             conditions.append('born_loc.slug = $born_in_slug')
             params['born_in_slug'] = self.born_in_slug
 
-        where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
-
-        print(f"[DEBUG] is_alive = {self.is_alive}")
-        print(f"[DEBUG] conditions = {conditions}")
-
-        return where, params
+        return _build_where(conditions), params
 
 
 @dataclass
@@ -121,7 +158,7 @@ class RaceFilter:
             )
             params['name'] = self.name
 
-        for field, param_key, cypher_prop in [
+        for value, param_key, cypher_prop in [
             (self.lifespan, 'lifespan', 'r.lifespan'),
             (self.avg_height, 'avg_height', 'r.avgHeight'),
             (self.hair, 'hair', 'r.hair'),
@@ -131,15 +168,13 @@ class RaceFilter:
             (self.clothing, 'clothing', 'r.clothing'),
             (self.distinctions, 'distinctions', 'r.distinctions'),
         ]:
-            if field:
+            if value:
                 conditions.append(
                     f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
                 )
-                params[param_key] = field
+                params[param_key] = value
 
-        where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
-
-        return where, params
+        return _build_where(conditions), params
 
 
 @dataclass
@@ -171,28 +206,26 @@ class LocationFilter:
                 'l.destructionDate IS NULL'
             )
 
-        for field, param_key, cypher_prop in [
+        for value, param_key, cypher_prop in [
             (self.entity_type, 'entity_type', 'l.type'),
             (self.population, 'population', 'l.population'),
             (self.creation_date, 'creation_date', 'l.creationDate'),
             (self.destruction_date, 'destruction_date', 'l.destructionDate'),
             (self.notable_for, 'notable_for', 'l.notableFor'),
         ]:
-            if field:
+            if value:
                 conditions.append(
                     f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
                 )
-                params[param_key] = field
+                params[param_key] = value
 
-        where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
-
-        return where, params
+        return _build_where(conditions), params
 
 
 @dataclass
 class EventFilter:
     name: str | None = None
-    entity_type: str | None = None  # Cypher: l.type
+    entity_type: str | None = None  # Cypher: e.type
     start_date: str | None = None
     end_date: str | None = None
     casualties: str | None = None
@@ -208,28 +241,26 @@ class EventFilter:
             )
             params['name'] = self.name
 
-        for field, param_key, cypher_prop in [
+        for value, param_key, cypher_prop in [
             (self.entity_type, 'entity_type', 'e.type'),
             (self.start_date, 'start_date', 'e.startDate'),
             (self.end_date, 'end_date', 'e.endDate'),
             (self.casualties, 'casualties', 'e.casualties'),
             (self.notable_for, 'notable_for', 'e.notableFor'),
         ]:
-            if field:
+            if value:
                 conditions.append(
                     f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
                 )
-                params[param_key] = field
+                params[param_key] = value
 
-        where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
-
-        return where, params
+        return _build_where(conditions), params
 
 
 @dataclass
 class OrganizationFilter:
     name: str | None = None
-    entity_type: str | None = None  # Cypher: l.type
+    entity_type: str | None = None  # Cypher: o.type
     founded_date: str | None = None
     dissolved_date: str | None = None
     clothing: str | None = None
@@ -257,7 +288,7 @@ class OrganizationFilter:
                 'o.dissolvedDate IS NULL'
             )
 
-        for field, param_key, cypher_prop in [
+        for value, param_key, cypher_prop in [
             (self.entity_type, 'entity_type', 'o.type'),
             (self.founded_date, 'founded_date', 'o.foundedDate'),
             (self.dissolved_date, 'dissolved_date', 'o.dissolvedDate'),
@@ -266,15 +297,13 @@ class OrganizationFilter:
             (self.purpose, 'purpose', 'o.purpose'),
             (self.notable_for, 'notable_for', 'o.notableFor'),
         ]:
-            if field:
+            if value:
                 conditions.append(
                     f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
                 )
-                params[param_key] = field
+                params[param_key] = value
 
-        where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
-
-        return where, params
+        return _build_where(conditions), params
 
 
 @dataclass
@@ -294,26 +323,24 @@ class TimelineFilter:
             )
             params['name'] = self.name
 
-        for field, param_key, cypher_prop in [
+        for value, param_key, cypher_prop in [
             (self.abbreviation, 'abbreviation', 't.abbreviation'),
             (self.start_date, 'start_date', 't.startDate'),
             (self.end_date, 'end_date', 't.endDate'),
         ]:
-            if field:
+            if value:
                 conditions.append(
                     f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
                 )
-                params[param_key] = field
+                params[param_key] = value
 
-        where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
-
-        return where, params
+        return _build_where(conditions), params
 
 
 @dataclass
 class ItemFilter:
     name: str | None = None
-    entity_type: str | None = None  # Cypher: l.type
+    entity_type: str | None = None  # Cypher: i.type
     material: str | None = None
     notable_for: str | None = None
 
@@ -327,20 +354,18 @@ class ItemFilter:
             )
             params['name'] = self.name
 
-        for field, param_key, cypher_prop in [
+        for value, param_key, cypher_prop in [
             (self.entity_type, 'entity_type', 'i.type'),
             (self.material, 'material', 'i.material'),
             (self.notable_for, 'notable_for', 'i.notableFor'),
         ]:
-            if field:
+            if value:
                 conditions.append(
                     f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
                 )
-                params[param_key] = field
+                params[param_key] = value
 
-        where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
-
-        return where, params
+        return _build_where(conditions), params
 
 
 @dataclass
@@ -358,18 +383,16 @@ class LanguageFilter:
             )
             params['name'] = self.name
 
-        for field, param_key, cypher_prop in [
+        for value, param_key, cypher_prop in [
             (self.family, 'family', 'lang.family'),
         ]:
-            if field:
+            if value:
                 conditions.append(
                     f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
                 )
-                params[param_key] = field
+                params[param_key] = value
 
-        where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
-
-        return where, params
+        return _build_where(conditions), params
 
 
 @dataclass
@@ -386,6 +409,4 @@ class ScriptFilter:
             )
             params['name'] = self.name
 
-        where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
-
-        return where, params
+        return _build_where(conditions), params

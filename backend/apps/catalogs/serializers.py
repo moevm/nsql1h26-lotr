@@ -12,6 +12,8 @@ class _NamesField(serializers.ListField):
 
 
 class _OptionalNamesField(serializers.ListField):
+    '''Optional LIST<STRING>, defaults to empty list'''
+
     child = serializers.CharField(max_length=100)
 
     def __init__(self, **kwargs) -> None:
@@ -245,7 +247,7 @@ class TimelineOutputSerializer(serializers.Serializer):
 
 class TimelineCreateSerializer(serializers.Serializer):
     slug = serializers.SlugField(max_length=80, required=True)
-    name = _NamesField()
+    names = _NamesField()
     start_date = serializers.CharField(
         max_length=30, allow_null=True, required=False, default=None
     )
@@ -309,7 +311,7 @@ class ScriptCreateSerializer(serializers.Serializer):
     names = _NamesField()
 
 
-# Pagination wrapper
+# Pagination envelope - used in @extend_schema
 class PaginatedResponseSerializer(serializers.Serializer):
     '''
     Wrapper for {count, next, previous, results}.
