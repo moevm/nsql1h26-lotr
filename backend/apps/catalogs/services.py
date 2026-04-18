@@ -216,9 +216,6 @@ def list_catalog(
         base_url, filter_params, page, page_size, total
     )
 
-    print('DEBUG:', list_query)
-    print('DEBUG:', count_query)
-
     return PaginatedResult(
         count=total,
         next=next_url,

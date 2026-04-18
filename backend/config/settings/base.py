@@ -158,7 +158,7 @@ def _configure_neomodel() -> None:
 
     neomodel_config.DATABASE_URL = os.environ['NEO4J_BOLT_URL']
     neomodel_config.MAX_CONNECTION_POOL_SIZE = int(
-        os.getenv('NEO$J_MAX_POOL_SIZE', '50')
+        os.getenv('NEO4J_MAX_POOL_SIZE', '50')
     )
     neomodel_config.FORCE_TIMEZONE = True
 

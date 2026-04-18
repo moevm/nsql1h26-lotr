@@ -1,4 +1,10 @@
 from django.urls import path
 
+from .views import PageDetailView
 
-urlpatterns: list = []
+app_name = 'pages'
+
+
+urlpatterns = [
+    path('pages/<slug:slug>/', PageDetailView.as_view(), name='page-detail'),
+]
