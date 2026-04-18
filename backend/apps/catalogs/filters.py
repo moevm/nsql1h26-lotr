@@ -16,15 +16,12 @@ def _text(
         field: str,
         param: str,
         value: str | None,
-) -> tuple[str, str] | None:
+) -> str | None:
     '''Case-insensitive substring condition for a scalar string property.'''
     if not value:
         return None
 
-    return (
-        f'toLower({alias}.{field}) CONTAINS toLower(${param})',
-        param,
-    )
+    return f'toLower({alias}.{field}) CONTAINS toLower(${param})'
 
 
 def _list_text(
@@ -32,15 +29,12 @@ def _list_text(
         field: str,
         param: str,
         value: str | None,
-) -> tuple[str, str] | None:
+) -> str | None:
     if not value:
         return None
 
-    return (
-        (f'ANY(n IN {alias}.{field} WHERE toLower(n) '
-         f'CONTAINS toLower(${param}))'),
-        param,
-    )
+    return (f'ANY(n IN {alias}.{field} WHERE toLower(n) '
+            f'CONTAINS toLower(${param}))')
 
 
 def _build_where(conditions: list[str]) -> str:
@@ -84,11 +78,9 @@ class CharacterFilter:
             (self.name, 'name', 'c', 'names'),
             (self.titles, 'titles', 'c', 'titles'),
         ]:
-            if value:
-                conditions.append(
-                    (f'ANY(n IN {alias}.{field} WHERE toLower(n) '
-                     f'CONTAINS toLower(${param_key}))')
-                )
+            condition = _list_text(alias, field, param_key, value)
+            if condition:
+                conditions.append(condition)
                 params[param_key] = value
 
         if self.gender:
@@ -106,20 +98,19 @@ class CharacterFilter:
                 'c.deathDate IS NOT NULL'
             )
 
-        for value, param_key, cypher_prop in [
-            (self.birth_date, 'birth_date', 'c.birthDate'),
-            (self.death_date, 'death_date', 'c.deathDate'),
-            (self.hair, 'hair', 'c.hair'),
-            (self.eyes, 'eyes', 'c.eyes'),
-            (self.height, 'height', 'c.height'),
-            (self.weapon, 'weapon', 'c.weapon'),
-            (self.clothing, 'clothing', 'c.clothing'),
-            (self.notable_for, 'notable_for', 'c.notableFor'),
+        for value, param_key, alias, field in [
+            (self.birth_date, 'birth_date', 'c', 'birthDate'),
+            (self.death_date, 'death_date', 'c', 'deathDate'),
+            (self.hair, 'hair', 'c', 'hair'),
+            (self.eyes, 'eyes', 'c', 'eyes'),
+            (self.height, 'height', 'c', 'height'),
+            (self.weapon, 'weapon', 'c', 'weapon'),
+            (self.clothing, 'clothing', 'c', 'clothing'),
+            (self.notable_for, 'notable_for', 'c', 'notableFor'),
         ]:
-            if value:
-                conditions.append(
-                    f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
-                )
+            condition = _text(alias, field, param_key, value)
+            if condition:
+                conditions.append(condition)
                 params[param_key] = value
 
         # JOIN-filters: OPTIONAL MATCH in main query
@@ -158,20 +149,19 @@ class RaceFilter:
             )
             params['name'] = self.name
 
-        for value, param_key, cypher_prop in [
-            (self.lifespan, 'lifespan', 'r.lifespan'),
-            (self.avg_height, 'avg_height', 'r.avgHeight'),
-            (self.hair, 'hair', 'r.hair'),
-            (self.eyes, 'eyes', 'r.eyes'),
-            (self.skin, 'skin', 'r.skin'),
-            (self.weaponry, 'weaponry', 'r.weaponry'),
-            (self.clothing, 'clothing', 'r.clothing'),
-            (self.distinctions, 'distinctions', 'r.distinctions'),
+        for value, param_key, alias, field in [
+            (self.lifespan, 'lifespan', 'r', 'lifespan'),
+            (self.avg_height, 'avg_height', 'r', 'avgHeight'),
+            (self.hair, 'hair', 'r', 'hair'),
+            (self.eyes, 'eyes', 'r', 'eyes'),
+            (self.skin, 'skin', 'r', 'skin'),
+            (self.weaponry, 'weaponry', 'r', 'weaponry'),
+            (self.clothing, 'clothing', 'r', 'clothing'),
+            (self.distinctions, 'distinctions', 'r', 'distinctions'),
         ]:
-            if value:
-                conditions.append(
-                    f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
-                )
+            condition = _text(alias, field, param_key, value)
+            if condition:
+                conditions.append(condition)
                 params[param_key] = value
 
         return _build_where(conditions), params
@@ -206,17 +196,17 @@ class LocationFilter:
                 'l.destructionDate IS NULL'
             )
 
-        for value, param_key, cypher_prop in [
-            (self.entity_type, 'entity_type', 'l.type'),
-            (self.population, 'population', 'l.population'),
-            (self.creation_date, 'creation_date', 'l.creationDate'),
-            (self.destruction_date, 'destruction_date', 'l.destructionDate'),
-            (self.notable_for, 'notable_for', 'l.notableFor'),
+        for value, param_key, alias, field in [
+            (self.entity_type, 'entity_type', 'l', 'type'),
+            (self.population, 'population', 'l', 'population'),
+            (self.creation_date, 'creation_date', 'l', 'creationDate'),
+            (self.destruction_date, 'destruction_date', 'l',
+             'destructionDate'),
+            (self.notable_for, 'notable_for', 'l', 'notableFor'),
         ]:
-            if value:
-                conditions.append(
-                    f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
-                )
+            condition = _text(alias, field, param_key, value)
+            if condition:
+                conditions.append(condition)
                 params[param_key] = value
 
         return _build_where(conditions), params
@@ -241,17 +231,16 @@ class EventFilter:
             )
             params['name'] = self.name
 
-        for value, param_key, cypher_prop in [
-            (self.entity_type, 'entity_type', 'e.type'),
-            (self.start_date, 'start_date', 'e.startDate'),
-            (self.end_date, 'end_date', 'e.endDate'),
-            (self.casualties, 'casualties', 'e.casualties'),
-            (self.notable_for, 'notable_for', 'e.notableFor'),
+        for value, param_key, alias, field in [
+            (self.entity_type, 'entity_type', 'e', 'type'),
+            (self.start_date, 'start_date', 'e', 'startDate'),
+            (self.end_date, 'end_date', 'e', 'endDate'),
+            (self.casualties, 'casualties', 'e', 'casualties'),
+            (self.notable_for, 'notable_for', 'e', 'notableFor'),
         ]:
-            if value:
-                conditions.append(
-                    f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
-                )
+            condition = _text(alias, field, param_key, value)
+            if condition:
+                conditions.append(condition)
                 params[param_key] = value
 
         return _build_where(conditions), params
@@ -288,19 +277,18 @@ class OrganizationFilter:
                 'o.dissolvedDate IS NULL'
             )
 
-        for value, param_key, cypher_prop in [
-            (self.entity_type, 'entity_type', 'o.type'),
-            (self.founded_date, 'founded_date', 'o.foundedDate'),
-            (self.dissolved_date, 'dissolved_date', 'o.dissolvedDate'),
-            (self.clothing, 'clothing', 'o.clothing'),
-            (self.weaponry, 'weaponry', 'o.weaponry'),
-            (self.purpose, 'purpose', 'o.purpose'),
-            (self.notable_for, 'notable_for', 'o.notableFor'),
+        for value, param_key, alias, field in [
+            (self.entity_type, 'entity_type', 'o', 'type'),
+            (self.founded_date, 'founded_date', 'o', 'foundedDate'),
+            (self.dissolved_date, 'dissolved_date', 'o', 'dissolvedDate'),
+            (self.clothing, 'clothing', 'o', 'clothing'),
+            (self.weaponry, 'weaponry', 'o', 'weaponry'),
+            (self.purpose, 'purpose', 'o', 'purpose'),
+            (self.notable_for, 'notable_for', 'o', 'notableFor'),
         ]:
-            if value:
-                conditions.append(
-                    f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
-                )
+            condition = _text(alias, field, param_key, value)
+            if condition:
+                conditions.append(condition)
                 params[param_key] = value
 
         return _build_where(conditions), params
@@ -323,15 +311,14 @@ class TimelineFilter:
             )
             params['name'] = self.name
 
-        for value, param_key, cypher_prop in [
-            (self.abbreviation, 'abbreviation', 't.abbreviation'),
-            (self.start_date, 'start_date', 't.startDate'),
-            (self.end_date, 'end_date', 't.endDate'),
+        for value, param_key, alias, field in [
+            (self.abbreviation, 'abbreviation', 't', 'abbreviation'),
+            (self.start_date, 'start_date', 't', 'startDate'),
+            (self.end_date, 'end_date', 't', 'endDate'),
         ]:
-            if value:
-                conditions.append(
-                    f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
-                )
+            condition = _text(alias, field, param_key, value)
+            if condition:
+                conditions.append(condition)
                 params[param_key] = value
 
         return _build_where(conditions), params
@@ -354,15 +341,14 @@ class ItemFilter:
             )
             params['name'] = self.name
 
-        for value, param_key, cypher_prop in [
-            (self.entity_type, 'entity_type', 'i.type'),
-            (self.material, 'material', 'i.material'),
-            (self.notable_for, 'notable_for', 'i.notableFor'),
+        for value, param_key, alias, field in [
+            (self.entity_type, 'entity_type', 'i', 'type'),
+            (self.material, 'material', 'i', 'material'),
+            (self.notable_for, 'notable_for', 'i', 'notableFor'),
         ]:
-            if value:
-                conditions.append(
-                    f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
-                )
+            condition = _text(alias, field, param_key, value)
+            if condition:
+                conditions.append(condition)
                 params[param_key] = value
 
         return _build_where(conditions), params
@@ -383,13 +369,12 @@ class LanguageFilter:
             )
             params['name'] = self.name
 
-        for value, param_key, cypher_prop in [
-            (self.family, 'family', 'lang.family'),
+        for value, param_key, alias, field in [
+            (self.family, 'family', 'lang', 'family'),
         ]:
-            if value:
-                conditions.append(
-                    f'toLower({cypher_prop}) CONTAINS toLower(${param_key})'
-                )
+            condition = _text(alias, field, param_key, value)
+            if condition:
+                conditions.append(condition)
                 params[param_key] = value
 
         return _build_where(conditions), params
