@@ -4,9 +4,38 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.tokens import Token
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.users.models import User
+
+
+class AuthUserSerializer(serializers.ModelSerializer):
+    '''User representation for login/register response'''
+
+    class Meta:
+        model = User
+        fields = (
+            'id', 'username', 'email', 'first_name', 'last_name', 'role',
+            'avatar_url')
+        read_only_fields = fields
+
+
+class TokenPairSerializer(serializers.Serializer):
+    '''
+    Schema-only serializer.
+    Describes the login/refresh response for Swagger.
+    Flat token pair - used by RefreshView schema
+    '''
+
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+
+
+class AuthResponseSerializer(serializers.Serializer):
+    '''Top-level response for POST /auth/login/ and /auth/register/.'''
+
+    user = AuthUserSerializer()
+    tokens = TokenPairSerializer()
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -18,11 +47,101 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     '''
 
     @classmethod
-    def get_token(cls, user: User) -> Token:  # type: ignore[override]
+    def get_token(cls, user: User) -> RefreshToken:  # type: ignore[override]
         token = super().get_token(user)
         token['role'] = user.role
 
-        return token
+        return token  # type: ignore[return-value]  # super() returns Token, but really a RefreshToken
+
+    def validate(self, attrs: dict) -> dict:
+        data = super().validate(attrs)
+        return {
+            'user': AuthUserSerializer(self.user).data,
+            'tokens': {
+                'access': data['access'],
+                'refresh': data['refresh'],
+            }
+        }
+
+
+class MeSerializer(serializers.ModelSerializer):
+    '''
+    Read-only serializer for current user GET /auth/me/.
+    Liked pages are added in view.
+    '''
+
+    class Meta:
+        model = User
+        fields = (
+            'id', 'username', 'email', 'first_name', 'last_name', 'role',
+            'avatar_url'
+        )
+
+
+class MePatchSerializer(serializers.Serializer):
+    '''
+    Partial update of current user profile.
+    avatarUrl maps to avatar_url.
+    password requiers password_current.
+    '''
+
+    username = serializers.CharField(required=False)
+    avatarUrl = serializers.URLField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
+    email = serializers.EmailField(required=False, allow_blank=True)
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, required=False)
+    password_current = serializers.CharField(write_only=True, required=False)
+
+    def validate_username(self, value: str) -> str:
+        user = self.context['request'].user
+        if User.objects.exclude(pk=user.pk).filter(username=value).exists():
+            raise serializers.ValidationError(
+                'A user with this username already exists.'
+            )
+
+        return value
+
+    def validate(self, attrs: dict) -> dict:
+        if attrs.get('password') and not attrs.get('password_current'):
+            raise serializers.ValidationError(
+                {
+                    'password_current': [
+                        'Current password is required to set a new password.'
+                    ]
+                }
+            )
+        return attrs
+
+    def update(self, instance: User, validated_data: dict) -> User:
+        if 'avatarUrl' in validated_data:
+            instance.avatar_url = validated_data.pop('avatarUrl')
+
+        if 'password' in validated_data:
+            current = validated_data.pop('password_current', None)
+            if not current or not instance.check_password(current):
+                raise serializers.ValidationError(
+                    {
+                        'password_current': [
+                            'Current password is incorrect.'
+                        ]
+                    }
+                )
+            instance.set_password(validated_data.pop('password'))
+        else:
+            validated_data.pop('password_current', None)
+
+        for attr in ('username', 'email', 'first_name', 'last_name'):
+            if attr in validated_data:
+                setattr(instance, attr, validated_data[attr])
+
+        instance.save()
+
+        return instance
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -59,46 +178,7 @@ class RegisterSerializer(serializers.Serializer):
         )
 
 
-class UserProfileSerializer(serializers.Serializer):
-    '''
-    Read/write serializer for current user's profile. Role is intentionally
-    read only, for only an admin can change it in the DB so far
-
-    TODO: add ability to promote users to admin role or something like that
-    '''
-
-    id = serializers.IntegerField(read_only=True)
-    username = serializers.CharField(read_only=True)
-    email = serializers.EmailField(required=False, allow_blank=True)
-    first_name = serializers.CharField(required=False, allow_blank=True)
-    last_name = serializers.CharField(required=False, allow_blank=True)
-    role = serializers.CharField(read_only=True)
-
-    def update(self, instance: User, validated_data: dict) -> User:
-        instance.email = validated_data.get('email', instance.email)
-        instance.first_name = validated_data.get(
-            'first_name', instance.first_name
-        )
-        instance.last_name = validated_data.get(
-            'last_name', instance.last_name
-        )
-
-        instance.save(update_fields=['email', 'first_name', 'last_name'])
-
-        return instance
-
-
 class LogoutSerializer(serializers.Serializer):
     '''The client must senf its current refresh token to be blacklisted'''
 
-    refresh = serializers.CharField()
-
-
-class TokenPairSerializer(serializers.Serializer):
-    '''
-    Schema-only serializer.
-    Describes the login/refresh response for Swagger.
-    '''
-
-    access = serializers.CharField()
     refresh = serializers.CharField()
