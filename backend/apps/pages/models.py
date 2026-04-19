@@ -42,16 +42,16 @@ class ChildOfRel(StructuredRel):
 class MarriedToRel(StructuredRel):
     '''(:Character)-[MARRIED_TO]->(:Character)'''
 
-    from_date = StringProperty()
-    to_date = StringProperty()
+    from_date = StringProperty(db_property='fromDate')
+    to_date = StringProperty(db_property='toDate')
 
 
 class MemberOfRel(StructuredRel):
     '''(:Character)-[MEMBER_OF]->(:Organization)'''
 
     role = StringProperty()
-    from_date = StringProperty()
-    to_date = StringProperty()
+    from_date = StringProperty(db_property='fromDate')
+    to_date = StringProperty(db_property='toDate')
 
 
 class ParticipatedInRel(StructuredRel):
@@ -63,14 +63,14 @@ class ParticipatedInRel(StructuredRel):
 class RuledRel(StructuredRel):
     '''(:Character)-[:RULED]->(:Location | :Race)'''
 
-    from_date = StringProperty()
-    to_date = StringProperty()
+    from_date = StringProperty(db_property='fromDate')
+    to_date = StringProperty(db_property='toDate')
 
 
 class LikedRel(StructuredRel):
     '''(:UserRef)-[:LIKED]->(:Page)'''
 
-    created_at = DateTimeProperty(default_now=True)
+    created_at = DateTimeProperty(default_now=True, db_property='createdAt')
 
 
 # Non-Page nodes (not part of the `:Page` hierarchy)
@@ -85,9 +85,9 @@ class Article(StructuredNode):
     __label__ = 'Article'
 
     text = StringProperty()
-    image_url = StringProperty()
-    created_at = DateTimeProperty(default_now=True)
-    updated_at = DateTimeProperty(default_now=True)
+    image_url = StringProperty(db_property='imageUrl')
+    created_at = DateTimeProperty(default_now=True, db_property='createdAt')
+    updated_at = DateTimeProperty(default_now=True, db_property='updatedAt')
 
 
 class Category(StructuredNode):
@@ -97,7 +97,7 @@ class Category(StructuredNode):
 
     slug = StringProperty(unique_index=True, required=True)
     name = StringProperty(required=True)
-    created_at = DateTimeProperty(default_now=True)
+    created_at = DateTimeProperty(default_now=True, db_property='createdAt')
 
     subcategories = RelationshipTo(
         'Category',
@@ -132,8 +132,8 @@ class Comment(StructuredNode):
     __label__ = 'Comment'
 
     text = StringProperty(required=True)
-    created_at = DateTimeProperty(default_now=True)
-    updated_at = DateTimeProperty(default_now=True)
+    created_at = DateTimeProperty(default_now=True, db_property='createdAt')
+    updated_at = DateTimeProperty(default_now=True, db_property='updatedAt')
 
     on = RelationshipTo('PageNode', 'ON', cardinality=ZeroOrMore)
     reply_to = RelationshipTo('Comment', 'REPLY_TO', cardinality=ZeroOrMore)
@@ -183,14 +183,14 @@ class Character(PageNode):
             'unknown': 'Unknown',
         }
     )
-    birth_date = StringProperty()
-    death_date = StringProperty()
+    birth_date = StringProperty(db_property='birthDate')
+    death_date = StringProperty(db_property='deathDate')
     hair = StringProperty()
     eyes = StringProperty()
     height = StringProperty()
     weapon = StringProperty()
     clothing = StringProperty()
-    notable_for = StringProperty()
+    notable_for = StringProperty(db_property='notableFor')
     titles = ArrayProperty(StringProperty())
 
     # relationships
@@ -261,7 +261,7 @@ class Race(PageNode):
     __label__ = 'Race'
 
     lifespan = StringProperty()
-    avg_height = StringProperty()
+    avg_height = StringProperty(db_property='avgHeight')
     hair = StringProperty()
     eyes = StringProperty()
     skin = StringProperty()
@@ -281,9 +281,9 @@ class Location(PageNode):
     # `type` clashes with python built-in. use db_property to keep Neo4j name
     entity_type = StringProperty(db_property='type')
     population = StringProperty()
-    creation_date = StringProperty()
-    destruction_date = StringProperty()
-    notable_for = StringProperty()
+    creation_date = StringProperty(db_property='creationDate')
+    destruction_date = StringProperty(db_property='destructionDate')
+    notable_for = StringProperty(db_property='notableFor')
 
     region_of = RelationshipTo('Location', 'REGION_OF', cardinality=ZeroOrMore)
 
@@ -294,10 +294,10 @@ class Event(PageNode):
     __label__ = 'Event'
 
     entity_type = StringProperty(db_property='type')
-    start_date = StringProperty()
-    end_date = StringProperty()
+    start_date = StringProperty(db_property='startDate')
+    end_date = StringProperty(db_property='endDate')
     casualties = StringProperty()
-    notable_for = StringProperty()
+    notable_for = StringProperty(db_property='notableFor')
 
     took_place_in = RelationshipTo(
         'Location',
@@ -318,12 +318,12 @@ class Organization(PageNode):
     __label__ = 'Organization'
 
     entity_type = StringProperty(db_property='type')
-    founded_date = StringProperty()
-    dissolved_date = StringProperty()
+    founded_date = StringProperty(db_property='foundedDate')
+    dissolved_date = StringProperty(db_property='dissolvedDate')
     clothing = StringProperty()
     weaponry = StringProperty()
     purpose = StringProperty()
-    notable_for = StringProperty()
+    notable_for = StringProperty(db_property='notableFor')
 
     based_in = RelationshipTo('Location', 'BASED_IN', cardinality=ZeroOrMore)
 
@@ -333,8 +333,8 @@ class Timeline(PageNode):
 
     __label__ = 'Timeline'
 
-    start_date = StringProperty()
-    end_date = StringProperty()
+    start_date = StringProperty(db_property='startDate')
+    end_date = StringProperty(db_property='endDate')
     abbreviation = StringProperty()
 
 
@@ -345,7 +345,7 @@ class Item(PageNode):
 
     entity_type = StringProperty(db_property='type')
     material = StringProperty()
-    notable_for = StringProperty()
+    notable_for = StringProperty(db_property='notableFor')
 
 
 class Language(PageNode):
