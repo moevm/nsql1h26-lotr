@@ -1,0 +1,214 @@
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { FaHeart, FaRegHeart, FaEdit } from 'react-icons/fa';
+import { MdOutlineFileDownload, MdOutlineFileUpload } from 'react-icons/md';
+import { SiRelay } from 'react-icons/si';
+import { useGetPage } from '../api/generated/pages/pages';
+import { useAuth } from '../context/AuthContext';
+import { isLiked, addLike, removeLike } from '../utils/likes';
+import AuthModal from '../components/AuthModal';
+
+const EntityPage: React.FC = () => {
+  const { type, slug } = useParams<{ type: string; slug: string }>();
+  const { user } = useAuth();
+  const { data, isLoading, error } = useGetPage(slug!);
+  const [liked, setLiked] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAuthModalForEdit, setShowAuthModalForEdit] = useState(false);
+  const navigate = useNavigate();
+
+  // Проверка лайка после загрузки страницы и пользователя
+  useEffect(() => {
+    if (user && data) {
+      setLiked(isLiked(user.username, data.slug));
+    } else {
+      setLiked(false);
+    }
+  }, [user, data]);
+
+  const handleLike = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (!data) return;
+    if (liked) {
+      removeLike(user.username, data.slug);
+      setLiked(false);
+    } else {
+      addLike(user.username, data.slug);
+      setLiked(true);
+    }
+  };
+
+  if (isLoading) return <div className="loader">Загрузка...</div>;
+  if (error) return <div className="error">Ошибка загрузки страницы</div>;
+  if (!data) return <div className="error">Страница не найдена</div>;
+
+  const mainName = data.names[0];
+
+  const formatDate = (isoString: string) => {
+    return new Date(isoString).toLocaleDateString('ru-RU', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  // Рендер связей
+  const renderRelationList = (
+    relations: Record<string, any[]>,
+    direction: 'outgoing' | 'incoming'
+  ) => {
+    const entries = Object.entries(relations);
+    if (entries.length === 0) return <p>Нет связей</p>;
+
+    return (
+      <div className="relations-group">
+        {entries.map(([relType, items]) => (
+          <div key={relType} className="relation-type">
+            <h4>{relType.replace(/_/g, ' ')}</h4>
+            <ul>
+              {items.map((item, idx) => {
+                const target = direction === 'outgoing' ? item.target : item.from;
+                const props = item.properties;
+                const propsStr = Object.entries(props)
+                  .map(([k, v]) => `${k}: ${v}`)
+                  .join(', ');
+                return (
+                  <li key={idx}>
+                    <Link to={`/entity/${target.type}/${target.slug}`}>
+                      {target.name}
+                    </Link>
+                    {propsStr && <span className="props"> ({propsStr})</span>}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const outgoingRelations = data.relations?.outgoing || {};
+  const incomingRelations = data.relations?.incoming || {};
+
+  return (
+    <div className="entity-page">
+      <div className="entity-two-columns">
+        {/* Левая колонка */}
+        <div className="entity-left">
+          <div className="entity-left-header">
+            <h1 className="entity-title">{mainName}</h1>
+            <div className="entity-actions">
+              <button className="icon-btn" title="Экспорт">
+                <MdOutlineFileDownload />
+              </button>
+              <button className="icon-btn" title="Импорт">
+                <MdOutlineFileUpload />
+              </button>
+              <span className="entity-dates">
+                Создана: {formatDate(data.article.createdAt)} | Обновлена:{' '}
+                {formatDate(data.article.updatedAt)}
+              </span>
+            </div>
+          </div>
+
+          <div className="article-text">
+            <p>{data.article.text}</p>
+          </div>
+
+          <details className="relations-section">
+            <summary>Исходящие связи</summary>
+            {renderRelationList(outgoingRelations, 'outgoing')}
+          </details>
+
+          <details className="relations-section">
+            <summary>Входящие связи</summary>
+            {renderRelationList(incomingRelations, 'incoming')}
+          </details>
+
+          <div className="comments-section">
+            <h3>Комментарии</h3>
+            <div className="comment-input">
+              <input type="text" placeholder="Написать комментарий..." disabled />
+              <button disabled>Отправить</button>
+            </div>
+            <div className="todo">
+              <p>Комментарии появятся после подключения бэкенда</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Правая колонка */}
+        <div className="entity-right">
+          <div className="entity-right-actions">
+            <button
+              className={`like-btn ${liked ? 'liked' : ''}`}
+              onClick={handleLike}
+            >
+              {liked ? <FaHeart /> : <FaRegHeart />}
+            </button>
+            <button
+              className="icon-btn"
+              onClick={() => {
+                if (user) {
+                  navigate(`/edit/${type}/${slug}`);
+                } else {
+                  setShowAuthModalForEdit(true);
+                }
+              }}
+            >
+              <FaEdit />
+            </button>
+            <button className="icon-btn" disabled>
+              <SiRelay />
+            </button>
+          </div>
+
+          <div className="entity-card">
+            <img
+              src={data.article.imageUrl}
+              alt={mainName}
+              className="entity-image"
+            />
+            <div className="entity-attributes">
+              <h3>{mainName}</h3>
+              <table className="attr-table">
+                <tbody>
+                  {Object.entries(data.attributes).map(([key, value]) => (
+                    <tr key={key}>
+                      <td className="attr-key">{key.replace(/_/g, ' ')}</td>
+                      <td className="attr-value">{value as string}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Модальное окно авторизации */}
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => setShowAuthModal(false)}
+        />
+      )}
+      {showAuthModalForEdit && (
+        <AuthModal
+          onClose={() => setShowAuthModalForEdit(false)}
+          onSuccess={() => {
+            setShowAuthModalForEdit(false);
+            navigate(`/edit/${type}/${slug}`);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default EntityPage;

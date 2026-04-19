@@ -1,0 +1,111 @@
+import { useEffect, useState } from 'react';
+import { useDebounce } from '../hooks/useDebounce';
+
+interface AddRelationFormProps {
+  direction: 'outgoing' | 'incoming';
+  onAdd: (relation: any) => void;
+  currentEntityType: string; // тип редактируемой сущности
+  onCancel: () => void;
+}
+
+const AddRelationForm: React.FC<AddRelationFormProps> = ({ direction, onAdd, currentEntityType, onCancel }) => {
+  const [nodeTypes, setNodeTypes] = useState<{ type: string; label: string }[]>([]);
+  const [relationTypes, setRelationTypes] = useState<any[]>([]);
+  const [selectedTargetType, setSelectedTargetType] = useState('');
+  const [selectedRelationType, setSelectedRelationType] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedTarget, setSelectedTarget] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const debouncedQuery = useDebounce(searchQuery, 300);
+
+  // Загрузка метаданных
+  useEffect(() => {
+    fetch('/api/v1/meta/node-types').then(r => r.json()).then(setNodeTypes);
+    fetch('/api/v1/meta/relation-types').then(r => r.json()).then(setRelationTypes);
+  }, []);
+
+  // Фильтрация доступных типов связей
+  const availableRelationTypes = relationTypes.filter(rel =>
+    rel.from.includes(currentEntityType) && rel.to.includes(selectedTargetType)
+  );
+
+  // Поиск целевых сущностей
+  useEffect(() => {
+    if (!debouncedQuery || debouncedQuery.length < 2 || !selectedTargetType) {
+      setSearchResults([]);
+      return;
+    }
+    setIsLoading(true);
+    fetch(`/api/v1/search/?q=${encodeURIComponent(debouncedQuery)}&types=${selectedTargetType}&limit=10`)
+      .then(r => r.json())
+      .then(data => {
+        setSearchResults(data);
+        setIsLoading(false);
+      });
+  }, [debouncedQuery, selectedTargetType]);
+
+  const handleSubmit = () => {
+    if (!selectedRelationType || !selectedTarget) return;
+    const newRelation = {
+      [direction === 'outgoing' ? 'target' : 'from']: {
+        slug: selectedTarget.slug,
+        type: selectedTarget.type,
+        name: selectedTarget.name,
+        imageUrl: selectedTarget.imageUrl || '',
+      },
+      properties: {},
+    };
+    onAdd(selectedRelationType, newRelation);
+  };
+
+  return (
+    <div className="add-relation-form">
+      <h4>Добавить {direction === 'outgoing' ? 'исходящую' : 'входящую'} связь</h4>
+      <div>
+        <label>Тип целевой сущности:</label>
+        <select value={selectedTargetType} onChange={e => setSelectedTargetType(e.target.value)}>
+          <option value="">Выберите...</option>
+          {nodeTypes.map(nt => <option key={nt.type} value={nt.type}>{nt.label}</option>)}
+        </select>
+      </div>
+      {selectedTargetType && (
+        <div>
+          <label>Тип связи:</label>
+          <select value={selectedRelationType} onChange={e => setSelectedRelationType(e.target.value)}>
+            <option value="">Выберите...</option>
+            {availableRelationTypes.map(rel => <option key={rel.type} value={rel.type}>{rel.label}</option>)}
+          </select>
+        </div>
+      )}
+      {selectedRelationType && (
+        <div>
+          <label>Поиск сущности:</label>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Введите имя..."
+          />
+          {isLoading && <div>Загрузка...</div>}
+          {searchResults.length > 0 && (
+            <ul className="search-results">
+              {searchResults.map(res => (
+                <li key={res.slug} onClick={() => setSelectedTarget(res)}>
+                  {res.name} ({res.type})
+                </li>
+              ))}
+            </ul>
+          )}
+          {selectedTarget && <div>Выбрано: {selectedTarget.name}</div>}
+        </div>
+      )}
+      <div className="form-actions">
+        <button type="button" onClick={handleSubmit} disabled={!selectedTarget}>Добавить</button>
+        <button type="button" onClick={onCancel}>Отмена</button>
+      </div>
+    </div>
+  );
+};
+
+export default AddRelationForm;

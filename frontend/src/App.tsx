@@ -1,0 +1,123 @@
+import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { FaChartColumn, FaMagnifyingGlassChart } from "react-icons/fa6";
+import { SiRelay } from "react-icons/si";
+import { FaUserCircle } from "react-icons/fa";
+import { IoMdMore } from "react-icons/io";
+import { BiSolidCategory } from "react-icons/bi";
+import './App.css';
+import HomePage from './pages/HomePage';
+import CharactersPage from './pages/CharactersPage';
+import RacesPage from './pages/RacesPage';
+import LocationsPage from './pages/LocationsPage';
+import EventsPage from './pages/EventsPage';
+import OrganizationsPage from './pages/OrganizationsPage';
+import TimelinesPage from './pages/TimelinesPage';
+import ItemsPage from './pages/ItemsPage';
+import LanguagesPage from './pages/LanguagesPage';
+import ScriptsPage from './pages/ScriptsPage';
+import CategoriesPage from './pages/CategoriesPage';
+import AuthModal from './components/AuthModal';
+import ProfilePage from './pages/ProfilePage';
+import { useAuth, AuthProvider } from './context/AuthContext';
+import EntityPage from './pages/EntityPage';
+import EditPage from './pages/EditPage';
+import CreatePage from './pages/CreatePage';
+
+// Компонент, который использует авторизацию
+const AppContent: React.FC = () => {
+  const { user } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  const handleProfileClick = () => {
+    if (!user) {
+      setShowAuthModal(true);
+    }
+  };
+
+  return (
+    <BrowserRouter>
+      <div className="navbar">
+        <Link to="/" className="logo-link">
+          <img src="/logo.png" alt="LOTR Wiki" className="logo-img" />
+        </Link>
+        <input type="text" className="search" placeholder="Поиск..." />
+        <Link to="/categories" className="nav-btn">
+          <div className="icon-with-text">
+            <BiSolidCategory />
+            Categories
+          </div>
+        </Link>
+        <button className="nav-btn">
+          <div className="icon-with-text">
+            <SiRelay />
+            Analytics
+          </div>
+        </button>
+        <button className="nav-btn">
+          <div className="icon-with-text">
+            <FaChartColumn />
+            Global statistics
+          </div>
+        </button>
+        <button className="nav-btn">
+          <div className="icon-with-text">
+            <FaMagnifyingGlassChart />
+            Custom statistics
+          </div>
+        </button>
+        <Link to={user ? "/profile" : "#"} className="nav-btn" onClick={handleProfileClick}>
+          <div className="icon-with-text">
+            <FaUserCircle />
+          </div>
+        </Link>
+        <button className="nav-btn">
+          <div className="icon-with-text">
+            <IoMdMore />
+          </div>
+        </button>
+      </div>
+
+      <div className="main-container">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+
+          <Route path="/characters" element={<CharactersPage />} />
+          <Route path="/races" element={<RacesPage />} />
+          <Route path="/locations" element={<LocationsPage />} />
+          <Route path="/events" element={<EventsPage />} />
+          <Route path="/organizations" element={<OrganizationsPage />} />
+          <Route path="/timelines" element={<TimelinesPage />} />
+          <Route path="/items" element={<ItemsPage />} />
+          <Route path="/languages" element={<LanguagesPage />} />
+          <Route path="/scripts" element={<ScriptsPage />} />
+          <Route path="/create/:type" element={<CreatePage />} />
+
+          <Route path="/entity/:type/:slug" element={<EntityPage />} />
+          <Route path="/edit/:type/:slug" element={<EditPage />} />
+
+          <Route path="/profile" element={<ProfilePage />} />
+        </Routes>
+      </div>
+
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => setShowAuthModal(false)}
+        />
+      )}
+    </BrowserRouter>
+  );
+};
+
+// Главный компонент, обернутый в AuthProvider
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+};
+
+export default App;
