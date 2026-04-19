@@ -3,7 +3,6 @@ import { useLogin, useRegister, useGetMe, useUpdateMe, useLogout } from '../api/
 import type { MeResponse, UpdateMeRequest } from '../api/generated/models';
 import { useQueryClient } from '@tanstack/react-query';
 
-// Тут чего-то не работает, но пока не понимаю чего
 interface AuthContextType {
   user: MeResponse | null;
   login: (username: string, password: string) => Promise<boolean>;
@@ -29,7 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Запрос текущего пользователя (выполняется, только если есть токен)
   const { data: meData, refetch: refetchMe, isFetching } = useGetMe({
     query: {
-      enabled: false, // не запускаем автоматически, вызовем вручную после проверки токена
+      enabled: false,
       retry: false,
     },
   });
@@ -58,12 +57,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const result = await loginMutation.mutateAsync({ data: { username, password } });
-      // Предполагается, что ответ содержит access и refresh токены
-      localStorage.setItem('access_token', result.access);
-      localStorage.setItem('refresh_token', result.refresh);
-      // После успешного логина получаем профиль пользователя
-      const meResult = await refetchMe();
-      if (meResult.data) setUser(meResult.data);
+      // Пытаемся извлечь данные из разных возможных структур
+      const data = result.data || result;
+      const { user, tokens } = data;
+      if (!tokens?.access) {
+        console.error('No access token in login response', data);
+        return false;
+      }
+      localStorage.setItem('access_token', tokens.access);
+      localStorage.setItem('refresh_token', tokens.refresh);
+      setUser(user);
       return true;
     } catch (error) {
       console.error('Login failed:', error);
@@ -74,10 +77,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
     try {
       const result = await registerMutation.mutateAsync({ data: { username, email, password } });
-      localStorage.setItem('access_token', result.access);
-      localStorage.setItem('refresh_token', result.refresh);
-      const meResult = await refetchMe();
-      if (meResult.data) setUser(meResult.data);
+      const data = result.data || result;
+      const { user, tokens } = data;
+      if (!tokens?.access) {
+        console.error('No access token in register response', data);
+        return false;
+      }
+      localStorage.setItem('access_token', tokens.access);
+      localStorage.setItem('refresh_token', tokens.refresh);
+      setUser(user);
       return true;
     } catch (error) {
       console.error('Registration failed:', error);
@@ -88,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUser = async (data: UpdateMeRequest): Promise<boolean> => {
     try {
       const result = await updateMeMutation.mutateAsync({ data });
+      // После успешного обновления обновляем состояние пользователя
       setUser(result);
       return true;
     } catch (error) {
@@ -108,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       setUser(null);
-      queryClient.clear(); // очищаем кеш
+      queryClient.clear(); // очищаем кеш React Query
     }
   };
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { IoClose } from 'react-icons/io5';
 import { useAuth } from '../context/AuthContext';
+import type { UpdateMeRequest } from '../api/generated/models';
 
 interface EditProfileModalProps {
   onClose: () => void;
@@ -9,28 +10,39 @@ interface EditProfileModalProps {
 
 const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose, onSuccess }) => {
   const { user, updateUser } = useAuth();
-  const [username, setUsername] = useState(user?.username || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !email) {
-      setError('Имя пользователя и email обязательны');
+    if (!email) {
+      setError('Email обязателен');
       return;
     }
-    if (password && password !== confirmPassword) {
-      setError('Пароли не совпадают');
+    if (!currentPassword) {
+      setError('Текущий пароль обязателен для любых изменений');
       return;
     }
-    const success = updateUser(username, email, password || undefined);
+    if (newPassword && newPassword !== confirmPassword) {
+      setError('Новый пароль и подтверждение не совпадают');
+      return;
+    }
+    const updateData: UpdateMeRequest = {
+      email,
+      password_current: currentPassword,
+    };
+    if (newPassword) {
+      updateData.password = newPassword;
+    }
+    const success = await updateUser(updateData);
     if (success) {
       onClose();
       onSuccess?.();
     } else {
-      setError('Пользователь с таким именем уже существует');
+      setError('Не удалось обновить профиль. Проверьте правильность текущего пароля.');
     }
   };
 
@@ -45,13 +57,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose, onSuccess 
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            <label>Имя пользователя</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
             <label>Email</label>
             <input
               type="email"
@@ -59,11 +64,18 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose, onSuccess 
               onChange={(e) => setEmail(e.target.value)}
               required
             />
+            <label>Текущий пароль (обязательно)</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+            />
             <label>Новый пароль (оставьте пустым, чтобы не менять)</label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
             />
             <label>Подтверждение нового пароля</label>
             <input

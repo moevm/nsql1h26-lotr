@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { IoClose } from 'react-icons/io5';
 
 interface AddEntityModalProps {
-  title: string;      // "Персонажа", "Предмет" и т.д.
+  title: string;
   onClose: () => void;
-  onSave: (data: any) => void;   // пока заглушка
+  onSave: (data: any) => void;
 }
 
 const AddEntityModal: React.FC<AddEntityModalProps> = ({ title, onClose, onSave }) => {
@@ -21,7 +21,7 @@ const AddEntityModal: React.FC<AddEntityModalProps> = ({ title, onClose, onSave 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);   // заглушка
+    onSave(formData);
     onClose();
   };
 

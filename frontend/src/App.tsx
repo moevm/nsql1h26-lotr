@@ -23,6 +23,9 @@ import { useAuth, AuthProvider } from './context/AuthContext';
 import EntityPage from './pages/EntityPage';
 import EditPage from './pages/EditPage';
 import CreatePage from './pages/CreatePage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import GlobalStatsPage from './pages/GlobalStatsPage';
+import CustomStatsPage from './pages/CustomStatsPage';
 
 // Компонент, который использует авторизацию
 const AppContent: React.FC = () => {
@@ -48,24 +51,24 @@ const AppContent: React.FC = () => {
             Categories
           </div>
         </Link>
-        <button className="nav-btn">
+        <Link to="/analytics" className="nav-btn">
           <div className="icon-with-text">
             <SiRelay />
             Analytics
           </div>
-        </button>
-        <button className="nav-btn">
+        </Link>
+        <Link to="/global-stats" className="nav-btn">
           <div className="icon-with-text">
             <FaChartColumn />
             Global statistics
           </div>
-        </button>
-        <button className="nav-btn">
+        </Link>
+        <Link to="/custom-stats" className="nav-btn">
           <div className="icon-with-text">
             <FaMagnifyingGlassChart />
             Custom statistics
           </div>
-        </button>
+        </Link>
         <Link to={user ? "/profile" : "#"} className="nav-btn" onClick={handleProfileClick}>
           <div className="icon-with-text">
             <FaUserCircle />
@@ -98,20 +101,25 @@ const AppContent: React.FC = () => {
           <Route path="/edit/:type/:slug" element={<EditPage />} />
 
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/global-stats" element={<GlobalStatsPage />} />
+          <Route path="/custom-stats" element={<CustomStatsPage />} />
         </Routes>
       </div>
 
       {showAuthModal && (
         <AuthModal
           onClose={() => setShowAuthModal(false)}
-          onSuccess={() => setShowAuthModal(false)}
+          onSuccess={() => {
+            setShowAuthModal(false);
+          }}
         />
       )}
     </BrowserRouter>
   );
 };
 
-// Главный компонент, обернутый в AuthProvider
+// Главный компонент
 const App: React.FC = () => {
   return (
     <AuthProvider>

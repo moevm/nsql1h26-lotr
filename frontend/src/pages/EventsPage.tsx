@@ -29,7 +29,7 @@ const EventsPage: React.FC = () => {
 
   const adaptedData = data?.results?.map(event => ({
     slug: event.slug,
-    name: event.name,
+    name: event.names?.[0] || 'Без имени',
   })) || [];
 
   return (

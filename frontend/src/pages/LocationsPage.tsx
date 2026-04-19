@@ -43,10 +43,10 @@ const LocationsPage: React.FC = () => {
   if (isLoading) return <div className="loader">Загрузка...</div>;
   if (error) return <div className="error">Ошибка загрузки</div>;
 
-  // Адаптируем данные – убираем лишний .data, как в CharactersPage
+  // Адаптируем данные
   const adaptedData = data?.results?.map(location => ({
     slug: location.slug,
-    name: location.name,
+    name: location.names?.[0] || 'Без имени',
   })) || [];
 
   return (

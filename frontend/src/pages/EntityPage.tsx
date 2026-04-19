@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FaHeart, FaRegHeart, FaEdit } from 'react-icons/fa';
 import { MdOutlineFileDownload, MdOutlineFileUpload } from 'react-icons/md';
 import { SiRelay } from 'react-icons/si';
@@ -12,13 +11,12 @@ import AuthModal from '../components/AuthModal';
 const EntityPage: React.FC = () => {
   const { type, slug } = useParams<{ type: string; slug: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data, isLoading, error } = useGetPage(slug!);
   const [liked, setLiked] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showAuthModalForEdit, setShowAuthModalForEdit] = useState(false);
-  const navigate = useNavigate();
 
-  // Проверка лайка после загрузки страницы и пользователя
   useEffect(() => {
     if (user && data) {
       setLiked(isLiked(user.username, data.slug));
@@ -46,9 +44,11 @@ const EntityPage: React.FC = () => {
   if (error) return <div className="error">Ошибка загрузки страницы</div>;
   if (!data) return <div className="error">Страница не найдена</div>;
 
-  const mainName = data.names[0];
+  const mainName = data.names?.[0] || 'Без имени';
+  const article = data.article || { text: '', imageUrl: '', createdAt: null, updatedAt: null };
 
-  const formatDate = (isoString: string) => {
+  const formatDate = (isoString: string | null) => {
+    if (!isoString) return 'Дата неизвестна';
     return new Date(isoString).toLocaleDateString('ru-RU', {
       year: 'numeric',
       month: 'long',
@@ -56,12 +56,14 @@ const EntityPage: React.FC = () => {
     });
   };
 
-  // Рендер связей
+  const createdAt = formatDate(article.createdAt);
+  const updatedAt = formatDate(article.updatedAt);
+
   const renderRelationList = (
-    relations: Record<string, any[]>,
+    relations: Record<string, any[]> | undefined,
     direction: 'outgoing' | 'incoming'
   ) => {
-    const entries = Object.entries(relations);
+    const entries = Object.entries(relations || {});
     if (entries.length === 0) return <p>Нет связей</p>;
 
     return (
@@ -72,7 +74,8 @@ const EntityPage: React.FC = () => {
             <ul>
               {items.map((item, idx) => {
                 const target = direction === 'outgoing' ? item.target : item.from;
-                const props = item.properties;
+                if (!target) return null;
+                const props = item.properties || {};
                 const propsStr = Object.entries(props)
                   .map(([k, v]) => `${k}: ${v}`)
                   .join(', ');
@@ -110,14 +113,13 @@ const EntityPage: React.FC = () => {
                 <MdOutlineFileUpload />
               </button>
               <span className="entity-dates">
-                Создана: {formatDate(data.article.createdAt)} | Обновлена:{' '}
-                {formatDate(data.article.updatedAt)}
+                Создана: {createdAt} | Обновлена: {updatedAt}
               </span>
             </div>
           </div>
 
           <div className="article-text">
-            <p>{data.article.text}</p>
+            <p>{article.text || 'Описание отсутствует'}</p>
           </div>
 
           <details className="relations-section">
@@ -137,7 +139,7 @@ const EntityPage: React.FC = () => {
               <button disabled>Отправить</button>
             </div>
             <div className="todo">
-              <p>Комментарии появятся после подключения бэкенда</p>
+              <p>Комментарии появятся на следующей итерации</p>
             </div>
           </div>
         </div>
@@ -170,7 +172,7 @@ const EntityPage: React.FC = () => {
 
           <div className="entity-card">
             <img
-              src={data.article.imageUrl}
+              src={article.imageUrl || '/images/default-avatar.png'}
               alt={mainName}
               className="entity-image"
             />
@@ -178,7 +180,7 @@ const EntityPage: React.FC = () => {
               <h3>{mainName}</h3>
               <table className="attr-table">
                 <tbody>
-                  {Object.entries(data.attributes).map(([key, value]) => (
+                  {Object.entries(data.attributes || {}).map(([key, value]) => (
                     <tr key={key}>
                       <td className="attr-key">{key.replace(/_/g, ' ')}</td>
                       <td className="attr-value">{value as string}</td>
@@ -191,7 +193,6 @@ const EntityPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Модальное окно авторизации */}
       {showAuthModal && (
         <AuthModal
           onClose={() => setShowAuthModal(false)}

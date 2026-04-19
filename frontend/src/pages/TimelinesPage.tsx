@@ -39,7 +39,7 @@ const TimelinesPage: React.FC = () => {
 
   const adaptedData = data?.results?.map(timeline => ({
     slug: timeline.slug,
-    name: timeline.name,
+    name: timeline.names?.[0] || 'Без имени',
   })) || [];
 
   return (

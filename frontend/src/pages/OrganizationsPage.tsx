@@ -29,7 +29,7 @@ const OrganizationsPage: React.FC = () => {
 
   const adaptedData = data?.results?.map(org => ({
     slug: org.slug,
-    name: org.name,
+    name: org.names?.[0] || 'Без имени',
   })) || [];
 
   return (

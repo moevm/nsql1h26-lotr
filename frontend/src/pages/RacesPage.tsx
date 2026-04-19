@@ -37,7 +37,7 @@ const RacesPage: React.FC = () => {
 
   const adaptedData = data?.results?.map(race => ({
     slug: race.slug,
-    name: race.name,
+    name: race.names?.[0] || 'Без имени',
   })) || [];
 
   return (

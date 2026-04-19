@@ -26,7 +26,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem('refresh_token');
-        const { data } = await axios.post('/api/auth/refresh/', { refresh: refreshToken });
+        const { data } = await axios.post('/auth/refresh/', { refresh: refreshToken });
         localStorage.setItem('access_token', data.access);
         originalRequest.headers.Authorization = `Bearer ${data.access}`;
         return axiosInstance(originalRequest);
@@ -34,7 +34,8 @@ axiosInstance.interceptors.response.use(
         // рефреш не удался – разлогиниваем пользователя
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
+        //window.location.href = '/login';
+        console.warn('Unauthorized, redirect would happen here');
         return Promise.reject(refreshError);
       }
     }

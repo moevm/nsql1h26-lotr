@@ -10,7 +10,7 @@ interface GenericCatalogPageProps {
   entityType: string;
   data: Entity[];
   headerActions?: React.ReactNode;   // элемент справа от заголовка
-  children?: React.ReactNode;   // фильтры
+  children?: React.ReactNode;
 }
 
 const sortByName = (a: Entity, b: Entity) => a.name.localeCompare(b.name);

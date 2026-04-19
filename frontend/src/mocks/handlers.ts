@@ -10,6 +10,7 @@ import { mockOrganizations } from './data/organizations';
 import { mockTimelines } from './data/timelines';
 import { mockPages } from './data/pages';
 import { nodeTypes, relationTypes } from './data/meta';
+import { mockUsers } from './data/users';
 
 
 export const handlers = [
@@ -18,16 +19,16 @@ export const handlers = [
     return HttpResponse.json(mockCharacters);
   }),
 
-  // Создание страницы персонажа
+  // POST /characters - создание (только для админов)
   http.post('/api/v1/characters/', async ({ request }) => {
     const body = await request.json() as any;
     console.log('Creating character:', body);
     
-    // slug из имени
+    // Генерируем slug из имени (упрощённо)
     const slug = body.name.toLowerCase().replace(/\s+/g, '-');
     const now = new Date().toISOString();
     
-    // Создаем объект новой страницы
+    // Создаём объект новой страницы (CharacterPage)
     const newPage = {
       slug,
       names: [body.name],
@@ -45,9 +46,10 @@ export const handlers = [
       commentsCount: 0,
     };
     
-    // Сохраняем в мок (надо ли?)
+    // Сохраняем в мок (например, в mockPages)
     mockPages[slug] = newPage;
-
+    
+    // Возвращаем структуру, ожидаемую клиентом
     return HttpResponse.json({ data: newPage }, { status: 201 });
   }),
 
@@ -77,7 +79,6 @@ export const handlers = [
     return HttpResponse.json(page);
   }),
 
-  // Поиск
   http.get('/api/v1/search/', ({ request }) => {
     const url = new URL(request.url);
     const q = url.searchParams.get('q') || '';
@@ -95,6 +96,25 @@ export const handlers = [
       (types.length === 0 || types.includes(e.type))
     ).slice(0, limit);
     return HttpResponse.json(filtered);
+  }),
+
+  http.get('/api/v1/auth/me', ({ request }) => {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader) return new HttpResponse(null, { status: 401 });
+    const token = authHeader.split(' ')[1];
+    // В моках токен — это просто строка, декодируем username
+    try {
+      const username = atob(token).split(':')[0];
+      const user = mockUsers.find(u => u.username === username);
+      if (!user) return new HttpResponse(null, { status: 401 });
+      return HttpResponse.json({
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      });
+    } catch {
+      return new HttpResponse(null, { status: 401 });
+    }
   }),
 
   http.get('/api/v1/characters', () => HttpResponse.json(mockCharacters)),

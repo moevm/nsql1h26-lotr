@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetPage, useUpdatePage } from '../api/generated/pages/pages';
-import type { PageUpdateRequest } from '../api/generated/models';
+import type { PageResponse, PageUpdateRequest } from '../api/generated/models';
 import AddRelationForm from '../components/AddRelationForm';
 
 interface RelationItem {
@@ -33,19 +33,16 @@ const EditPage: React.FC = () => {
   const { data: page, isLoading, error } = useGetPage(slug!);
   const updateMutation = useUpdatePage();
 
-  // Состояния для редактируемых данных
   const [names, setNames] = useState<string[]>([]);
   const [articleText, setArticleText] = useState('');
   const [articleImageUrl, setArticleImageUrl] = useState('');
   const [attributes, setAttributes] = useState<Record<string, any>>({});
   const [outgoingGroups, setOutgoingGroups] = useState<RelationGroup[]>([]);
   const [incomingGroups, setIncomingGroups] = useState<RelationGroup[]>([]);
-
-  // Состояния для отображения форм добавления связей
   const [showAddOutgoingForm, setShowAddOutgoingForm] = useState(false);
   const [showAddIncomingForm, setShowAddIncomingForm] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // Инициализация данных из page
   useEffect(() => {
     if (page) {
       setNames(page.names || []);
@@ -53,7 +50,6 @@ const EditPage: React.FC = () => {
       setArticleImageUrl(page.article?.imageUrl || '');
       setAttributes(page.attributes || {});
 
-      // Преобразуем объект outgoing в массив групп
       const outGroups = Object.entries(page.relations?.outgoing || {}).map(([relType, items]) => ({
         relationType: relType,
         items: items as RelationItem[],
@@ -71,25 +67,22 @@ const EditPage: React.FC = () => {
     }
   }, [page]);
 
-  // Обработчики для исходящих связей
+  // Обработчики для групп связей
   const updateOutgoingGroupType = (groupIndex: number, newType: string) => {
     setOutgoingGroups(prev => prev.map((g, i) => i === groupIndex ? { ...g, relationType: newType } : g));
   };
-
   const addOutgoingItem = (groupIndex: number) => {
     setOutgoingGroups(prev => prev.map((g, i) => i === groupIndex ? {
       ...g,
       items: [...g.items, { target: { slug: '', type: '', name: '', imageUrl: '' }, properties: {} }]
     } : g));
   };
-
   const removeOutgoingItem = (groupIndex: number, itemIndex: number) => {
     setOutgoingGroups(prev => prev.map((g, i) => i === groupIndex ? {
       ...g,
       items: g.items.filter((_, idx) => idx !== itemIndex)
     } : g));
   };
-
   const updateOutgoingItem = (groupIndex: number, itemIndex: number, field: string, value: any) => {
     setOutgoingGroups(prev => prev.map((g, i) => {
       if (i !== groupIndex) return g;
@@ -105,30 +98,25 @@ const EditPage: React.FC = () => {
       return { ...g, items: newItems };
     }));
   };
-
   const removeOutgoingGroup = (groupIndex: number) => {
     setOutgoingGroups(prev => prev.filter((_, i) => i !== groupIndex));
   };
 
-  // Обработчики для входящих связей
   const updateIncomingGroupType = (groupIndex: number, newType: string) => {
     setIncomingGroups(prev => prev.map((g, i) => i === groupIndex ? { ...g, relationType: newType } : g));
   };
-
   const addIncomingItem = (groupIndex: number) => {
     setIncomingGroups(prev => prev.map((g, i) => i === groupIndex ? {
       ...g,
       items: [...g.items, { from: { slug: '', type: '', name: '', imageUrl: '' }, properties: {} }]
     } : g));
   };
-
   const removeIncomingItem = (groupIndex: number, itemIndex: number) => {
     setIncomingGroups(prev => prev.map((g, i) => i === groupIndex ? {
       ...g,
       items: g.items.filter((_, idx) => idx !== itemIndex)
     } : g));
   };
-
   const updateIncomingItem = (groupIndex: number, itemIndex: number, field: string, value: any) => {
     setIncomingGroups(prev => prev.map((g, i) => {
       if (i !== groupIndex) return g;
@@ -144,12 +132,10 @@ const EditPage: React.FC = () => {
       return { ...g, items: newItems };
     }));
   };
-
   const removeIncomingGroup = (groupIndex: number) => {
     setIncomingGroups(prev => prev.filter((_, i) => i !== groupIndex));
   };
 
-  // Добавление новой исходящей связи через форму
   const handleAddOutgoingRelation = (relationType: string, relation: RelationItem) => {
     const existingGroupIndex = outgoingGroups.findIndex(g => g.relationType === relationType);
     if (existingGroupIndex !== -1) {
@@ -158,15 +144,10 @@ const EditPage: React.FC = () => {
         items: [...g.items, relation]
       } : g));
     } else {
-      setOutgoingGroups(prev => [...prev, {
-        relationType,
-        items: [relation]
-      }]);
+      setOutgoingGroups(prev => [...prev, { relationType, items: [relation] }]);
     }
     setShowAddOutgoingForm(false);
   };
-
-  // Добавление новой входящей связи через форму
   const handleAddIncomingRelation = (relationType: string, relation: RelationItem) => {
     const existingGroupIndex = incomingGroups.findIndex(g => g.relationType === relationType);
     if (existingGroupIndex !== -1) {
@@ -175,15 +156,11 @@ const EditPage: React.FC = () => {
         items: [...g.items, relation]
       } : g));
     } else {
-      setIncomingGroups(prev => [...prev, {
-        relationType,
-        items: [relation]
-      }]);
+      setIncomingGroups(prev => [...prev, { relationType, items: [relation] }]);
     }
     setShowAddIncomingForm(false);
   };
 
-  // Атрибуты
   const addAttribute = () => {
     const newKey = prompt('Введите название атрибута');
     if (newKey && !attributes[newKey]) {
@@ -203,20 +180,32 @@ const EditPage: React.FC = () => {
     setAttributes(newAttributes);
   };
 
-  // Сохранение изменений
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Преобразуем группы обратно в объекты для отправки
+    setErrorMessage('');
+
+    // Очищаем атрибуты от null/undefined и пустых строк
+    const cleanedAttributes = Object.fromEntries(
+      Object.entries(attributes).filter(([_, v]) => v != null && v !== '')
+    );
+
     const outgoingObj: Record<string, any[]> = {};
     outgoingGroups.forEach(group => {
       if (group.relationType && group.items.length) {
-        outgoingObj[group.relationType] = group.items;
+        outgoingObj[group.relationType] = group.items.map(item => ({
+          slug: item.target?.slug || '',
+          properties: item.properties || {},
+        }));
       }
     });
+
     const incomingObj: Record<string, any[]> = {};
     incomingGroups.forEach(group => {
       if (group.relationType && group.items.length) {
-        incomingObj[group.relationType] = group.items;
+        incomingObj[group.relationType] = group.items.map(item => ({
+          slug: item.from?.slug || '',
+          properties: item.properties || {},
+        }));
       }
     });
 
@@ -226,18 +215,21 @@ const EditPage: React.FC = () => {
         text: articleText,
         imageUrl: articleImageUrl,
       },
-      attributes,
+      attributes: cleanedAttributes,
       relations: {
         outgoing: outgoingObj,
         incoming: incomingObj,
       },
     };
+
     try {
       await updateMutation.mutateAsync({ slug: slug!, data: updateData });
       await queryClient.invalidateQueries({ queryKey: [`/pages/${slug}`] });
       navigate(`/entity/${currentEntityType}/${slug}`);
-    } catch (err) {
-      console.error('Update failed:', err);
+    } catch (err: any) {
+      const serverError = err.response?.data;
+      console.error('Update failed:', serverError || err.message);
+      setErrorMessage(serverError?.error?.message || 'Ошибка сохранения. Проверьте данные.');
     }
   };
 
@@ -248,6 +240,7 @@ const EditPage: React.FC = () => {
   return (
     <div className="edit-page">
       <h1>Редактирование: {page.names[0]}</h1>
+      {errorMessage && <div className="error-message">{errorMessage}</div>}
       <form onSubmit={handleSubmit}>
         {/* Основная информация */}
         <section className="basic-info">
@@ -255,9 +248,9 @@ const EditPage: React.FC = () => {
           <label>Название (первое имя)</label>
           <input value={names[0] || ''} onChange={e => setNames([e.target.value, ...names.slice(1)])} />
           <label>Изображение (URL)</label>
-          <input value={articleImageUrl} onChange={e => setArticleImageUrl(e.target.value)} />
+          <input value={articleImageUrl ?? ''} onChange={e => setArticleImageUrl(e.target.value)} />
           <label>Описание</label>
-          <textarea rows={10} value={articleText} onChange={e => setArticleText(e.target.value)} />
+          <textarea rows={10} value={articleText ?? ''} onChange={e => setArticleText(e.target.value)} />
         </section>
 
         {/* Атрибуты */}
@@ -271,7 +264,7 @@ const EditPage: React.FC = () => {
                 placeholder="Название атрибута"
               />
               <input
-                value={value}
+                value={value ?? ''}
                 onChange={e => setAttributes(prev => ({ ...prev, [key]: e.target.value }))}
                 placeholder="Значение"
               />
@@ -281,7 +274,7 @@ const EditPage: React.FC = () => {
           <button type="button" onClick={addAttribute}>+ Добавить атрибут</button>
         </section>
 
-        {/* Исходящие связи (существующие) */}
+        {/* Исходящие связи */}
         <section>
           <h2>Исходящие связи</h2>
           {outgoingGroups.map((group, gIdx) => (
@@ -289,7 +282,7 @@ const EditPage: React.FC = () => {
               <div className="relation-group-header">
                 <label>Тип связи:</label>
                 <input
-                  value={group.relationType}
+                  value={group.relationType ?? ''}
                   onChange={e => updateOutgoingGroupType(gIdx, e.target.value)}
                   placeholder="например, friend_of"
                 />
@@ -300,7 +293,7 @@ const EditPage: React.FC = () => {
                   <div className="relation-field">
                     <label>slug цели:</label>
                     <input
-                      value={item.target?.slug || ''}
+                      value={item.target?.slug ?? ''}
                       onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.slug', e.target.value)}
                       placeholder="slug"
                     />
@@ -308,7 +301,7 @@ const EditPage: React.FC = () => {
                   <div className="relation-field">
                     <label>type цели:</label>
                     <input
-                      value={item.target?.type || ''}
+                      value={item.target?.type ?? ''}
                       onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.type', e.target.value)}
                       placeholder="character, location..."
                     />
@@ -316,7 +309,7 @@ const EditPage: React.FC = () => {
                   <div className="relation-field">
                     <label>name цели:</label>
                     <input
-                      value={item.target?.name || ''}
+                      value={item.target?.name ?? ''}
                       onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.name', e.target.value)}
                       placeholder="Отображаемое имя"
                     />
@@ -324,7 +317,7 @@ const EditPage: React.FC = () => {
                   <div className="relation-field">
                     <label>imageUrl цели:</label>
                     <input
-                      value={item.target?.imageUrl || ''}
+                      value={item.target?.imageUrl ?? ''}
                       onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.imageUrl', e.target.value)}
                       placeholder="URL изображения"
                     />
@@ -344,7 +337,7 @@ const EditPage: React.FC = () => {
               <button type="button" onClick={() => addOutgoingItem(gIdx)}>+ Добавить связь этого типа</button>
             </div>
           ))}
-          <button type="button" onClick={() => setShowAddOutgoingForm(true)}>+ Добавить новую исходящую связь (с выбором)</button>
+          <button type="button" onClick={() => setShowAddOutgoingForm(true)}>+ Добавить новую исходящую связь</button>
           {showAddOutgoingForm && (
             <AddRelationForm
               direction="outgoing"
@@ -355,7 +348,7 @@ const EditPage: React.FC = () => {
           )}
         </section>
 
-        {/* Входящие связи (существующие) */}
+        {/* Входящие связи */}
         <section>
           <h2>Входящие связи</h2>
           {incomingGroups.map((group, gIdx) => (
@@ -363,7 +356,7 @@ const EditPage: React.FC = () => {
               <div className="relation-group-header">
                 <label>Тип связи:</label>
                 <input
-                  value={group.relationType}
+                  value={group.relationType ?? ''}
                   onChange={e => updateIncomingGroupType(gIdx, e.target.value)}
                   placeholder="например, member_of"
                 />
@@ -374,7 +367,7 @@ const EditPage: React.FC = () => {
                   <div className="relation-field">
                     <label>slug источника:</label>
                     <input
-                      value={item.from?.slug || ''}
+                      value={item.from?.slug ?? ''}
                       onChange={e => updateIncomingItem(gIdx, iIdx, 'from.slug', e.target.value)}
                       placeholder="slug"
                     />
@@ -382,7 +375,7 @@ const EditPage: React.FC = () => {
                   <div className="relation-field">
                     <label>type источника:</label>
                     <input
-                      value={item.from?.type || ''}
+                      value={item.from?.type ?? ''}
                       onChange={e => updateIncomingItem(gIdx, iIdx, 'from.type', e.target.value)}
                       placeholder="character, location..."
                     />
@@ -390,7 +383,7 @@ const EditPage: React.FC = () => {
                   <div className="relation-field">
                     <label>name источника:</label>
                     <input
-                      value={item.from?.name || ''}
+                      value={item.from?.name ?? ''}
                       onChange={e => updateIncomingItem(gIdx, iIdx, 'from.name', e.target.value)}
                       placeholder="Отображаемое имя"
                     />
@@ -398,7 +391,7 @@ const EditPage: React.FC = () => {
                   <div className="relation-field">
                     <label>imageUrl источника:</label>
                     <input
-                      value={item.from?.imageUrl || ''}
+                      value={item.from?.imageUrl ?? ''}
                       onChange={e => updateIncomingItem(gIdx, iIdx, 'from.imageUrl', e.target.value)}
                       placeholder="URL изображения"
                     />
@@ -418,7 +411,7 @@ const EditPage: React.FC = () => {
               <button type="button" onClick={() => addIncomingItem(gIdx)}>+ Добавить связь этого типа</button>
             </div>
           ))}
-          <button type="button" onClick={() => setShowAddIncomingForm(true)}>+ Добавить новую входящую связь (с выбором)</button>
+          <button type="button" onClick={() => setShowAddIncomingForm(true)}>+ Добавить новую входящую связь</button>
           {showAddIncomingForm && (
             <AddRelationForm
               direction="incoming"

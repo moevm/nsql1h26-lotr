@@ -39,7 +39,7 @@ const ItemsPage: React.FC = () => {
 
   const adaptedData = data?.results?.map(item => ({
     slug: item.slug,
-    name: item.name,
+    name: item.names?.[0] || 'Без имени',
   })) || [];
 
   return (

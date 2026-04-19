@@ -29,7 +29,7 @@ const LanguagesPage: React.FC = () => {
 
   const adaptedData = data?.results?.map(lang => ({
     slug: lang.slug,
-    name: lang.name,
+    name: lang.names?.[0] || 'Без имени',
   })) || [];
 
   return (

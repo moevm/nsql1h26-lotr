@@ -56,8 +56,11 @@ const CharactersPage: React.FC = () => {
   // Адаптируем данные для GenericCatalogPage
   const adaptedData = data?.results?.map(character => ({
     slug: character.slug,
-    name: character.name,
+    name: character.names?.[0] || 'Без имени', // первый элемент массива names
   })) || [];
+
+  console.log('data from API:', data);
+  console.log('adaptedData:', adaptedData);
 
   const handleAddClick = () => {
     if (user) {

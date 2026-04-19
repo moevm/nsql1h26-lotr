@@ -28,7 +28,7 @@ const ScriptsPage: React.FC = () => {
 
   const adaptedData = data?.results?.map(script => ({
     slug: script.slug,
-    name: script.name,
+    name: script.names?.[0] || 'Без имени',
   })) || [];
 
   return (
