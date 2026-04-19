@@ -24,6 +24,10 @@ class User(AbstractUser):
         choices=Role.choices,
         default=Role.VIEWER
     )
+    avatar_url: models.URLField[str, str] = models.URLField(
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         db_table = 'users'
