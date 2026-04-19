@@ -2,106 +2,754 @@
   "categories": [
     { "slug": "hobbits", "name": "Hobbits" },
     { "slug": "elves", "name": "Elves" },
+    { "slug": "dwarves", "name": "Dwarves" },
+    { "slug": "men", "name": "Men" },
     { "slug": "fellowship", "name": "Fellowship of the Ring" },
-    { "slug": "evil", "name": "Evil Characters" }
+    { "slug": "evil", "name": "Evil Characters" },
+    { "slug": "good", "name": "Good Characters" },
+    { "slug": "neutral", "name": "Neutral Characters" }
   ],
   "articles": [
-    { "slug": "frodo_art", "text": "Frodo Baggins was a hobbit of the Shire...", "image_url": null },
-    { "slug": "gandalf_art", "text": "Gandalf the Grey, later the White...", "image_url": null },
-    { "slug": "aragorn_art", "text": "Aragorn son of Arathorn, heir of Isildur...", "image_url": null },
-    { "slug": "shire_art", "text": "The Shire, homeland of the Hobbits...", "image_url": null },
-    { "slug": "one_ring_art", "text": "The One Ring, created by Sauron...", "image_url": null }
+    { "key": "art_frodo", "text": "Frodo Baggins was a hobbit of the Shire who became the Ring-bearer.", "image_url": "https://example.com/frodo.jpg" },
+    { "key": "art_sam", "text": "Samwise Gamgee, Frodo's loyal gardener and companion.", "image_url": null },
+    { "key": "art_merry", "text": "Meriadoc Brandybuck, one of the four hobbit members of the Fellowship.", "image_url": null },
+    { "key": "art_pippin", "text": "Peregrin Took, the youngest hobbit in the Fellowship.", "image_url": null },
+    { "key": "art_gandalf", "text": "Gandalf the Grey, later the White, a Maiar spirit and leader of the Fellowship.", "image_url": "https://example.com/gandalf.jpg" },
+    { "key": "art_aragorn", "text": "Aragorn, son of Arathorn, heir of Isildur and King of Gondor.", "image_url": null },
+    { "key": "art_legolas", "text": "Legolas Greenleaf, prince of the Woodland Realm and skilled archer.", "image_url": null },
+    { "key": "art_gimli", "text": "Gimli, son of Glóin, a dwarf warrior and member of the Fellowship.", "image_url": null },
+    { "key": "art_boromir", "text": "Boromir, son of Denethor, Captain of Gondor, who tried to take the Ring.", "image_url": null },
+    { "key": "art_sauron", "text": "Sauron, the Dark Lord and creator of the One Ring.", "image_url": "https://example.com/sauron.jpg" },
+    { "key": "art_saruman", "text": "Saruman the White, corrupted wizard and ally of Sauron.", "image_url": null },
+    { "key": "art_gollum", "text": "Gollum, originally a hobbit-like creature, corrupted by the Ring.", "image_url": null },
+    { "key": "art_elrond", "text": "Elrond Half-elven, Lord of Rivendell.", "image_url": null },
+    { "key": "art_galadriel", "text": "Galadriel, Lady of Lothlórien, bearer of Nenya.", "image_url": null },
+    { "key": "art_theoden", "text": "Théoden, King of Rohan.", "image_url": null },
+    { "key": "art_eowyn", "text": "Éowyn, shieldmaiden of Rohan, slayer of the Witch-king.", "image_url": null },
+    { "key": "art_faramir", "text": "Faramir, Captain of Gondor, brother of Boromir.", "image_url": null },
+    { "key": "art_denethor", "text": "Denethor II, Steward of Gondor.", "image_url": null },
+    { "key": "art_treebeard", "text": "Treebeard, the oldest Ent, leader of Fangorn Forest.", "image_url": null },
+    { "key": "art_balrog", "text": "Durin's Bane, a Balrog of Morgoth.", "image_url": null },
+    { "key": "art_shire", "text": "The Shire, homeland of the Hobbits in Eriador.", "image_url": null },
+    { "key": "art_mordor", "text": "Mordor, the dark land of Sauron.", "image_url": null },
+    { "key": "art_rohan", "text": "Rohan, the land of the Rohirrim.", "image_url": null },
+    { "key": "art_gondor", "text": "Gondor, the southern kingdom of the Dúnedain.", "image_url": null },
+    { "key": "art_erebor", "text": "Erebor, the Lonely Mountain, kingdom of the Dwarves.", "image_url": null },
+    { "key": "art_fangorn", "text": "Fangorn Forest, home of the Ents.", "image_url": null },
+    { "key": "art_helm", "text": "Helm's Deep, a fortress in Rohan.", "image_url": null },
+    { "key": "art_isengard", "text": "Isengard, the fortress of Saruman.", "image_url": null },
+    { "key": "art_one_ring", "text": "The One Ring, created by Sauron to rule the other Rings of Power.", "image_url": null },
+    { "key": "art_sting", "text": "Sting, an Elven short sword, used by Bilbo and Frodo.", "image_url": null },
+    { "key": "art_anduril", "text": "Andúril, the reforged sword of Elendil, wielded by Aragorn.", "image_url": null },
+    { "key": "art_glamdring", "text": "Glamdring, the Foe-hammer, sword of Gandalf.", "image_url": null },
+    { "key": "art_westron", "text": "Westron, the Common Speech of Middle-earth.", "image_url": null },
+    { "key": "art_sindarin", "text": "Sindarin, the Grey-elven language.", "image_url": null },
+    { "key": "art_quenya", "text": "Quenya, the High-elven language.", "image_url": null },
+    { "key": "art_khuzdul", "text": "Khuzdul, the secret language of the Dwarves.", "image_url": null },
+    { "key": "art_tengwar", "text": "Tengwar, the Elven script invented by Fëanor.", "image_url": null },
+    { "key": "art_cirth", "text": "Cirth, the runic script used by Dwarves.", "image_url": null }
   ],
   "nodes": {
     "character": [
       {
         "slug": "frodo-baggins",
-        "names": ["Frodo Baggins"],
+        "names": ["Frodo Baggins", "Mr. Underhill"],
         "gender": "male",
-        "birth_date": "TA 2968",
+        "birthDate": "TA 2968",
         "hair": "brown",
         "eyes": "blue",
         "height": "3'6\"",
         "weapon": "Sting",
-        "notable_for": "Ring-bearer",
+        "notableFor": "Ring-bearer",
         "titles": ["Ring-bearer", "Elf-friend"],
-        "article_slug": "frodo_art",
-        "categories": ["hobbits", "fellowship"]
+        "article_key": "art_frodo",
+        "categories": ["hobbits", "fellowship", "good"]
+      },
+      {
+        "slug": "samwise-gamgee",
+        "names": ["Samwise Gamgee", "Sam"],
+        "gender": "male",
+        "birthDate": "TA 2980",
+        "hair": "brown",
+        "eyes": "brown",
+        "height": "3'5\"",
+        "weapon": "barrow-blade",
+        "notableFor": "Ring-bearer for a time, gardener",
+        "titles": ["Mayor of the Shire"],
+        "article_key": "art_sam",
+        "categories": ["hobbits", "fellowship", "good"]
+      },
+      {
+        "slug": "meriadoc-brandybuck",
+        "names": ["Meriadoc Brandybuck", "Merry"],
+        "gender": "male",
+        "birthDate": "TA 2982",
+        "hair": "brown",
+        "eyes": "brown",
+        "height": "3'4\"",
+        "weapon": "barrow-blade",
+        "notableFor": "Killed the Witch-king of Angmar",
+        "titles": ["Master of Buckland"],
+        "article_key": "art_merry",
+        "categories": ["hobbits", "fellowship", "good"]
+      },
+      {
+        "slug": "peregrin-took",
+        "names": ["Peregrin Took", "Pippin"],
+        "gender": "male",
+        "birthDate": "TA 2990",
+        "hair": "blond",
+        "eyes": "blue",
+        "height": "3'4\"",
+        "notableFor": "Member of the Fellowship, Guard of the Citadel",
+        "titles": ["Thain of the Shire"],
+        "article_key": "art_pippin",
+        "categories": ["hobbits", "fellowship", "good"]
       },
       {
         "slug": "gandalf",
-        "names": ["Gandalf", "Mithrandir"],
+        "names": ["Gandalf", "Mithrandir", "The Grey", "The White"],
         "gender": "male",
-        "notable_for": "Wizard, leader of the Fellowship",
-        "titles": ["Wizard", "The Grey", "The White"],
-        "article_slug": "gandalf_art",
-        "categories": ["fellowship"]
+        "birthDate": null,
+        "notableFor": "Wizard, leader of the Fellowship",
+        "titles": ["Istar", "Bearer of Narya"],
+        "article_key": "art_gandalf",
+        "categories": ["fellowship", "good"]
       },
       {
         "slug": "aragorn",
-        "names": ["Aragorn", "Strider"],
+        "names": ["Aragorn", "Strider", "Elessar"],
         "gender": "male",
-        "birth_date": "TA 2931",
-        "notable_for": "King of Gondor",
+        "birthDate": "TA 2931",
+        "hair": "dark",
+        "eyes": "grey",
+        "height": "6'6\"",
+        "weapon": "Andúril",
+        "notableFor": "King of Gondor and Arnor",
         "titles": ["King Elessar", "Heir of Isildur"],
-        "article_slug": "aragorn_art",
-        "categories": ["fellowship"]
+        "article_key": "art_aragorn",
+        "categories": ["men", "fellowship", "good"]
+      },
+      {
+        "slug": "legolas",
+        "names": ["Legolas", "Legolas Greenleaf"],
+        "gender": "male",
+        "birthDate": null,
+        "hair": "long blond",
+        "eyes": "blue",
+        "weapon": "bow",
+        "notableFor": "Prince of Mirkwood",
+        "titles": ["Prince of the Woodland Realm"],
+        "article_key": "art_legolas",
+        "categories": ["elves", "fellowship", "good"]
+      },
+      {
+        "slug": "gimli",
+        "names": ["Gimli", "Gimli son of Glóin"],
+        "gender": "male",
+        "birthDate": "TA 2879",
+        "hair": "red",
+        "eyes": "brown",
+        "height": "4'6\"",
+        "weapon": "axe",
+        "notableFor": "Member of the Fellowship, Lord of the Glittering Caves",
+        "titles": ["Lord of the Glittering Caves"],
+        "article_key": "art_gimli",
+        "categories": ["dwarves", "fellowship", "good"]
+      },
+      {
+        "slug": "boromir",
+        "names": ["Boromir", "Boromir son of Denethor"],
+        "gender": "male",
+        "birthDate": "TA 2978",
+        "hair": "dark",
+        "eyes": "grey",
+        "height": "6'4\"",
+        "weapon": "sword",
+        "notableFor": "Captain of Gondor, attempted to take the Ring",
+        "titles": ["Captain of the White Tower"],
+        "article_key": "art_boromir",
+        "categories": ["men", "fellowship", "good"]
       },
       {
         "slug": "sauron",
-        "names": ["Sauron", "The Dark Lord"],
+        "names": ["Sauron", "The Dark Lord", "Annatar"],
         "gender": "male",
-        "notable_for": "Creator of the One Ring",
+        "notableFor": "Creator of the One Ring",
+        "titles": ["Lord of Mordor"],
+        "article_key": "art_sauron",
+        "categories": ["evil"]
+      },
+      {
+        "slug": "saruman",
+        "names": ["Saruman", "Saruman the White", "Curunír"],
+        "gender": "male",
+        "notableFor": "Corrupted wizard, ally of Sauron",
+        "titles": ["Head of the White Council"],
+        "article_key": "art_saruman",
+        "categories": ["evil"]
+      },
+      {
+        "slug": "gollum",
+        "names": ["Gollum", "Sméagol"],
+        "gender": "male",
+        "birthDate": "TA 2430",
+        "notableFor": "Bearer of the Ring before Bilbo",
+        "article_key": "art_gollum",
+        "categories": ["evil", "neutral"]
+      },
+      {
+        "slug": "elrond",
+        "names": ["Elrond", "Elrond Half-elven"],
+        "gender": "male",
+        "notableFor": "Lord of Rivendell",
+        "titles": ["Bearer of Vilya"],
+        "article_key": "art_elrond",
+        "categories": ["elves", "good"]
+      },
+      {
+        "slug": "galadriel",
+        "names": ["Galadriel", "Lady of Lothlórien"],
+        "gender": "female",
+        "notableFor": "Bearer of Nenya",
+        "titles": ["Lady of Light"],
+        "article_key": "art_galadriel",
+        "categories": ["elves", "good"]
+      },
+      {
+        "slug": "theoden",
+        "names": ["Théoden", "Théoden son of Thengel"],
+        "gender": "male",
+        "birthDate": "TA 2948",
+        "hair": "white",
+        "eyes": "blue",
+        "height": "6'6\"",
+        "weapon": "sword",
+        "notableFor": "King of Rohan",
+        "titles": ["King of the Mark"],
+        "article_key": "art_theoden",
+        "categories": ["men", "good"]
+      },
+      {
+        "slug": "eowyn",
+        "names": ["Éowyn", "Lady of Rohan"],
+        "gender": "female",
+        "birthDate": "TA 2995",
+        "hair": "blond",
+        "eyes": "grey",
+        "height": "5'10\"",
+        "weapon": "sword",
+        "notableFor": "Slayer of the Witch-king",
+        "titles": ["White Lady of Rohan"],
+        "article_key": "art_eowyn",
+        "categories": ["men", "good"]
+      },
+      {
+        "slug": "faramir",
+        "names": ["Faramir", "Faramir son of Denethor"],
+        "gender": "male",
+        "birthDate": "TA 2983",
+        "hair": "dark",
+        "eyes": "grey",
+        "height": "6'4\"",
+        "weapon": "bow",
+        "notableFor": "Captain of Gondor, Prince of Ithilien",
+        "titles": ["Prince of Ithilien"],
+        "article_key": "art_faramir",
+        "categories": ["men", "good"]
+      },
+      {
+        "slug": "denethor",
+        "names": ["Denethor", "Denethor II"],
+        "gender": "male",
+        "birthDate": "TA 2930",
+        "hair": "dark",
+        "eyes": "grey",
+        "notableFor": "Steward of Gondor",
+        "titles": ["Steward of Gondor"],
+        "article_key": "art_denethor",
+        "categories": ["men", "good"]
+      },
+      {
+        "slug": "treebeard",
+        "names": ["Treebeard", "Fangorn"],
+        "gender": "male",
+        "notableFor": "Oldest Ent",
+        "titles": ["Shepherd of the Forest"],
+        "article_key": "art_treebeard",
+        "categories": ["good", "neutral"]
+      },
+      {
+        "slug": "durins-bane",
+        "names": ["Durin's Bane", "Balrog of Morgoth"],
+        "gender": null,
+        "notableFor": "Balrog that destroyed Khazad-dûm",
+        "article_key": "art_balrog",
         "categories": ["evil"]
       }
     ],
     "race": [
-      { "slug": "hobbits", "names": ["Hobbits", "Halflings"], "distinctions": "Small stature, large hairy feet", "lifespan": "100+ years", "avg_height": "3-4 feet", "categories": [] },
-      { "slug": "elves", "names": ["Elves", "Eldar"], "distinctions": "Immortal, wise", "lifespan": "immortal", "categories": [] }
+      {
+        "slug": "hobbits",
+        "names": ["Hobbits", "Halflings", "Periannath"],
+        "distinctions": "Small stature, large hairy feet, love of peace",
+        "lifespan": "100+ years",
+        "avgHeight": "3-4 feet",
+        "article_key": "art_shire",
+        "categories": []
+      },
+      {
+        "slug": "elves",
+        "names": ["Elves", "Eldar", "Quendi"],
+        "distinctions": "Immortal, fair, wise",
+        "lifespan": "immortal",
+        "avgHeight": "6-7 feet",
+        "article_key": "art_sindarin",
+        "categories": []
+      },
+      {
+        "slug": "dwarves",
+        "names": ["Dwarves", "Khazâd"],
+        "distinctions": "Short, stout, skilled in mining and smithing",
+        "lifespan": "250-300 years",
+        "avgHeight": "4-5 feet",
+        "article_key": "art_erebor",
+        "categories": []
+      },
+      {
+        "slug": "men",
+        "names": ["Men", "Humans", "Edain"],
+        "distinctions": "Mortal, diverse cultures",
+        "lifespan": "70-100 years (longer for Númenóreans)",
+        "avgHeight": "5'6\" - 6'4\"",
+        "article_key": "art_gondor",
+        "categories": []
+      },
+      {
+        "slug": "ents",
+        "names": ["Ents", "Onodrim"],
+        "distinctions": "Tree-like shepherds",
+        "lifespan": "immortal",
+        "avgHeight": "12-15 feet",
+        "article_key": "art_fangorn",
+        "categories": []
+      },
+      {
+        "slug": "maiar",
+        "names": ["Maiar", "Ainur"],
+        "distinctions": "Spiritual beings, wizards, balrogs",
+        "lifespan": "immortal",
+        "article_key": "art_gandalf",
+        "categories": []
+      }
     ],
     "location": [
-      { "slug": "the-shire", "names": ["The Shire"], "entity_type": "region", "notable_for": "Home of the Hobbits", "creation_date": "TA 1601", "article_slug": "shire_art", "categories": [] },
-      { "slug": "rivendell", "names": ["Rivendell", "Imladris"], "entity_type": "valley", "notable_for": "Home of Elrond", "categories": [] }
+      {
+        "slug": "the-shire",
+        "names": ["The Shire", "Sûza"],
+        "entityType": "region",
+        "notableFor": "Home of the Hobbits",
+        "creationDate": "TA 1601",
+        "article_key": "art_shire",
+        "categories": []
+      },
+      {
+        "slug": "rivendell",
+        "names": ["Rivendell", "Imladris"],
+        "entityType": "valley",
+        "notableFor": "Home of Elrond",
+        "article_key": "art_elrond",
+        "categories": []
+      },
+      {
+        "slug": "mordor",
+        "names": ["Mordor", "The Black Land"],
+        "entityType": "region",
+        "notableFor": "Sauron's domain",
+        "destructionDate": "TA 3019",
+        "article_key": "art_mordor",
+        "categories": []
+      },
+      {
+        "slug": "rohan",
+        "names": ["Rohan", "Riddermark"],
+        "entityType": "kingdom",
+        "notableFor": "Land of the Rohirrim",
+        "creationDate": "TA 2510",
+        "article_key": "art_rohan",
+        "categories": []
+      },
+      {
+        "slug": "gondor",
+        "names": ["Gondor", "South-kingdom"],
+        "entityType": "kingdom",
+        "notableFor": "Realm of Men",
+        "creationDate": "SA 3320",
+        "article_key": "art_gondor",
+        "categories": []
+      },
+      {
+        "slug": "erebor",
+        "names": ["Erebor", "Lonely Mountain"],
+        "entityType": "mountain",
+        "notableFor": "Dwarf kingdom",
+        "creationDate": "TA 1999",
+        "destructionDate": "TA 2770",
+        "article_key": "art_erebor",
+        "categories": []
+      },
+      {
+        "slug": "fangorn",
+        "names": ["Fangorn Forest", "Entwood"],
+        "entityType": "forest",
+        "notableFor": "Home of the Ents",
+        "article_key": "art_fangorn",
+        "categories": []
+      },
+      {
+        "slug": "helms-deep",
+        "names": ["Helm's Deep", "Súthburg"],
+        "entityType": "fortress",
+        "notableFor": "Site of great battle",
+        "article_key": "art_helm",
+        "categories": []
+      },
+      {
+        "slug": "isengard",
+        "names": ["Isengard", "Angrenost"],
+        "entityType": "fortress",
+        "notableFor": "Saruman's stronghold",
+        "destructionDate": "TA 3019",
+        "article_key": "art_isengard",
+        "categories": []
+      }
     ],
     "event": [
-      { "slug": "war-of-the-ring", "names": ["War of the Ring"], "entity_type": "war", "start_date": "TA 3018", "end_date": "TA 3019", "notable_for": "Defeat of Sauron", "categories": [] }
+      {
+        "slug": "war-of-the-ring",
+        "names": ["War of the Ring"],
+        "entityType": "war",
+        "startDate": "TA 3018",
+        "endDate": "TA 3019",
+        "notableFor": "Final defeat of Sauron",
+        "article_key": "art_gondor",
+        "categories": []
+      },
+      {
+        "slug": "battle-of-helm-deep",
+        "names": ["Battle of Helm's Deep"],
+        "entityType": "battle",
+        "startDate": "TA 3019",
+        "endDate": "TA 3019",
+        "casualties": "Thousands",
+        "notableFor": "Rohan victory against Isengard",
+        "article_key": "art_helm",
+        "categories": []
+      },
+      {
+        "slug": "battle-of-pelennor-fields",
+        "names": ["Battle of the Pelennor Fields"],
+        "entityType": "battle",
+        "startDate": "TA 3019",
+        "endDate": "TA 3019",
+        "casualties": "Heavy",
+        "notableFor": "Fall of the Witch-king",
+        "article_key": "art_gondor",
+        "categories": []
+      },
+      {
+        "slug": "council-of-elrond",
+        "names": ["Council of Elrond"],
+        "entityType": "council",
+        "startDate": "TA 3018",
+        "endDate": "TA 3018",
+        "notableFor": "Formation of the Fellowship",
+        "article_key": "art_elrond",
+        "categories": []
+      }
     ],
     "organization": [
-      { "slug": "fellowship-of-the-ring", "names": ["Fellowship of the Ring"], "entity_type": "fellowship", "purpose": "Destroy the One Ring", "founded_date": "TA 3018", "categories": ["fellowship"] }
+      {
+        "slug": "fellowship-of-the-ring",
+        "names": ["Fellowship of the Ring", "Company of the Ring"],
+        "entityType": "fellowship",
+        "purpose": "Destroy the One Ring",
+        "foundedDate": "TA 3018",
+        "dissolvedDate": "TA 3019",
+        "article_key": "art_aragorn",
+        "categories": ["fellowship"]
+      },
+      {
+        "slug": "white-council",
+        "names": ["White Council", "Council of the Wise"],
+        "entityType": "council",
+        "purpose": "Counter Sauron",
+        "foundedDate": "TA 2463",
+        "article_key": "art_saruman",
+        "categories": []
+      },
+      {
+        "slug": "grey-company",
+        "names": ["Grey Company", "Dúnedain of the North"],
+        "entityType": "company",
+        "purpose": "Aid Aragorn",
+        "foundedDate": "TA 3019",
+        "article_key": "art_aragorn",
+        "categories": []
+      }
     ],
     "timeline": [
-      { "slug": "third-age", "names": ["Third Age"], "abbreviation": "TA", "start_date": "TA 1", "end_date": "TA 3021", "categories": [] }
+      {
+        "slug": "first-age",
+        "names": ["First Age"],
+        "abbreviation": "FA",
+        "startDate": "Years of the Trees",
+        "endDate": "FA 587",
+        "article_key": "art_sindarin",
+        "categories": []
+      },
+      {
+        "slug": "second-age",
+        "names": ["Second Age"],
+        "abbreviation": "SA",
+        "startDate": "SA 1",
+        "endDate": "SA 3441",
+        "article_key": "art_sauron",
+        "categories": []
+      },
+      {
+        "slug": "third-age",
+        "names": ["Third Age"],
+        "abbreviation": "TA",
+        "startDate": "TA 1",
+        "endDate": "TA 3021",
+        "article_key": "art_gandalf",
+        "categories": []
+      },
+      {
+        "slug": "fourth-age",
+        "names": ["Fourth Age"],
+        "abbreviation": "FA",
+        "startDate": "FA 1",
+        "endDate": null,
+        "article_key": "art_aragorn",
+        "categories": []
+      }
     ],
     "item": [
-      { "slug": "the-one-ring", "names": ["The One Ring", "Ruling Ring"], "entity_type": "ring", "material": "gold", "notable_for": "The One Ring to rule them all", "article_slug": "one_ring_art", "categories": [] },
-      { "slug": "sting", "names": ["Sting"], "entity_type": "sword", "material": "steel", "notable_for": "Frodo's sword", "categories": [] }
+      {
+        "slug": "the-one-ring",
+        "names": ["The One Ring", "Ruling Ring", "Ishildur's Bane"],
+        "entityType": "ring",
+        "material": "gold",
+        "notableFor": "Created by Sauron to rule all other Rings",
+        "article_key": "art_one_ring",
+        "categories": []
+      },
+      {
+        "slug": "sting",
+        "names": ["Sting"],
+        "entityType": "sword",
+        "material": "steel",
+        "notableFor": "Glows blue when Orcs are near",
+        "article_key": "art_sting",
+        "categories": []
+      },
+      {
+        "slug": "anduril",
+        "names": ["Andúril", "Flame of the West"],
+        "entityType": "sword",
+        "material": "steel",
+        "notableFor": "Sword of Aragorn, reforged from Narsil",
+        "article_key": "art_anduril",
+        "categories": []
+      },
+      {
+        "slug": "glamdring",
+        "names": ["Glamdring", "Foe-hammer"],
+        "entityType": "sword",
+        "material": "steel",
+        "notableFor": "Sword of Gandalf",
+        "article_key": "art_glamdring",
+        "categories": []
+      },
+      {
+        "slug": "narya",
+        "names": ["Narya", "Ring of Fire"],
+        "entityType": "ring",
+        "material": "gold with ruby",
+        "notableFor": "One of the Three Elven Rings, worn by Gandalf",
+        "article_key": "art_gandalf",
+        "categories": []
+      },
+      {
+        "slug": "nenya",
+        "names": ["Nenya", "Ring of Water"],
+        "entityType": "ring",
+        "material": "mithril with adamant",
+        "notableFor": "Worn by Galadriel",
+        "article_key": "art_galadriel",
+        "categories": []
+      },
+      {
+        "slug": "vilya",
+        "names": ["Vilya", "Ring of Air"],
+        "entityType": "ring",
+        "material": "gold with sapphire",
+        "notableFor": "Worn by Elrond",
+        "article_key": "art_elrond",
+        "categories": []
+      }
     ],
     "language": [
-      { "slug": "westron", "names": ["Westron", "Common Speech"], "family": "Adûnaic", "categories": [] },
-      { "slug": "sindarin", "names": ["Sindarin"], "family": "Elvish", "categories": [] }
+      {
+        "slug": "westron",
+        "names": ["Westron", "Common Speech"],
+        "family": "Adûnaic",
+        "article_key": "art_westron",
+        "categories": []
+      },
+      {
+        "slug": "sindarin",
+        "names": ["Sindarin", "Grey-elven"],
+        "family": "Elvish",
+        "article_key": "art_sindarin",
+        "categories": []
+      },
+      {
+        "slug": "quenya",
+        "names": ["Quenya", "High-elven"],
+        "family": "Elvish",
+        "article_key": "art_quenya",
+        "categories": []
+      },
+      {
+        "slug": "khuzdul",
+        "names": ["Khuzdul", "Dwarvish"],
+        "family": "Dwarvish",
+        "article_key": "art_khuzdul",
+        "categories": []
+      },
+      {
+        "slug": "rohirric",
+        "names": ["Rohirric", "Rohanese"],
+        "family": "Gothic",
+        "article_key": "art_rohan",
+        "categories": []
+      }
     ],
     "script": [
-      { "slug": "tengwar", "names": ["Tengwar"], "categories": [] }
+      {
+        "slug": "tengwar",
+        "names": ["Tengwar", "Feanorian script"],
+        "article_key": "art_tengwar",
+        "categories": []
+      },
+      {
+        "slug": "cirth",
+        "names": ["Cirth", "Runes"],
+        "article_key": "art_cirth",
+        "categories": []
+      }
     ]
   },
   "edges": [
     { "from_type": "character", "from_slug": "frodo-baggins", "to_type": "race", "to_slug": "hobbits", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "samwise-gamgee", "to_type": "race", "to_slug": "hobbits", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "meriadoc-brandybuck", "to_type": "race", "to_slug": "hobbits", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "peregrin-took", "to_type": "race", "to_slug": "hobbits", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "gandalf", "to_type": "race", "to_slug": "maiar", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "aragorn", "to_type": "race", "to_slug": "men", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "legolas", "to_type": "race", "to_slug": "elves", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "gimli", "to_type": "race", "to_slug": "dwarves", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "boromir", "to_type": "race", "to_slug": "men", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "sauron", "to_type": "race", "to_slug": "maiar", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "saruman", "to_type": "race", "to_slug": "maiar", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "gollum", "to_type": "race", "to_slug": "hobbits", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "elrond", "to_type": "race", "to_slug": "elves", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "galadriel", "to_type": "race", "to_slug": "elves", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "theoden", "to_type": "race", "to_slug": "men", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "eowyn", "to_type": "race", "to_slug": "men", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "faramir", "to_type": "race", "to_slug": "men", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "denethor", "to_type": "race", "to_slug": "men", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "treebeard", "to_type": "race", "to_slug": "ents", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "durins-bane", "to_type": "race", "to_slug": "maiar", "rel_type": "OF_RACE", "properties": {} },
     { "from_type": "character", "from_slug": "frodo-baggins", "to_type": "organization", "to_slug": "fellowship-of-the-ring", "rel_type": "MEMBER_OF", "properties": { "role": "Ring-bearer", "from_date": "TA 3018" } },
+    { "from_type": "character", "from_slug": "samwise-gamgee", "to_type": "organization", "to_slug": "fellowship-of-the-ring", "rel_type": "MEMBER_OF", "properties": { "role": "Gardener" } },
+    { "from_type": "character", "from_slug": "meriadoc-brandybuck", "to_type": "organization", "to_slug": "fellowship-of-the-ring", "rel_type": "MEMBER_OF", "properties": {} },
+    { "from_type": "character", "from_slug": "peregrin-took", "to_type": "organization", "to_slug": "fellowship-of-the-ring", "rel_type": "MEMBER_OF", "properties": {} },
+    { "from_type": "character", "from_slug": "gandalf", "to_type": "organization", "to_slug": "fellowship-of-the-ring", "rel_type": "MEMBER_OF", "properties": { "role": "Leader" } },
+    { "from_type": "character", "from_slug": "aragorn", "to_type": "organization", "to_slug": "fellowship-of-the-ring", "rel_type": "MEMBER_OF", "properties": {} },
+    { "from_type": "character", "from_slug": "legolas", "to_type": "organization", "to_slug": "fellowship-of-the-ring", "rel_type": "MEMBER_OF", "properties": {} },
+    { "from_type": "character", "from_slug": "gimli", "to_type": "organization", "to_slug": "fellowship-of-the-ring", "rel_type": "MEMBER_OF", "properties": {} },
+    { "from_type": "character", "from_slug": "boromir", "to_type": "organization", "to_slug": "fellowship-of-the-ring", "rel_type": "MEMBER_OF", "properties": {} },
     { "from_type": "character", "from_slug": "frodo-baggins", "to_type": "location", "to_slug": "the-shire", "rel_type": "BORN_IN", "properties": {} },
+    { "from_type": "character", "from_slug": "frodo-baggins", "to_type": "location", "to_slug": "rivendell", "rel_type": "DWELLED_IN", "properties": {} },
+    { "from_type": "character", "from_slug": "frodo-baggins", "to_type": "location", "to_slug": "mordor", "rel_type": "DWELLED_IN", "properties": {} },
     { "from_type": "character", "from_slug": "frodo-baggins", "to_type": "item", "to_slug": "the-one-ring", "rel_type": "BORE", "properties": {} },
     { "from_type": "character", "from_slug": "frodo-baggins", "to_type": "item", "to_slug": "sting", "rel_type": "WIELDS", "properties": {} },
     { "from_type": "character", "from_slug": "frodo-baggins", "to_type": "language", "to_slug": "westron", "rel_type": "SPEAKS", "properties": {} },
-    { "from_type": "character", "from_slug": "gandalf", "to_type": "organization", "to_slug": "fellowship-of-the-ring", "rel_type": "MEMBER_OF", "properties": { "role": "Leader" } },
-    { "from_type": "character", "from_slug": "aragorn", "to_type": "organization", "to_slug": "fellowship-of-the-ring", "rel_type": "MEMBER_OF", "properties": {} },
+    { "from_type": "character", "from_slug": "gandalf", "to_type": "item", "to_slug": "glamdring", "rel_type": "WIELDS", "properties": {} },
+    { "from_type": "character", "from_slug": "gandalf", "to_type": "item", "to_slug": "narya", "rel_type": "OWNS", "properties": {} },
+    { "from_type": "character", "from_slug": "aragorn", "to_type": "item", "to_slug": "anduril", "rel_type": "WIELDS", "properties": {} },
+    { "from_type": "character", "from_slug": "aragorn", "to_type": "language", "to_slug": "sindarin", "rel_type": "SPEAKS", "properties": {} },
+    { "from_type": "character", "from_slug": "aragorn", "to_type": "language", "to_slug": "westron", "rel_type": "SPEAKS", "properties": {} },
+    { "from_type": "character", "from_slug": "legolas", "to_type": "language", "to_slug": "sindarin", "rel_type": "SPEAKS", "properties": {} },
+    { "from_type": "character", "from_slug": "gimli", "to_type": "language", "to_slug": "khuzdul", "rel_type": "SPEAKS", "properties": {} },
     { "from_type": "character", "from_slug": "sauron", "to_type": "item", "to_slug": "the-one-ring", "rel_type": "CRAFTED", "properties": {} },
+    { "from_type": "character", "from_slug": "sauron", "to_type": "language", "to_slug": "black-speech", "rel_type": "SPEAKS", "properties": {} },
+    { "from_type": "character", "from_slug": "sauron", "to_type": "event", "to_slug": "war-of-the-ring", "rel_type": "PARTICIPATED_IN", "properties": { "role": "Enemy" } },
+    { "from_type": "character", "from_slug": "gollum", "to_type": "item", "to_slug": "the-one-ring", "rel_type": "BORE", "properties": { "from_date": "TA 2463", "to_date": "TA 2941" } },
+    { "from_type": "character", "from_slug": "gollum", "to_type": "race", "to_slug": "hobbits", "rel_type": "OF_RACE", "properties": {} },
+    { "from_type": "character", "from_slug": "elrond", "to_type": "organization", "to_slug": "white-council", "rel_type": "MEMBER_OF", "properties": {} },
+    { "from_type": "character", "from_slug": "galadriel", "to_type": "organization", "to_slug": "white-council", "rel_type": "MEMBER_OF", "properties": {} },
+    { "from_type": "character", "from_slug": "saruman", "to_type": "organization", "to_slug": "white-council", "rel_type": "MEMBER_OF", "properties": { "role": "Head" } },
+    { "from_type": "character", "from_slug": "saruman", "to_type": "location", "to_slug": "isengard", "rel_type": "DWELLED_IN", "properties": {} },
     { "from_type": "race", "from_slug": "hobbits", "to_type": "location", "to_slug": "the-shire", "rel_type": "INHABITS", "properties": {} },
+    { "from_type": "race", "from_slug": "elves", "to_type": "location", "to_slug": "rivendell", "rel_type": "INHABITS", "properties": {} },
+    { "from_type": "race", "from_slug": "elves", "to_type": "location", "to_slug": "mordor", "rel_type": "INHABITS", "properties": {} },
+    { "from_type": "race", "from_slug": "dwarves", "to_type": "location", "to_slug": "erebor", "rel_type": "INHABITS", "properties": {} },
+    { "from_type": "race", "from_slug": "men", "to_type": "location", "to_slug": "gondor", "rel_type": "INHABITS", "properties": {} },
+    { "from_type": "race", "from_slug": "men", "to_type": "location", "to_slug": "rohan", "rel_type": "INHABITS", "properties": {} },
+    { "from_type": "race", "from_slug": "ents", "to_type": "location", "to_slug": "fangorn", "rel_type": "INHABITS", "properties": {} },
     { "from_type": "location", "from_slug": "rivendell", "to_type": "location", "to_slug": "the-shire", "rel_type": "REGION_OF", "properties": {} },
-    { "from_type": "event", "from_slug": "war-of-the-ring", "to_type": "location", "to_slug": "rivendell", "rel_type": "TOOK_PLACE_IN", "properties": {} },
+    { "from_type": "location", "from_slug": "gondor", "to_type": "location", "to_slug": "mordor", "rel_type": "REGION_OF", "properties": {} },
+    { "from_type": "location", "from_slug": "rohan", "to_type": "location", "to_slug": "gondor", "rel_type": "REGION_OF", "properties": {} },
+    { "from_type": "event", "from_slug": "war-of-the-ring", "to_type": "location", "to_slug": "mordor", "rel_type": "TOOK_PLACE_IN", "properties": {} },
+    { "from_type": "event", "from_slug": "war-of-the-ring", "to_type": "location", "to_slug": "gondor", "rel_type": "TOOK_PLACE_IN", "properties": {} },
+    { "from_type": "event", "from_slug": "war-of-the-ring", "to_type": "location", "to_slug": "rohan", "rel_type": "TOOK_PLACE_IN", "properties": {} },
+    { "from_type": "event", "from_slug": "battle-of-helm-deep", "to_type": "location", "to_slug": "helms-deep", "rel_type": "TOOK_PLACE_IN", "properties": {} },
+    { "from_type": "event", "from_slug": "battle-of-pelennor-fields", "to_type": "location", "to_slug": "gondor", "rel_type": "TOOK_PLACE_IN", "properties": {} },
+    { "from_type": "event", "from_slug": "council-of-elrond", "to_type": "location", "to_slug": "rivendell", "rel_type": "TOOK_PLACE_IN", "properties": {} },
     { "from_type": "event", "from_slug": "war-of-the-ring", "to_type": "timeline", "to_slug": "third-age", "rel_type": "OCCURRED_DURING", "properties": {} },
+    { "from_type": "event", "from_slug": "battle-of-helm-deep", "to_type": "timeline", "to_slug": "third-age", "rel_type": "OCCURRED_DURING", "properties": {} },
+    { "from_type": "event", "from_slug": "council-of-elrond", "to_type": "timeline", "to_slug": "third-age", "rel_type": "OCCURRED_DURING", "properties": {} },
     { "from_type": "language", "from_slug": "westron", "to_type": "script", "to_slug": "tengwar", "rel_type": "WRITTEN_IN", "properties": {} },
     { "from_type": "language", "from_slug": "sindarin", "to_type": "script", "to_slug": "tengwar", "rel_type": "WRITTEN_IN", "properties": {} },
-    { "from_type": "character", "from_slug": "aragorn", "to_type": "language", "to_slug": "sindarin", "rel_type": "SPEAKS", "properties": {} },
-    { "from_type": "race", "from_slug": "elves", "to_type": "language", "to_slug": "sindarin", "rel_type": "IS_SPOKEN_BY", "properties": {} }
+    { "from_type": "language", "from_slug": "quenya", "to_type": "script", "to_slug": "tengwar", "rel_type": "WRITTEN_IN", "properties": {} },
+    { "from_type": "language", "from_slug": "khuzdul", "to_type": "script", "to_slug": "cirth", "rel_type": "WRITTEN_IN", "properties": {} },
+    { "from_type": "race", "from_slug": "elves", "to_type": "language", "to_slug": "sindarin", "rel_type": "IS_SPOKEN_BY", "properties": {} },
+    { "from_type": "race", "from_slug": "elves", "to_type": "language", "to_slug": "quenya", "rel_type": "IS_SPOKEN_BY", "properties": {} },
+    { "from_type": "race", "from_slug": "dwarves", "to_type": "language", "to_slug": "khuzdul", "rel_type": "IS_SPOKEN_BY", "properties": {} },
+    { "from_type": "race", "from_slug": "men", "to_type": "language", "to_slug": "westron", "rel_type": "IS_SPOKEN_BY", "properties": {} },
+    { "from_type": "race", "from_slug": "hobbits", "to_type": "language", "to_slug": "westron", "rel_type": "IS_SPOKEN_BY", "properties": {} },
+    { "from_type": "character", "from_slug": "frodo-baggins", "to_type": "event", "to_slug": "council-of-elrond", "rel_type": "PARTICIPATED_IN", "properties": {} },
+    { "from_type": "character", "from_slug": "aragorn", "to_type": "event", "to_slug": "council-of-elrond", "rel_type": "PARTICIPATED_IN", "properties": {} },
+    { "from_type": "character", "from_slug": "gandalf", "to_type": "event", "to_slug": "council-of-elrond", "rel_type": "PARTICIPATED_IN", "properties": {} },
+    { "from_type": "character", "from_slug": "theoden", "to_type": "event", "to_slug": "battle-of-helm-deep", "rel_type": "PARTICIPATED_IN", "properties": { "role": "Commander" } },
+    { "from_type": "character", "from_slug": "aragorn", "to_type": "event", "to_slug": "battle-of-helm-deep", "rel_type": "PARTICIPATED_IN", "properties": {} },
+    { "from_type": "character", "from_slug": "eowyn", "to_type": "event", "to_slug": "battle-of-pelennor-fields", "rel_type": "PARTICIPATED_IN", "properties": { "role": "Slayer of Witch-king" } },
+    { "from_type": "character", "from_slug": "gandalf", "to_type": "timeline", "to_slug": "third-age", "rel_type": "LIVED_DURING", "properties": {} },
+    { "from_type": "character", "from_slug": "aragorn", "to_type": "timeline", "to_slug": "third-age", "rel_type": "LIVED_DURING", "properties": {} },
+    { "from_type": "character", "from_slug": "elrond", "to_type": "timeline", "to_slug": "second-age", "rel_type": "LIVED_DURING", "properties": {} },
+    { "from_type": "character", "from_slug": "elrond", "to_type": "timeline", "to_slug": "third-age", "rel_type": "LIVED_DURING", "properties": {} },
+    { "from_type": "character", "from_slug": "galadriel", "to_type": "timeline", "to_slug": "second-age", "rel_type": "LIVED_DURING", "properties": {} },
+    { "from_type": "character", "from_slug": "galadriel", "to_type": "timeline", "to_slug": "third-age", "rel_type": "LIVED_DURING", "properties": {} },
+    { "from_type": "race", "from_slug": "elves", "to_type": "timeline", "to_slug": "first-age", "rel_type": "LIVED_DURING", "properties": {} },
+    { "from_type": "race", "from_slug": "elves", "to_type": "timeline", "to_slug": "second-age", "rel_type": "LIVED_DURING", "properties": {} },
+    { "from_type": "race", "from_slug": "elves", "to_type": "timeline", "to_slug": "third-age", "rel_type": "LIVED_DURING", "properties": {} },
+    { "from_type": "character", "from_slug": "gimli", "to_type": "race", "to_slug": "elves", "rel_type": "KNOWS", "properties": {} },
+    { "from_type": "character", "from_slug": "legolas", "to_type": "race", "to_slug": "dwarves", "rel_type": "KNOWS", "properties": {} }
   ],
   "users": [
     { "username": "admin", "password": "admin123", "role": "admin" },
