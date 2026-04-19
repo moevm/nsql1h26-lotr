@@ -340,7 +340,7 @@ DELETE r
 # Delete all outgoing relations of a specific type from a page.
 # rel_type is string-interplated ONLY after whitelist validation in services.py
 # str.format() is called on this template.
-PAGE_RELS_DELETE_TEMPLATE = '''\
+PAGE_RELS_OUTGOING_DELETE_TEMPLATE = '''\
 MATCH (p:Page {{slug: $slug}})-[r:{rel_type}]->()
 DELETE r
 '''
@@ -349,26 +349,38 @@ DELETE r
 # SET r = t.properties sets all relation properties from the provided map.
 # rel_type is string-interplated ONLY after whitelist validation in services.py
 # str.format() is called on this template.
-PAGE_RELS_CREATE_TEMPLATE = """\
+PAGE_RELS_OUTGOING_CREATE_TEMPLATE = '''\
 MATCH (p:Page {{slug: $slug}})
-WITH p
 UNWIND $targets AS t
 MATCH (target:Page {{slug: t.slug}})
 CREATE (p)-[r:{rel_type}]->(target)
 SET r = t.properties
-"""
+'''
+
+PAGE_RELS_INCOMING_DELETE_TEMPLATE = '''\
+MATCH ()-[r:{rel_type}]->(p:Page {{slug: $slug}})
+DELETE r
+'''
+
+PAGE_RELS_INCOMING_CREATE_TEMPLATE = '''\
+MATCH (p:Page {{slug: $slug}})
+UNWIND $sources AS s
+MATCH (source:Page {{slug: s.slug}})
+CREATE (source)-[r:{rel_type}]->(p)
+SET r = s.properties
+'''
 
 # DETACH DELETE the page and its article node.
 # DETACH removes all edges from/to the page automatically.
 # We additionally delete the orphaned Article node to avoid graph litter.
 # RETURN 1 allows detecting "not found" (0 rows) vs "deleted" (1 row)
 # in a single round-trip.
-PAGE_DELETE_QUERY = """\
+PAGE_DELETE_QUERY = '''\
 MATCH (p:Page {slug: $slug})
 OPTIONAL MATCH (p)-[:HAS_ARTICLE]->(a:Article)
 DETACH DELETE p, a
 RETURN 1 AS deleted
-"""
+'''
 
 
 # Like queries

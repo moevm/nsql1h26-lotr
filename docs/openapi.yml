@@ -691,25 +691,48 @@ components:
             description: Category slug
         relations:
           type: object
-          additionalProperties:
-            type: array
-            items:
+          properties:
+            outgoing:
               type: object
-              required:
-                - slug
-              properties:
-                slug:
-                  type: string
-                properties:
+              additionalProperties:
+                type: array
+                items:
                   type: object
-                  additionalProperties: true
-                  description:
-                    Arbitrary edge properties. See /meta/relation-types/
-                    for allowed fields per relation type.
+                  required:
+                    - slug
+                  properties:
+                    slug:
+                      type: string
+                    properties:
+                      type: object
+                      additionalProperties: true
+                      description: |
+                        Arbitrary edge properties. See /meta/relation-types/
+                        for allowed fields per relation type.
+              description: |
+                Outgoing relations from the page being updated.
+                Key: relation type; Value: array of target objects.
+            incoming:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - slug
+                  properties:
+                    slug:
+                      type: string
+                    properties:
+                      type: object
+                      additionalProperties: true
+              description: |
+                Incoming relations to the page being updated (i.e., edges from other pages).
+                Key: relation type; Value: array of source objects.
           description: |
-            Key: relation type (see /meta/relation-types/); 
-            Value: array of { "slug": string, "properties"?: object }.
-            Example: { "MEMBER_OF": [ { "slug": "fellowship", "properties": { "role": "member" } } ] }
+            Replacement for relations. Providing a key under `outgoing` or `incoming` replaces
+            *all* edges of that type and direction. An empty array deletes them. Omitting a
+            key leaves that group unchanged.
     CharacterListItem:
       allOf:
         - $ref: "#/components/schemas/PageSummary"

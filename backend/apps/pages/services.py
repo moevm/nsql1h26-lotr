@@ -29,8 +29,10 @@ from .queries import (
     PAGE_DELETE_QUERY,
     PAGE_DETAIL_QUERY,
     PAGE_NAMES_UPDATE_QUERY,
-    PAGE_RELS_CREATE_TEMPLATE,
-    PAGE_RELS_DELETE_TEMPLATE,
+    PAGE_RELS_OUTGOING_CREATE_TEMPLATE,
+    PAGE_RELS_INCOMING_CREATE_TEMPLATE,
+    PAGE_RELS_OUTGOING_DELETE_TEMPLATE,
+    PAGE_RELS_INCOMING_DELETE_TEMPLATE,
     PAGE_SLUGS_EXIST_QUERY,
     PAGE_CATEGORIES_CLEAR_QUERY,
     PAGE_LIKE_ADD_QUERY,
@@ -190,7 +192,9 @@ def _validate_category_slugs_exist(slugs: list[str]) -> None:
         )
 
 
-def _validate_rel_types(relations: dict) -> None:
+def _validate_rel_types(
+        relations: dict,
+        direction_label: Literal['incoming', 'outgoing']) -> None:
     """
     Verify all relationship type keys are in the allowed whitelist.
 
@@ -201,7 +205,7 @@ def _validate_rel_types(relations: dict) -> None:
     if invalid:
         raise ValidationError(
             {
-                'relations': [
+                f'relations.{direction_label}': [
                     f'Unknown relation type(s): {", ".join(sorted(invalid))}. '
                     f'Allowed: {", ".join(sorted(ALLOWED_REL_TYPES))}'
                 ]
@@ -251,38 +255,68 @@ def _apply_categories(slug: str, cat_slugs: list[str]) -> None:
         db.cypher_query(PAGE_CATEGORIES_CLEAR_QUERY, {"slug": slug})
 
 
-def _apply_relations(slug: str, relations: dict) -> None:
-    """
-    For each rel type in the payload:
-        1. Delete all existing outgoing rels of that type.
-        2. Create new rels to the specified targets.
+def _apply_outgoing_relations(slug: str, outgoing: dict) -> None:
+    '''
+    Replace outgoing edges of specified types.
 
-    Callers MUST have validated rel types against ALLOWED_REL_TYPES before
-    reaching this function.  The assertions below are a safety net for dev.
+    For each rel_type:
+      1. Delete all (slug)-[:rel_type]->(*) edges.
+      2. Create new (slug)-[:rel_type]->(target) edges for each item in the
+         list.
 
-    Two separate queries (DELETE then CREATE) avoids the Cartesian product that
-    would arise from combining them: after DELETE, Cypher produces N rows
-    (one per deleted rel), which would multiply against UNWIND targets.
-    """
-    for rel_type, targets in relations.items():
-        assert rel_type in ALLOWED_REL_TYPES, \
-            f"rel_type leaked validation: {rel_type}"
+    Two separate queries avoids the Cartesian product explosion.
+    '''
+    for rel_type, targets in outgoing.items():
+        assert rel_type in ALLOWED_REL_TYPES, f'rel_type leaked: {rel_type}'
 
         db.cypher_query(
-            PAGE_RELS_DELETE_TEMPLATE.format(rel_type=rel_type),
-            {"slug": slug},
+            PAGE_RELS_OUTGOING_DELETE_TEMPLATE.format(rel_type=rel_type),
+            {'slug': slug},
         )
         if targets:
             db.cypher_query(
-                PAGE_RELS_CREATE_TEMPLATE.format(rel_type=rel_type),
+                PAGE_RELS_OUTGOING_CREATE_TEMPLATE.format(rel_type=rel_type),
                 {
-                    "slug": slug,
-                    "targets": [
+                    'slug': slug,
+                    'targets': [
                         {
-                            "slug": t["slug"],
-                            "properties": t.get("properties") or {}
+                            'slug': t['slug'],
+                            'properties': t.get('properties') or {}
                         }
                         for t in targets
+                    ],
+                },
+            )
+
+
+def _apply_incoming_relations(slug: str, incoming: dict) -> None:
+    '''
+    Replace incoming edges of specified types.
+
+    For each rel_type:
+      1. Delete all (*)-[:rel_type]->(slug) edges.
+         This is scoped to edges that terminate at slug -
+         it does NOT affect source nodes' other outgoing edges.
+      2. Create new (source)-[:rel_type]->(slug) edges.
+    '''
+    for rel_type, sources in incoming.items():
+        assert rel_type in ALLOWED_REL_TYPES, f'rel_type leaked: {rel_type}'
+
+        db.cypher_query(
+            PAGE_RELS_INCOMING_DELETE_TEMPLATE.format(rel_type=rel_type),
+            {'slug': slug},
+        )
+        if sources:
+            db.cypher_query(
+                PAGE_RELS_INCOMING_CREATE_TEMPLATE.format(rel_type=rel_type),
+                {
+                    'slug': slug,
+                    'sources': [
+                        {
+                            'slug': s['slug'],
+                            'properties': s.get('properties') or {}
+                        }
+                        for s in sources
                     ],
                 },
             )
@@ -330,23 +364,37 @@ def update_page(
 
     entity_type = labels_to_type(results[0][0]) or 'unknown'
 
-    relations: dict = validated_data.get('relations') or {}
+    # Extract relation sub-dicts
+    raw_relations: dict = validated_data.get("relations") or {}
+    outgoing: dict = raw_relations.get("outgoing") or {}
+    incoming: dict = raw_relations.get("incoming") or {}
+
     categories: list | None = validated_data.get('categories')
 
-    if relations:
-        _validate_rel_types(relations)
+    # Whitelist validation
+    if outgoing:
+        _validate_rel_types(outgoing, 'outgoing')
+    if incoming:
+        _validate_rel_types(incoming, 'incoming')
 
-    if relations:
-        all_target_slugs: list[str] = [
-            t['slug']
-            for targers in relations.values()
-            for t in targers
+    # Target / source slug existence
+    if outgoing:
+        outgoing_slugs = [
+            t["slug"] for targets in outgoing.values() for t in targets
         ]
-        _validate_page_slugs_exist(all_target_slugs, field='relations')
+        _validate_page_slugs_exist(outgoing_slugs, "relations.outgoing")
 
+    if incoming:
+        incoming_slugs = [
+            s["slug"] for sources in incoming.values() for s in sources
+        ]
+        _validate_page_slugs_exist(incoming_slugs, "relations.incoming")
+
+    # Category existense
     if categories:
         _validate_category_slugs_exist(categories)
 
+    # Write atomically
     with db.transaction:
         names: list | None = validated_data.get('names')
         if names is not None:
@@ -363,8 +411,10 @@ def update_page(
         if categories is not None:
             _apply_categories(slug, categories)
 
-        if relations:
-            _apply_relations(slug, relations)
+        if outgoing:
+            _apply_outgoing_relations(slug, outgoing)
+        if incoming:
+            _apply_incoming_relations(slug, incoming)
 
     # Re-fetch after commit to return the canonical representation
     return get_page(slug, user_id=user_id)
@@ -420,7 +470,7 @@ def _execute_like_query(
 
 
 def like_page(slug: str, user_id: int) -> dict[str, Any]:
-    ''' 
+    '''
     Idempotently like a page.
 
     Creates the :User node (UserRef) if it does not exists yet.

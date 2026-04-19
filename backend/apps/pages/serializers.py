@@ -30,32 +30,40 @@ class ArticleUpdateSerializer(serializers.Serializer):
     )
 
 
-class RelationTargetSerializer(serializers.Serializer):
+class RelationItemSerializer(serializers.Serializer):
     '''
-    One target in a relation list sent in PATCH /pages/{slug}/.
-    `properties` carries edge attributes (role, fromDate, etc.).
+    One edge endpoint in a PATCH relations list
+
+    `slug` refers to the other page involved in the edge.
+    For outgoing edges: slug is the target (edge points FROM current page
+    TO slug).
+    For incoming edges: slug is the source (edge points FROM slug
+    TO current page).
+
+    `properties` carries edge attributes (role, fromDate, toDate, etc.).
+    Uses plain DictField without child-type restriction because edge property
+    values are heterogeneous (strings, nulls, possibly other JSON types).
     '''
 
     slug = serializers.SlugField(max_length=80)
     properties = serializers.DictField(required=False, default=dict)
 
 
-class PageRelationField(serializers.DictField):
+class _RelationDirectionField(serializers.DictField):
     '''
-    Validate the `relations` map sent in PATCH.
+    Validates one direction (outgoing OR incoming) of the relations map.
 
     Expected shape:
-    {
-        "MEMBER_OF": [
-            {"slug": "fellowship-of-the-ring", "properties": {"role": "Ring-bearer"}}
-        ],
-        "OWNS": []   // empty list = delete all OWNS relations
-    }
+        {
+            "MEMBER_OF": [{"slug": "bibonki", "properties": {"role": "..."}}],
+            "OWNS": []
+        }
 
     Keys are relationship type strings,
-    values are lists of RelationTargetSerializer.
+    values are lists of RelationItemSerializer.
+    An empty list means "delete all edges of this type in this direction".
     The whitelist check (ALLOWED_REL_TYPES) is done in services.py, not here,
-    because it depends on the entity type and we want one error format.
+#   because it depends on the entity type and we want one error format.
     '''
 
     def to_internal_value(self, data: dict) -> dict:
@@ -63,25 +71,40 @@ class PageRelationField(serializers.DictField):
             raise serializers.ValidationError('Must be an object.')
 
         result: dict = {}
-        for rel_type, targets in data.items():
-            if not isinstance(targets, list):
+        for rel_type, items in data.items():
+            if not isinstance(items, list):
                 raise serializers.ValidationError(
-                    {rel_type: ['Must be a list of target objects.']}
+                    {rel_type: ['Must be a list of edge endpoint objects.']}
                 )
 
-            validated_targets = []
-            for i, target in enumerate(targets):
-                s = RelationTargetSerializer(data=target)
+            validated: list = []
+            for i, target in enumerate(items):
+                s = RelationItemSerializer(data=target)
 
                 if not s.is_valid():
                     raise serializers.ValidationError(
                         {rel_type: {i: s.errors}}
                     )
-                validated_targets.append(s.validated_data)
+                validated.append(s.validated_data)
 
-            result[rel_type] = validated_targets
+            result[rel_type] = validated
 
         return result
+
+
+class PageRelationsSerializer(serializers.Serializer):
+    '''
+    Validates the `relations` object in PATCH /pages/{slug}/.
+
+    Mirrors the GET response structure so the frontend can round-trip
+    the value without transformation.
+
+    The only difference from GET is that the endpoint summary objects
+    ({slug, type, name, imageUrl}) are replaced by plain {"slug": "..."} -
+    the backend only needs the slug to identify the other node.
+    '''
+    outgoing = _RelationDirectionField(required=False, default=dict)
+    incoming = _RelationDirectionField(required=False, default=dict)
 
 
 class PageUpdateSerializer(serializers.Serializer):
@@ -109,7 +132,7 @@ class PageUpdateSerializer(serializers.Serializer):
         required=False,
     )
 
-    relations = PageRelationField(required=False)
+    relations = PageRelationsSerializer(required=False)
 
     def validate(self, attrs: dict) -> dict:
         '''Require at least one field to be present'''
