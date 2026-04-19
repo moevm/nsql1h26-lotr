@@ -31,7 +31,6 @@ from .services import get_liked_pages
 _ME_RESPONSE_SCHEMA = inline_serializer(
     name='MeResponse',
     fields={
-        'id': serializers.IntegerField(read_only=True),
         'username': serializers.CharField(read_only=True),
         'email': serializers.EmailField(read_only=True),
         'first_name': serializers.CharField(read_only=True),
