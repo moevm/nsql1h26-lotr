@@ -13,6 +13,9 @@ PATCH /pages/{slug}/ accepts any subset of:
   - article - upsert the article node
   - categories - replaces the full category list (list of slugs)
   - relations - replaces rels per type (see PageRelationsField)
+
+The @extend_schema in views.py documents the GET response shape for Swagger
+using inline_serializer so API clients still get a useful schema.
 '''
 
 from rest_framework import serializers
@@ -29,16 +32,12 @@ class ArticleUpdateSerializer(serializers.Serializer):
 
 class RelationTargetSerializer(serializers.Serializer):
     '''
-    One target in a relation list.
+    One target in a relation list sent in PATCH /pages/{slug}/.
     `properties` carries edge attributes (role, fromDate, etc.).
     '''
 
     slug = serializers.SlugField(max_length=80)
-    properties = serializers.DictField(
-        child=serializers.CharField(allow_null=True),
-        required=False,
-        default=dict,
-    )
+    properties = serializers.DictField(required=False, default=dict)
 
 
 class PageRelationField(serializers.DictField):

@@ -1,10 +1,12 @@
-from collections.abc import Sequence
-
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    inline_serializer,
+)
 from drf_spectacular.types import OpenApiTypes
 
-from rest_framework import status
-from rest_framework.permissions import BasePermission, AllowAny
+from rest_framework import status, serializers
+from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,6 +15,70 @@ from apps.users.permissions import IsAdminRole
 
 from .serializers import PageUpdateSerializer
 from .services import delete_page, get_page, update_page
+
+
+# Inline response schema for drf-spectacular
+# TODO: move to an appropriate place
+_ARTICLE_RESPONSE = inline_serializer(
+    name="ArticleResponse",
+    fields={
+        "text": serializers.CharField(allow_null=True),
+        "imageUrl": serializers.URLField(allow_null=True),
+        "createdAt": serializers.DateTimeField(allow_null=True),
+        "updatedAt": serializers.DateTimeField(allow_null=True),
+    },
+    allow_null=True,
+)
+
+_CATEGORY_SUMMARY = inline_serializer(
+    name="CategorySummary",
+    fields={
+        "slug": serializers.CharField(),
+        "name": serializers.CharField(),
+    },
+)
+
+_PAGE_DETAIL_RESPONSE = inline_serializer(
+    name="PageDetailResponse",
+    fields={
+        "slug": serializers.CharField(),
+        "type": serializers.ChoiceField(
+            choices=["character", "race", "location", "event", "organization",
+                     "timeline", "item", "language", "script"],
+            help_text="Entity type - discriminator for the `attributes` shape",
+        ),
+        "names": serializers.ListField(child=serializers.CharField()),
+        "name": serializers.CharField(
+            allow_null=True,
+            help_text="Convenience shortcut: names[0] or null.",
+        ),
+        "attributes": serializers.DictField(
+            help_text=(
+                "Type-specific fields.  Shape depends on `type`.  "
+                "See api-design.md for the full attribute list per type."
+            ),
+        ),
+        "article": _ARTICLE_RESPONSE,
+        "relations": serializers.DictField(
+            help_text=(
+                "Grouped by direction: "
+                "{outgoing: {REL_TYPE: [{target, properties}]}, "
+                "incoming: {REL_TYPE: [{from, properties}]}}. "
+                "Only non-empty rel-type keys are present."
+            ),
+        ),
+        "categories": serializers.ListField(child=_CATEGORY_SUMMARY),
+        "likesCount": serializers.IntegerField(),
+        "isLiked": serializers.BooleanField(
+            allow_null=True,
+            help_text="null for unauthenticated requests.",
+        ),
+        "commentsCount": serializers.IntegerField(),
+    },
+)
+
+
+# View
 
 
 class PageDetailView(APIView):
@@ -25,15 +91,10 @@ class PageDetailView(APIView):
     # Permission is resolved per-method (see get_permissions below)
     permission_classes = [AllowAny]
 
-    def get_permissions(self) -> list[BasePermission]:
-        if self.request.method == 'GET':
-            return [AllowAny()]
-        if self.request.method == 'PATCH':
+    def get_permissions(self) -> list:
+        if self.request.method in ("PATCH", "DELETE"):
             return [IsAdminRole()]
-        if self.request.method == 'DELETE':
-            return [IsAdminRole()]
-
-        return super().get_permissions()  # type: ignore
+        return [AllowAny()]
 
     @extend_schema(
         summary="Get page detail",
@@ -44,12 +105,18 @@ class PageDetailView(APIView):
         ),
         tags=["pages"],
         parameters=[
-            OpenApiParameter("slug", OpenApiTypes.STR, OpenApiParameter.PATH),
+            OpenApiParameter(
+                "slug",
+                OpenApiTypes.STR,
+                OpenApiParameter.PATH,
+                description="Public page identifier.",
+            ),
         ],
         responses={
-            200: OpenApiTypes.OBJECT,
+            200: _PAGE_DETAIL_RESPONSE,
             404: OpenApiTypes.OBJECT,
         },
+        auth=[],
     )
     def get(self, request: Request, slug: str) -> Response:
         user_id: int | None = (
@@ -71,7 +138,7 @@ class PageDetailView(APIView):
         tags=["pages"],
         request=PageUpdateSerializer,
         responses={
-            200: OpenApiTypes.OBJECT,
+            200: _PAGE_DETAIL_RESPONSE,
             400: OpenApiTypes.OBJECT,
             403: OpenApiTypes.OBJECT,
             404: OpenApiTypes.OBJECT,

@@ -1,3 +1,21 @@
+"""
+Cypher query constants and type metadata for the pages app.
+
+Property naming convention in Neo4j (set by catalog CREATE queries):
+  - camelCase for multi-word props: birthDate, deathDate, notableFor, etc.
+  - bare 'type' for entity-type discriminator in Location / Event /
+    Organization / Item (db_property='type' in neomodel models).
+  - 'slug' and 'names' are shared by all :Page subtypes.
+
+Security note - relationship type interpolation:
+  Cypher does not support parameterised relationship type names.
+  PAGE_RELS_DELETE_TEMPLATE and PAGE_RELS_CREATE_TEMPLATE use Python
+  str.format() to interpolate the rel type.  This is safe ONLY because
+  services.py validates the value against ALLOWED_REL_TYPES before calling
+  .format().  Never interpolate user input here without that check.
+"""
+
+
 # Maps Neo4j node label to API entity-type string
 LABEL_TO_TYPE: dict[str, str] = {
     'Character': 'character',
@@ -10,10 +28,6 @@ LABEL_TO_TYPE: dict[str, str] = {
     'Language': 'language',
     'Script': 'script',
 }
-
-
-# Label that don't carry type information (shared by all subtypes)
-_SYSTEM_LABELS: frozenset[str] = frozenset({'Page'})
 
 
 def labels_to_type(labels: list[str]) -> str | None:
@@ -166,7 +180,7 @@ ALLOWED_REL_TYPES: frozenset[str] = frozenset({
 # Read query
 
 # Retrieves all data for a single wiki page in one round trip.
-# CALL subqueris prevent Cartesian products that would arise if we used
+# CALL {} subqueris prevent Cartesian products that would arise if we used
 # multiple top-level OPTIONAL MATCHes that each expands to many rows.
 #
 # Parameters:
@@ -244,6 +258,38 @@ RETURN
 '''
 
 
+# Validation queries
+
+# Batch-check whether :Page nodes with given slugs exist.
+# Returns one row per input slug: (slug, exists_bool).
+# Used to validate target slugs in PATCH /pages/{slug}/ relations BEFORE
+# starting the write transaction so missing slugs surface as 400,
+# not silent data loss
+PAGE_SLUGS_EXIST_QUERY = '''\
+WITH $slugs AS all_slugs
+UNWIND all_slugs AS slug
+OPTIONAL MATCH (p:Page {slug: slug})
+RETURN slug, p IS NOT NULL AS exists
+'''
+
+# Same for :Category nodes.
+# Used to validate categories list in PATCH
+CATEGORY_SLUGS_EXISTS_QUERY = '''\
+WITH $slugs AS all_slugs
+UNWIND all_slugs AS slug
+OPTIONAL MATCH (c:Category {slug: slug})
+RETURN slug, c IS NOT NULL AS exists
+'''
+
+
+# Write queries
+
+# Replace the `names` array on a page node.
+PAGE_NAMES_UPDATE_QUERY = '''\
+MATCH (p:Page {slug: $slug})
+SET p.names = $names
+'''
+
 # Update queries
 
 # Partial node property update.
@@ -254,7 +300,7 @@ MATCH (p:Page {slug: $slug})
 SET p += $attrs
 '''
 
-# Upsert article node connected to the page.
+# Create or update the article node attached to a page.
 # MERGE ensures we never create duplicate articles.
 # ON CREATE sets the creation timestamp only once.
 PAGE_ARTICLE_UPSERT_QUERY = '''\
@@ -279,6 +325,7 @@ MERGE (p)-[:IN_CATEGORY]->(cat)
 
 # Delete all outgoing relations of a specific type from a page.
 # rel_type is string-interplated ONLY after whitelist validation in services.py
+# str.format() is called on this template.
 PAGE_RELS_DELETE_TEMPLATE = '''\
 MATCH (p:Page {{slug: $slug}})-[r:{rel_type}]->()
 DELETE r
@@ -287,6 +334,7 @@ DELETE r
 # Create new outgoing relations of a specific type.
 # SET r = t.properties sets all relation properties from the provided map.
 # rel_type is string-interplated ONLY after whitelist validation in services.py
+# str.format() is called on this template.
 PAGE_RELS_CREATE_TEMPLATE = """\
 MATCH (p:Page {{slug: $slug}})
 WITH p
@@ -299,8 +347,11 @@ SET r = t.properties
 # DETACH DELETE the page and its article node.
 # DETACH removes all edges from/to the page automatically.
 # We additionally delete the orphaned Article node to avoid graph litter.
+# RETURN 1 allows detecting "not found" (0 rows) vs "deleted" (1 row)
+# in a single round-trip.
 PAGE_DELETE_QUERY = """\
 MATCH (p:Page {slug: $slug})
 OPTIONAL MATCH (p)-[:HAS_ARTICLE]->(a:Article)
 DETACH DELETE p, a
+RETURN 1 AS deleted
 """
