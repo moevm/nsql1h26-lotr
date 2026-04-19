@@ -1,22 +1,27 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 from django.core.management.base import BaseCommand
-from django.contrib.auth import get_user_model
 
 from neomodel import StructuredNode, db
 
 from apps.pages import models as page_models
 
-User = get_user_model()
+from apps.users.models import User
 
 # Const for path to json
 # Change if you need
-FIXTURE_PATH = Path(__file__).resolve().parent.parent.parent / "fixtures" / "lotr_data.json"
+FIXTURE_PATH = (
+    Path(__file__).resolve().parent.parent.parent
+    / "fixtures"
+    / "lotr_data.json"
+)
 
 # Mapping type of nodes
-NODE_MODELS: Dict[str, Type[StructuredNode]] = {
+NODE_MODELS: dict[str, type[StructuredNode]] = {
     "character": page_models.Character,
     "race": page_models.Race,
     "location": page_models.Location,
@@ -31,7 +36,7 @@ NODE_MODELS: Dict[str, Type[StructuredNode]] = {
 }
 
 # Mapping tipe of relation
-REL_ATTRIBUTES: Dict[str, Optional[str]] = {
+REL_ATTRIBUTES: dict[str, str | None] = {
     "CHILD_OF": "child_of",
     "MARRIED_TO": "married_to",
     "SIBLING_OF": "sibling_of",
@@ -82,7 +87,7 @@ class Command(BaseCommand):
             return
 
         with open(FIXTURE_PATH, "r", encoding="utf-8") as f:
-            data: Dict[str, Any] = json.load(f)
+            data: dict[str, Any] = json.load(f)
 
         self.stdout.write("Seeding database...")
 
@@ -101,12 +106,12 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Seeding completed."))
 
     def _create_categories(
-        self, categories_data: List[Dict[str, Any]], force: bool
-    ) -> Dict[str, page_models.Category]:
+        self, categories_data: list[dict[str, Any]], force: bool
+    ) -> dict[str, page_models.Category]:
         """Create categories, return dict {slug: object}."""
         self.stdout.write("Creating categories...")
 
-        category_map: Dict[str, page_models.Category] = {}
+        category_map: dict[str, page_models.Category] = {}
         for cat_data in categories_data:
             slug: str = cat_data["slug"]
             name: str = cat_data["name"]
@@ -128,18 +133,18 @@ class Command(BaseCommand):
         return category_map
 
     def _create_articles(
-        self, articles_data: List[Dict[str, Any]], force: bool
-    ) -> Dict[str, page_models.Article]:
+        self, articles_data: list[dict[str, Any]], force: bool
+    ) -> dict[str, page_models.Article]:
         """
         Creates articles and returns a dictionary {key: object}.
         """
         self.stdout.write("Creating articles...")
-        article_map: Dict[str, page_models.Article] = {}
+        article_map: dict[str, page_models.Article] = {}
 
         for art_data in articles_data:
             key: str = art_data.get("key", art_data.get("text", ""))[:50]
             text: str = art_data["text"]
-            image_url: Optional[str] = art_data.get("image_url")
+            image_url: str | None = art_data.get("image_url")
 
             existing = page_models.Article.nodes.get_or_none(text=text)
             if existing and not force:
@@ -161,14 +166,14 @@ class Command(BaseCommand):
 
     def _create_nodes(
         self,
-        data: Dict[str, Any],
-        category_map: Dict[str, page_models.Category],
-        article_map: Dict[str, page_models.Article],
+        data: dict[str, Any],
+        category_map: dict[str, page_models.Category],
+        article_map: dict[str, page_models.Article],
         force: bool,
-    ) -> Dict[tuple, StructuredNode]:
+    ) -> dict[tuple, StructuredNode]:
         """Creates nodes of all types, returns dict {(type, slug): node}."""
         self.stdout.write("Creating nodes...")
-        node_map: Dict[tuple, StructuredNode] = {}
+        node_map: dict[tuple, StructuredNode] = {}
 
         for node_type, nodes_data in data.get("nodes", {}).items():
             model_class = NODE_MODELS.get(node_type)
@@ -214,7 +219,8 @@ class Command(BaseCommand):
                 article_key = node_data.get("article_key")
                 if article_key and article_key in article_map:
                     article = article_map[article_key]
-                    if hasattr(node, "article") and not node.article.is_connected(article):
+                    if (hasattr(node, "article") and
+                            not node.article.is_connected(article)):
                         node.article.connect(article)
                         self.stdout.write(
                             f"Linked article {article_key} to {slug}"
@@ -231,8 +237,8 @@ class Command(BaseCommand):
 
     def _create_edges(
         self,
-        edges_data: List[Dict[str, Any]],
-        node_map: Dict[tuple, StructuredNode],
+        edges_data: list[dict[str, Any]],
+        node_map: dict[tuple, StructuredNode],
         force: bool,
     ) -> None:
         """Creates edges between nodes using Cypher."""
@@ -244,7 +250,7 @@ class Command(BaseCommand):
             to_type: str = edge["to_type"]
             to_slug: str = edge["to_slug"]
             rel_type: str = edge["rel_type"]
-            properties: Dict[str, Any] = edge.get("properties", {})
+            properties: dict[str, Any] = edge.get("properties", {})
 
             from_node = node_map.get((from_type, from_slug))
             to_node = node_map.get((to_type, to_slug))
@@ -284,7 +290,7 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stderr.write(f"Failed to create edge {rel_type}: {e}")
 
-    def _create_users(self, users_data: List[Dict[str, Any]]) -> None:
+    def _create_users(self, users_data: list[dict[str, Any]]) -> None:
         """Creates debug users in Django and UserRef in Neo4j."""
         self.stdout.write("Creating debug users...")
         for user_data in users_data:
