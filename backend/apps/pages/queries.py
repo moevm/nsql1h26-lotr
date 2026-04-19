@@ -258,7 +258,7 @@ RETURN
     CASE
         WHEN $user_id IS NOT NULL
         THEN EXISTS {
-            MATCH (:User {django_id: $user_id})-[LIKED]->(p)
+            MATCH (:User {django_id: $user_id})-[:LIKED]->(p)
         }
         ELSE null
     END as is_liked

@@ -446,7 +446,7 @@ components:
     OrganizationAttributes:
       type: object
       properties:
-        orgType:
+        organizationType:
           type: string
           nullable: true
         foundedDate:
@@ -796,7 +796,7 @@ components:
               type: string
               enum:
                 - organization
-            orgType:
+            organizationType:
               type: string
               nullable: true
             foundedDate:
@@ -3068,7 +3068,7 @@ paths:
                   type: array
                   items:
                     type: string
-                orgType:
+                organizationType:
                   type: string
                 foundedDate:
                   type: string
