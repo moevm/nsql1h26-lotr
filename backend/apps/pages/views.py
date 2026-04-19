@@ -6,7 +6,7 @@ from drf_spectacular.utils import (
 from drf_spectacular.types import OpenApiTypes
 
 from rest_framework import status, serializers
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,7 +14,13 @@ from rest_framework.views import APIView
 from apps.users.permissions import IsAdminRole
 
 from .serializers import PageUpdateSerializer
-from .services import delete_page, get_page, update_page
+from .services import (
+    delete_page,
+    get_page,
+    update_page,
+    like_page,
+    unlike_page,
+)
 
 
 # Inline response schema for drf-spectacular
@@ -77,6 +83,21 @@ _PAGE_DETAIL_RESPONSE = inline_serializer(
     },
 )
 
+_LIKE_RESPONSE = inline_serializer(
+    name="LikeResponse",
+    fields={
+        "likesCount": serializers.IntegerField(),
+        "isLiked":    serializers.BooleanField(),
+    },
+)
+ 
+_SLUG_PARAMETER = OpenApiParameter(
+    "slug",
+    OpenApiTypes.STR,
+    OpenApiParameter.PATH,
+    description="Public page identifier.",
+)
+
 
 # View
 
@@ -104,14 +125,7 @@ class PageDetailView(APIView):
             "`isLiked` is null for unauthenticated requests."
         ),
         tags=["pages"],
-        parameters=[
-            OpenApiParameter(
-                "slug",
-                OpenApiTypes.STR,
-                OpenApiParameter.PATH,
-                description="Public page identifier.",
-            ),
-        ],
+        parameters=[_SLUG_PARAMETER],
         responses={
             200: _PAGE_DETAIL_RESPONSE,
             404: OpenApiTypes.OBJECT,
@@ -136,6 +150,7 @@ class PageDetailView(APIView):
             "omitting a key leaves it unchanged."
         ),
         tags=["pages"],
+        parameters=[_SLUG_PARAMETER],
         request=PageUpdateSerializer,
         responses={
             200: _PAGE_DETAIL_RESPONSE,
@@ -164,6 +179,7 @@ class PageDetailView(APIView):
             "edges (DETACH DELETE).  This action is irreversible."
         ),
         tags=["pages"],
+        parameters=[_SLUG_PARAMETER],
         responses={
             204: None,
             403: OpenApiTypes.OBJECT,
@@ -174,3 +190,52 @@ class PageDetailView(APIView):
         delete_page(slug)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PageLikeView(APIView):
+    '''
+    PUT /api/v1/pages/{slug}/like/ - add like (idempotent)
+    DELETE /api/v1/pages/{slug}/like/ - remove like (idempotent)
+
+    Both methods require authentication.
+    No request body.
+    Both return {"likesCount": N, "isLiked": bool}.
+    '''
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary='Like a page',
+        description=(
+            'Idempotent. Subsequent calls on an already liked page returns '
+            '200 with the same sount - not an error.'
+        ),
+        tags=['pages'],
+        parameters=[_SLUG_PARAMETER],
+        request=None,
+        responses={
+            200: _LIKE_RESPONSE,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT,
+        },
+    )
+    def put(self, request: Request, slug: str) -> Response:
+        return Response(like_page(slug, user_id=request.user.id))
+
+    @extend_schema(
+        summary="Unlike a page",
+        description=(
+            "Idempotent. Calling on a page that was never liked returns"
+            "200 with the current count — not an error."
+        ),
+        tags=["pages"],
+        parameters=[_SLUG_PARAMETER],
+        request=None,
+        responses={
+            200: _LIKE_RESPONSE,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT,
+        },
+    )
+    def delete(self, request: Request, slug: str) -> Response:
+        return Response(unlike_page(slug, user_id=request.user.id))

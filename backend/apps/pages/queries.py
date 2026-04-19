@@ -179,6 +179,13 @@ ALLOWED_REL_TYPES: frozenset[str] = frozenset({
 
 # Read query
 
+# Resolve entity type by slug. Return labels list or empty if not found
+PAGE_FETCH_LABELS_QUERY = '''\
+MATCH (p:Page {slug: $slug})
+RETURN labels(p) AS labels
+LIMIT 1
+'''
+
 # Retrieves all data for a single wiki page in one round trip.
 # CALL {} subqueris prevent Cartesian products that would arise if we used
 # multiple top-level OPTIONAL MATCHes that each expands to many rows.
@@ -323,6 +330,13 @@ MATCH (cat:Category {slug: cat_slug})
 MERGE (p)-[:IN_CATEGORY]->(cat)
 '''
 
+
+PAGE_CATEGORIES_CLEAR_QUERY = '''\
+MATCH (p:Page {slug: $slug})-[r:IN_CATEGORY]->()
+DELETE r
+'''
+
+
 # Delete all outgoing relations of a specific type from a page.
 # rel_type is string-interplated ONLY after whitelist validation in services.py
 # str.format() is called on this template.
@@ -355,3 +369,34 @@ OPTIONAL MATCH (p)-[:HAS_ARTICLE]->(a:Article)
 DETACH DELETE p, a
 RETURN 1 AS deleted
 """
+
+
+# Like queries
+
+# Both queries use MERGE so they are naturally idempotent
+# count(liker) counts non-null matches inly, so it correctly returns 0
+# when there are no likes (unlike count(*))
+
+# Idempotent like.  Creates UserRef if it doesn't exist yet.
+# Parameters: $slug (str), $user_id (int).
+PAGE_LIKE_ADD_QUERY = '''\
+MATCH (p:Page {slug: $slug})
+MERGE (u:User {django_id: $user_id})
+WITH p, u
+MERGE (u)-[r:LIKED]->(p)
+ON CREATE SET r.created_at = datetime()
+WITH p
+OPTIONAL MATCH (liker:User)-[:LIKED]->(p)
+RETURN count(liker) AS likes_count, true AS is_liked
+'''
+
+# Idempotent unlike.  No-op if the user never liked the page.
+# Parameters: $slug (str), $user_id (int).
+PAGE_LIKE_REMOVE_QUERY = '''\
+MATCH (p:Page {slug: $slug})
+    OPTIONAL MATCH (u:User {django_id: $user_id})-[r:LIKED]->(p)
+DELETE r
+WITH p
+OPTIONAL MATCH (liker:User)-[:LIKED]->(p)
+RETURN count(liker) AS likes_count, false AS is_liked
+'''

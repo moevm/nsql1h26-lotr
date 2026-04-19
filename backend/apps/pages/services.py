@@ -15,7 +15,7 @@ Transaction note:
     user errors surface as clean 4xx responses without a partial write.
 '''
 
-from typing import Any
+from typing import Any, Literal
 
 from neomodel import db  # type: ignore[attr-defined]
 from rest_framework.exceptions import NotFound, ValidationError
@@ -32,44 +32,36 @@ from .queries import (
     PAGE_RELS_CREATE_TEMPLATE,
     PAGE_RELS_DELETE_TEMPLATE,
     PAGE_SLUGS_EXIST_QUERY,
+    PAGE_CATEGORIES_CLEAR_QUERY,
+    PAGE_LIKE_ADD_QUERY,
+    PAGE_LIKE_REMOVE_QUERY,
+    PAGE_FETCH_LABELS_QUERY,
     build_attributes_for_response,
     labels_to_type,
     normalize_patch_attributes,
 )
 
 
-# Internal helpers
+# Response assembly helpers
 
-def _target_summary(item: dict[str, Any]) -> dict[str, Any]:
+def _node_summary(
+        item: dict[str, Any],
+        prefix: Literal['source', 'target']
+) -> dict[str, Any]:
     '''
-    Build a relation-targer summary object from a collected map.
+    Build a page summary from a collected relation map.
 
-    The map is produced by the CALL subquery in PAGE_DETAIL_QUERY.
-    targetLabels is a list like ['Page', 'Character']. We extract the type.
+    `prefix` is either "target" (outgoing) or "source" (incoming), matching
+    the key names returned by the CALL subqueries in PAGE_DETAIL_QUERY.
     '''
-
-    entity_type = labels_to_type(item.get('targetLabels') or [])
-    names: list[str] = item.get('targetNames') or []
+    entity_type = labels_to_type(item.get(f'{prefix}Labels') or [])
+    names: list[str] = item.get(f'{prefix}Names') or []
 
     return {
-        'slug': item.get('targetSlug'),
+        'slug': item.get(f'{prefix}Slug'),
         'type': entity_type,
         'name': names[0] if names else None,
-        'imageUrl': item.get('targetImageUrl'),
-    }
-
-
-def _source_summary(item: dict[str, Any]) -> dict[str, Any]:
-    '''Build a relation-source summary (for incoming edges)'''
-
-    entity_type = labels_to_type(item.get('sourceLabels') or [])
-    names: list[str] = item.get('sourceNames') or []
-
-    return {
-        'slug': item.get('sourceSlug'),
-        'type': entity_type,
-        'name': names[0] if names else None,
-        'imageUrl': item.get('sourceImageUrl')
+        'imageUrl': item.get(f'{prefix}ImageUrl'),
     }
 
 
@@ -98,7 +90,7 @@ def _build_relations(
             continue
         rel_type = item.get("relType", "UNKNOWN")
         entry = {
-            "target":     _target_summary(item),
+            "target": _node_summary(item, 'target'),
             "properties": item.get("relProps") or {},
         }
         outgoing.setdefault(rel_type, []).append(entry)
@@ -109,7 +101,7 @@ def _build_relations(
             continue
         rel_type = item.get("relType", "UNKNOWN")
         entry = {
-            "from":       _source_summary(item),
+            "from": _node_summary(item, 'source'),
             "properties": item.get("relProps") or {},
         }
         incoming.setdefault(rel_type, []).append(entry)
@@ -256,11 +248,7 @@ def _apply_categories(slug: str, cat_slugs: list[str]) -> None:
             },
         )
     else:
-        # TODO: move to queries.py
-        db.cypher_query(
-            "MATCH (p:Page {slug: $slug})-[r:IN_CATEGORY]->() DELETE r",
-            {"slug": slug},
-        )
+        db.cypher_query(PAGE_CATEGORIES_CLEAR_QUERY, {"slug": slug})
 
 
 def _apply_relations(slug: str, relations: dict) -> None:
@@ -332,12 +320,7 @@ def update_page(
 ) -> dict[str, Any]:
     '''Apply a partial update and return the refreshed page.'''
 
-    results, _ = db.cypher_query(
-        'MATCH (p:Page {slug: $slug}) RETURN labels(p) AS node_labels LIMIT 1',
-        {
-            'slug': slug,
-        },
-    )
+    results, _ = db.cypher_query(PAGE_FETCH_LABELS_QUERY, {'slug': slug})
 
     if not results:
         raise NotFound(
@@ -402,3 +385,54 @@ def delete_page(slug: str) -> None:
             detail=f'Page \'{slug}\' does not exists.',
             code='NOT_FOUND',
         )
+
+
+def _execute_like_query(
+        query: str,
+        slug: str,
+        user_id: int,
+) -> dict[str, Any]:
+    '''
+    Run a like/inlike query and return the response dict.
+
+    Both PAGE_LIKE_ADD_QUERY and PAGE_LIKE_REMOVE_QUERY start with
+    MATCH (p:Page {slug: $slug}), so they naturally return 0 rows if the
+    page does not exist - no separate existence check needed.
+    '''
+    results, meta = db.cypher_query(
+        query,
+        {
+            'slug': slug,
+            'user_id': user_id
+        }
+    )
+    if not results:
+        raise NotFound(
+            detail=f'Page \'{slug}\' does not exist.',
+            code='NOT_FOUND'
+        )
+
+    row = dict(zip(meta, results[0]))
+    return {
+        'likesCount': row['likes_count'],
+        'isLiked': row['is_liked'],
+    }
+
+
+def like_page(slug: str, user_id: int) -> dict[str, Any]:
+    ''' 
+    Idempotently like a page.
+
+    Creates the :User node (UserRef) if it does not exists yet.
+    '''
+
+    return _execute_like_query(PAGE_LIKE_ADD_QUERY, slug, user_id)
+
+
+def unlike_page(slug: str, user_id: int) -> dict[str, Any]:
+    '''
+    Idempotently unlike a page.
+
+    If the user never liked the page, OPTIONAL MATCH finds nothing.
+    '''
+    return _execute_like_query(PAGE_LIKE_REMOVE_QUERY, slug, user_id)
