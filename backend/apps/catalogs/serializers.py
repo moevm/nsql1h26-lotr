@@ -56,7 +56,7 @@ class CharacterCreateSerializer(serializers.Serializer):
     names = _NamesField()
     titles = _OptionalNamesField()
     gender = serializers.ChoiceField(
-        choices=['Male', 'Female', 'Unknown'],
+        choices=['male', 'female', 'unknown'],
         allow_null=True,
         required=False,
         default=None

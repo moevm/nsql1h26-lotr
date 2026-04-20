@@ -163,7 +163,7 @@ _ATTR_API_TO_DB: dict[str, dict[str, str]] = {
 # Whitelist for enum fields
 _FIELD_CHOICES: dict[str, dict[str, frozenset[str]]] = {
     'character': {
-        'gender': frozenset({'Male', 'Female', 'Unknown'}),
+        'gender': frozenset({'male', 'female', 'unknown'}),
     },
 }
 
@@ -213,6 +213,8 @@ def normalize_patch_attributes(raw_attrs: dict, entity_type: str) -> dict:
                     f'"{value} is not a valid choice. '
                     f'Must be one of: {sorted(choices[db_key])}'
                 ]
+            else:
+                result[db_key] = value
             continue
 
         result[db_key] = value
