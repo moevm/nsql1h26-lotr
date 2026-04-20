@@ -266,11 +266,11 @@ class CharacterListView(CatalogView):
             clothing=request.query_params.get('clothing'),
             notable_for=request.query_params.get('notable_for'),
 
-            # race=request.query_params.get('race'),
-            # organization=request.query_params.get('organization'),
-            # event=request.query_params.get('event'),
-            # item=request.query_params.get('item'),
-            # location=request.query_params.get('location'),
+            race=request.query_params.get('race'),
+            organization=request.query_params.get('organization'),
+            event=request.query_params.get('event'),
+            item=request.query_params.get('item'),
+            location=request.query_params.get('location'),
         )
 
 
@@ -290,7 +290,7 @@ class RaceListView(CatalogView):
             clothing=request.query_params.get('clothing'),
             distinctions=request.query_params.get('distinctions'),
 
-            # location=request.query_params.get('location'),
+            location=request.query_params.get('location'),
         )
 
 
@@ -308,9 +308,9 @@ class LocationListView(CatalogView):
             notable_for=request.query_params.get('notable_for'),
             is_destroyed=_parse_bool(request.query_params.get('is_destroyed')),
 
-            # character=request.query_params.get('character'),
-            # event=request.query_params.get('event'),
-            # organization=request.query_params.get('organization'),
+            character=request.query_params.get('character'),
+            event=request.query_params.get('event'),
+            organization=request.query_params.get('organization'),
         )
 
 
@@ -327,8 +327,8 @@ class EventListView(CatalogView):
             casualties=request.query_params.get('casualties'),
             notable_for=request.query_params.get('notable_for'),
 
-            # character=request.query_params.get('character'),
-            # location=request.query_params.get('location'),
+            character=request.query_params.get('character'),
+            location=request.query_params.get('location'),
         )
 
 
@@ -348,8 +348,8 @@ class OrganizationListView(CatalogView):
             notable_for=request.query_params.get('notable_for'),
             is_dissolved=_parse_bool(request.query_params.get('is_dissolved')),
 
-            # character=request.query_params.get('character'),
-            # location=request.query_params.get('location'),
+            character=request.query_params.get('character'),
+            location=request.query_params.get('location'),
         )
 
 
@@ -377,7 +377,7 @@ class ItemListView(CatalogView):
             material=request.query_params.get('material'),
             notable_for=request.query_params.get('notable_for'),
 
-            # character=request.query_params.get('character'),
+            character=request.query_params.get('character'),
         )
 
 

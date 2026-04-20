@@ -22,11 +22,7 @@ RETURN
     c.height AS height,
     c.weapon AS weapon,
     c.clothing AS clothing,
-    c.notableFor AS notable_for,
-    race.slug AS race_slug,
-    race.names[0] AS race_name,
-    born_loc.slug AS born_in_slug,
-    born_loc.names[0] AS born_in_name
+    c.notableFor AS notable_for
 """
 
 CHARACTER_COUNT_QUERY = """\
