@@ -273,15 +273,15 @@ class Command(BaseCommand):
             if properties:
                 props_str = ", ".join(f"{k}: ${k}" for k in properties.keys())
                 query = f"""
-                    MATCH (a), (b)
-                    WHERE elementId(a) = $from_id AND elementId(b) = $to_id
+                    MATCH (a) WHERE elementId(a) = $from_id
+                    MATCH (b) WHERE elementId(b) = $to_id
                     MERGE (a)-[r:`{rel_type}` {{{props_str}}}]->(b)
                     RETURN r
                 """
             else:
                 query = f"""
-                    MATCH (a), (b)
-                    WHERE elementId(a) = $from_id AND elementId(b) = $to_id
+                    MATCH (a) WHERE elementId(a) = $from_id
+                    MATCH (b) WHERE elementId(b) = $to_id
                     MERGE (a)-[r:`{rel_type}`]->(b)
                     RETURN r
                 """
