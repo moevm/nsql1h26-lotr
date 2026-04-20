@@ -91,13 +91,15 @@ class Command(BaseCommand):
 
         self.stdout.write("Seeding database...")
 
+        node_map: dict[tuple[str, str], Any] = {}
+
         category_map = self._create_categories(
-            data.get("categories", []), force
+            data.get("categories", []), force, node_map
         )
 
         article_map = self._create_articles(data.get("articles", []), force)
 
-        node_map = self._create_nodes(data, category_map, article_map, force)
+        node_map = self._create_nodes(data, category_map, article_map, force, node_map)
 
         self._create_edges(data.get("edges", []), node_map, force)
 
@@ -106,7 +108,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Seeding completed."))
 
     def _create_categories(
-        self, categories_data: list[dict[str, Any]], force: bool
+        self, categories_data: list[dict[str, Any]], force: bool, node_map: dict
     ) -> dict[str, page_models.Category]:
         """Create categories, return dict {slug: object}."""
         self.stdout.write("Creating categories...")
@@ -130,6 +132,8 @@ class Command(BaseCommand):
                 category.save()
                 category_map[slug] = category
                 self.stdout.write(f"Created category {slug}")
+
+            node_map[("category", slug)] = category_map[slug]
         return category_map
 
     def _create_articles(
@@ -170,10 +174,10 @@ class Command(BaseCommand):
         category_map: dict[str, page_models.Category],
         article_map: dict[str, page_models.Article],
         force: bool,
+        node_map: dict[tuple, StructuredNode],
     ) -> dict[tuple, StructuredNode]:
         """Creates nodes of all types, returns dict {(type, slug): node}."""
         self.stdout.write("Creating nodes...")
-        node_map: dict[tuple, StructuredNode] = {}
 
         for node_type, nodes_data in data.get("nodes", {}).items():
             model_class = NODE_MODELS.get(node_type)
@@ -231,7 +235,7 @@ class Command(BaseCommand):
                     category = category_map.get(cat_slug)
                     if category and not node.categories.is_connected(category):
                         node.categories.connect(category)
-                        self.stdout.write(f"Link catgory {cat_slug} to {slug}")
+                        self.stdout.write(f"Link category {cat_slug} to {slug}")
 
         return node_map
 
@@ -250,7 +254,9 @@ class Command(BaseCommand):
             to_type: str = edge["to_type"]
             to_slug: str = edge["to_slug"]
             rel_type: str = edge["rel_type"]
-            properties: dict[str, Any] = edge.get("properties", {})
+            properties: dict[str, Any] = {
+               k: v for k, v in edge.get("properties", {}).items() if v is not None
+            }
 
             from_node = node_map.get((from_type, from_slug))
             to_node = node_map.get((to_type, to_slug))
