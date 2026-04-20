@@ -9,6 +9,10 @@ from rest_framework.views import APIView
 
 from apps.users.permissions import IsAdminRole
 
+from apps.pages.queries import normalize_patch_attributes
+from apps.pages.serializers import PageCreateSerializer
+from apps.pages.services import get_page, update_page
+
 from .filters import (
     _HasCypherWhere,
     CharacterFilter,
@@ -23,21 +27,21 @@ from .filters import (
 )
 
 from .serializers import (
-    CharacterOutputSerializer, CharacterCreateSerializer,
-    RaceOutputSerializer, RaceCreateSerializer,
-    LocationOutputSerializer, LocationCreateSerializer,
-    EventOutputSerializer, EventCreateSerializer,
-    OrganizationOutputSerializer, OrganizationCreateSerializer,
-    TimelineOutputSerializer, TimelineCreateSerializer,
-    ItemOutputSerializer, ItemCreateSerializer,
-    LanguageOutputSerializer, LanguageCreateSerializer,
-    ScriptOutputSerializer, ScriptCreateSerializer,
+    CharacterOutputSerializer,
+    RaceOutputSerializer,
+    LocationOutputSerializer,
+    EventOutputSerializer,
+    OrganizationOutputSerializer,
+    TimelineOutputSerializer,
+    ItemOutputSerializer,
+    LanguageOutputSerializer,
+    ScriptOutputSerializer,
 )
 
 from .services import (
     PaginatedResult,
     list_catalog,
-    create_entity,
+    create_node,
     slug_exists,
     EntityConfig,
     CHARACTER_CONFIG,
@@ -52,8 +56,6 @@ from .services import (
     _DEFAULT_PAGE_SIZE,
     _MAX_PAGE_SIZE,
 )
-
-from apps.pages.services import get_page
 
 
 # Parsing helper functions
@@ -149,15 +151,13 @@ class CatalogView(APIView):
 
     Subclass protocol:
         config = <EntityConfig>
-        output_serializer_class = <OutputSerializer>
-        create_serializer_class = <CreateSerializer>
+        output_serializer_class = <OutputSerializer>  # for GET list only
 
         def build_filter(self, request) -> <FilterDataclass>: ...
     '''
 
     config: EntityConfig
     output_serializer_class: type
-    create_serializer_class: type
 
     def get_permissions(self) -> list[Any]:
         if self.request.method == 'POST':
@@ -168,6 +168,7 @@ class CatalogView(APIView):
     def build_filter(self, request: Request) -> _HasCypherWhere:
         raise NotImplementedError
 
+    # GET /{catalog}/
     def get(self, request: Request) -> Response:
         filters = self.build_filter(request)
         page, page_size = _get_pagination_params(request)
@@ -185,29 +186,70 @@ class CatalogView(APIView):
 
         return _paginated_response(result, self.output_serializer_class)
 
+    # POST /{catalog}/
     def post(self, request: Request) -> Response:
-        serializer = self.create_serializer_class(data=request.data)
+        '''
+        Create a new entity.
+
+        Accepts the same body shape as PATCH /pages/{slug}/:
+            slug (required) - the new page's public identifier
+            names (required) - at least one name
+            attributes (optional) - entity type-specific fields (snake_case)
+            article (optional) - {text, image_url}
+            categories (optional) - list of category slugs
+            relations (optional) - {outgoing: {...}, incoming: {...}}
+
+        Returns the same full-page representation as GET /pages/{slug}/.
+        '''
+        serializer = PageCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data: dict[str, Any] = serializer.validated_data
+        slug = data['slug']
 
         # Pre-check avoids a round-trip on the happy path;
         # ConstraintError handles the TOCTOU race in unlikely concurrent case.
-        if slug_exists(data['slug']):
-            return _conflict_response(data['slug'])
+        if slug_exists(slug):
+            return _conflict_response(slug)
+
+        # Translate snake_case attribute keys → Neo4j camelCase property names.
+        # normalize_patch_attributes also validates enum values (e.g. gender).
+        attrs = normalize_patch_attributes(
+            data.get('attributes') or {}, self.config.entity_type
+        )
 
         try:
-            create_entity(self.config, data)
+            create_node(
+                self.config.node_labels, slug, data['names'], attrs
+            )
         except ConstraintError:
-            return _conflict_response(data['slug'])
+            return _conflict_response(slug)
 
-        page_data = get_page(data['slug'], user_id=None)
-        return Response(page_data, status=status.HTTP_201_CREATED)
+        # Apply optional post-creation data (article / categories / relations)
+        # by reusing the existing PATCH service.
+        # update_page handles its own validation and atomicity, and
+        # returns the canonical page dict.
+        patch_data: dict[str, Any] = {}
+        if data.get('article') is not None:
+            patch_data['article'] = data['article']
+        if 'categories' in data:
+            patch_data['categories'] = data['categories']
+        if 'relations' in data:
+            patch_data['relations'] = data['relations']
+
+        if patch_data:
+            page = update_page(slug, patch_data, user_id=None)
+        else:
+            page = get_page(slug, user_id=None)
+
+        return Response(page, status=status.HTTP_201_CREATED)
+
+
+# Concrete catalog views
 
 
 class CharacterListView(CatalogView):
     config = CHARACTER_CONFIG
     output_serializer_class = CharacterOutputSerializer
-    create_serializer_class = CharacterCreateSerializer
 
     def build_filter(self, request: Request) -> CharacterFilter:
         return CharacterFilter(
@@ -224,15 +266,17 @@ class CharacterListView(CatalogView):
             clothing=request.query_params.get('clothing'),
             notable_for=request.query_params.get('notable_for'),
 
-            race_slug=request.query_params.get('race_slug'),
-            born_in_slug=request.query_params.get('born_in_slug'),
+            # race=request.query_params.get('race'),
+            # organization=request.query_params.get('organization'),
+            # event=request.query_params.get('event'),
+            # item=request.query_params.get('item'),
+            # location=request.query_params.get('location'),
         )
 
 
 class RaceListView(CatalogView):
     config = RACE_CONFIG
     output_serializer_class = RaceOutputSerializer
-    create_serializer_class = RaceCreateSerializer
 
     def build_filter(self, request: Request) -> RaceFilter:
         return RaceFilter(
@@ -245,13 +289,14 @@ class RaceListView(CatalogView):
             weaponry=request.query_params.get('weaponry'),
             clothing=request.query_params.get('clothing'),
             distinctions=request.query_params.get('distinctions'),
+
+            # location=request.query_params.get('location'),
         )
 
 
 class LocationListView(CatalogView):
     config = LOCATION_CONFIG
     output_serializer_class = LocationOutputSerializer
-    create_serializer_class = LocationCreateSerializer
 
     def build_filter(self, request: Request) -> LocationFilter:
         return LocationFilter(
@@ -262,13 +307,16 @@ class LocationListView(CatalogView):
             destruction_date=request.query_params.get('destruction_date'),
             notable_for=request.query_params.get('notable_for'),
             is_destroyed=_parse_bool(request.query_params.get('is_destroyed')),
+
+            # character=request.query_params.get('character'),
+            # event=request.query_params.get('event'),
+            # organization=request.query_params.get('organization'),
         )
 
 
 class EventListView(CatalogView):
     config = EVENT_CONFIG
     output_serializer_class = EventOutputSerializer
-    create_serializer_class = EventCreateSerializer
 
     def build_filter(self, request: Request) -> EventFilter:
         return EventFilter(
@@ -278,13 +326,15 @@ class EventListView(CatalogView):
             end_date=request.query_params.get('end_date'),
             casualties=request.query_params.get('casualties'),
             notable_for=request.query_params.get('notable_for'),
+
+            # character=request.query_params.get('character'),
+            # location=request.query_params.get('location'),
         )
 
 
 class OrganizationListView(CatalogView):
     config = ORGANIZATION_CONFIG
     output_serializer_class = OrganizationOutputSerializer
-    create_serializer_class = OrganizationCreateSerializer
 
     def build_filter(self, request: Request) -> OrganizationFilter:
         return OrganizationFilter(
@@ -297,13 +347,15 @@ class OrganizationListView(CatalogView):
             purpose=request.query_params.get('purpose'),
             notable_for=request.query_params.get('notable_for'),
             is_dissolved=_parse_bool(request.query_params.get('is_dissolved')),
+
+            # character=request.query_params.get('character'),
+            # location=request.query_params.get('location'),
         )
 
 
 class TimelineListView(CatalogView):
     config = TIMELINE_CONFIG
     output_serializer_class = TimelineOutputSerializer
-    create_serializer_class = TimelineCreateSerializer
 
     def build_filter(self, request: Request) -> TimelineFilter:
         return TimelineFilter(
@@ -317,7 +369,6 @@ class TimelineListView(CatalogView):
 class ItemListView(CatalogView):
     config = ITEM_CONFIG
     output_serializer_class = ItemOutputSerializer
-    create_serializer_class = ItemCreateSerializer
 
     def build_filter(self, request: Request) -> ItemFilter:
         return ItemFilter(
@@ -325,13 +376,14 @@ class ItemListView(CatalogView):
             entity_type=request.query_params.get('entity_type'),
             material=request.query_params.get('material'),
             notable_for=request.query_params.get('notable_for'),
+
+            # character=request.query_params.get('character'),
         )
 
 
 class LanguageListView(CatalogView):
     config = LANGUAGE_CONFIG
     output_serializer_class = LanguageOutputSerializer
-    create_serializer_class = LanguageCreateSerializer
 
     def build_filter(self, request: Request) -> LanguageFilter:
         return LanguageFilter(
@@ -343,7 +395,6 @@ class LanguageListView(CatalogView):
 class ScriptListView(CatalogView):
     config = SCRIPT_CONFIG
     output_serializer_class = ScriptOutputSerializer
-    create_serializer_class = ScriptCreateSerializer
 
     def build_filter(self, request: Request) -> ScriptFilter:
         return ScriptFilter(name=request.query_params.get('name'))

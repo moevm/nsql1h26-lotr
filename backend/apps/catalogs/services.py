@@ -4,30 +4,55 @@ from urllib.parse import urlencode
 
 from neomodel import db  # type: ignore[attr-defined]
 
-from .filters import (
-    _HasCypherWhere,
-)
+from .filters import _HasCypherWhere
 
 from .queries import (
-    CHARACTER_LIST_QUERY, CHARACTER_COUNT_QUERY, CHARACTER_CREATE_QUERY,
-    CHARACTER_SORT_FIELDS, CHARACTER_DEFAULT_SORT,
-    RACE_LIST_QUERY, RACE_COUNT_QUERY, RACE_CREATE_QUERY, RACE_SORT_FIELDS,
+    CHARACTER_LIST_QUERY,
+    CHARACTER_COUNT_QUERY,
+    CHARACTER_SORT_FIELDS,
+    CHARACTER_DEFAULT_SORT,
+
+    RACE_LIST_QUERY,
+    RACE_COUNT_QUERY,
+    RACE_SORT_FIELDS,
     RACE_DEFAULT_SORT,
-    LOCATION_LIST_QUERY, LOCATION_COUNT_QUERY, LOCATION_CREATE_QUERY,
-    LOCATION_SORT_FIELDS, LOCATION_DEFAULT_SORT,
-    EVENT_LIST_QUERY, EVENT_COUNT_QUERY, EVENT_CREATE_QUERY, EVENT_SORT_FIELDS,
+
+    LOCATION_LIST_QUERY,
+    LOCATION_COUNT_QUERY,
+    LOCATION_SORT_FIELDS,
+    LOCATION_DEFAULT_SORT,
+
+    EVENT_LIST_QUERY,
+    EVENT_COUNT_QUERY,
+    EVENT_SORT_FIELDS,
     EVENT_DEFAULT_SORT,
-    ORGANIZATION_LIST_QUERY, ORGANIZATION_COUNT_QUERY,
-    ORGANIZATION_CREATE_QUERY, ORGANIZATION_SORT_FIELDS,
+
+    ORGANIZATION_LIST_QUERY,
+    ORGANIZATION_COUNT_QUERY,
+    ORGANIZATION_SORT_FIELDS,
     ORGANIZATION_DEFAULT_SORT,
-    TIMELINE_LIST_QUERY, TIMELINE_COUNT_QUERY, TIMELINE_CREATE_QUERY,
-    TIMELINE_SORT_FIELDS, TIMELINE_DEFAULT_SORT,
-    ITEM_LIST_QUERY, ITEM_COUNT_QUERY, ITEM_CREATE_QUERY, ITEM_SORT_FIELDS,
+
+    TIMELINE_LIST_QUERY,
+    TIMELINE_COUNT_QUERY,
+    TIMELINE_SORT_FIELDS,
+    TIMELINE_DEFAULT_SORT,
+
+    ITEM_LIST_QUERY,
+    ITEM_COUNT_QUERY,
+    ITEM_SORT_FIELDS,
     ITEM_DEFAULT_SORT,
-    LANGUAGE_LIST_QUERY, LANGUAGE_COUNT_QUERY, LANGUAGE_CREATE_QUERY,
-    LANGUAGE_SORT_FIELDS, LANGUAGE_DEFAULT_SORT,
-    SCRIPT_LIST_QUERY, SCRIPT_COUNT_QUERY, SCRIPT_CREATE_QUERY,
-    SCRIPT_SORT_FIELDS, SCRIPT_DEFAULT_SORT,
+
+    LANGUAGE_LIST_QUERY,
+    LANGUAGE_COUNT_QUERY,
+    LANGUAGE_SORT_FIELDS,
+    LANGUAGE_DEFAULT_SORT,
+
+    SCRIPT_LIST_QUERY,
+    SCRIPT_COUNT_QUERY,
+    SCRIPT_SORT_FIELDS,
+    SCRIPT_DEFAULT_SORT,
+
+    CREATE_NODE_TEMPLATE,
 )
 
 
@@ -38,83 +63,94 @@ _DEFAULT_PAGE_SIZE: int = 20
 # Entity config - everything the service needs to work with the type
 @dataclass
 class EntityConfig:
+    '''All metadata the catalog service needs to operate on an entity type.'''
     list_query: str
     count_query: str
-    create_query: str
     sort_fields: dict[str, str]
     default_sort: str
+    entity_type: str  # 'character', 'race', etc - matches pages.quiries keys
+    node_labels: str  # Noe4j labels for CREATE, e.g. 'Character:Page'
 
 
 CHARACTER_CONFIG = EntityConfig(
     list_query=CHARACTER_LIST_QUERY,
     count_query=CHARACTER_COUNT_QUERY,
-    create_query=CHARACTER_CREATE_QUERY,
     sort_fields=CHARACTER_SORT_FIELDS,
     default_sort=CHARACTER_DEFAULT_SORT,
+    entity_type='character',
+    node_labels='Character:Page',
 )
 
 RACE_CONFIG = EntityConfig(
     list_query=RACE_LIST_QUERY,
     count_query=RACE_COUNT_QUERY,
-    create_query=RACE_CREATE_QUERY,
     sort_fields=RACE_SORT_FIELDS,
     default_sort=RACE_DEFAULT_SORT,
+    entity_type='race',
+    node_labels='Race:Page',
 )
 
 LOCATION_CONFIG = EntityConfig(
     list_query=LOCATION_LIST_QUERY,
     count_query=LOCATION_COUNT_QUERY,
-    create_query=LOCATION_CREATE_QUERY,
     sort_fields=LOCATION_SORT_FIELDS,
     default_sort=LOCATION_DEFAULT_SORT,
+    entity_type='location',
+    node_labels='Location:Page'
 )
 
 EVENT_CONFIG = EntityConfig(
     list_query=EVENT_LIST_QUERY,
     count_query=EVENT_COUNT_QUERY,
-    create_query=EVENT_CREATE_QUERY,
     sort_fields=EVENT_SORT_FIELDS,
     default_sort=EVENT_DEFAULT_SORT,
+    entity_type='event',
+    node_labels='Event:Page',
 )
 
 ORGANIZATION_CONFIG = EntityConfig(
     list_query=ORGANIZATION_LIST_QUERY,
     count_query=ORGANIZATION_COUNT_QUERY,
-    create_query=ORGANIZATION_CREATE_QUERY,
     sort_fields=ORGANIZATION_SORT_FIELDS,
     default_sort=ORGANIZATION_DEFAULT_SORT,
+    entity_type='organization',
+    node_labels='Organization:Page',
 )
 
 TIMELINE_CONFIG = EntityConfig(
     list_query=TIMELINE_LIST_QUERY,
     count_query=TIMELINE_COUNT_QUERY,
-    create_query=TIMELINE_CREATE_QUERY,
     sort_fields=TIMELINE_SORT_FIELDS,
     default_sort=TIMELINE_DEFAULT_SORT,
+    entity_type='timeline',
+    node_labels='Timeline:Page',
 )
 
 ITEM_CONFIG = EntityConfig(
     list_query=ITEM_LIST_QUERY,
     count_query=ITEM_COUNT_QUERY,
-    create_query=ITEM_CREATE_QUERY,
     sort_fields=ITEM_SORT_FIELDS,
     default_sort=ITEM_DEFAULT_SORT,
+    entity_type='item',
+    node_labels='Item:Page',
 )
 
 LANGUAGE_CONFIG = EntityConfig(
     list_query=LANGUAGE_LIST_QUERY,
     count_query=LANGUAGE_COUNT_QUERY,
-    create_query=LANGUAGE_CREATE_QUERY,
     sort_fields=LANGUAGE_SORT_FIELDS,
     default_sort=LANGUAGE_DEFAULT_SORT,
+    entity_type='language',
+    node_labels='Language:Page'
 )
 
 SCRIPT_CONFIG = EntityConfig(
     list_query=SCRIPT_LIST_QUERY,
     count_query=SCRIPT_COUNT_QUERY,
-    create_query=SCRIPT_CREATE_QUERY,
     sort_fields=SCRIPT_SORT_FIELDS,
     default_sort=SCRIPT_DEFAULT_SORT,
+    entity_type='script',
+    node_labels='Script:Page'
 )
 
 
@@ -224,23 +260,35 @@ def list_catalog(
     )
 
 
-def create_entity(
-        config: EntityConfig,
-        data: dict[str, Any]
-) -> dict[str, Any]:
+def create_node(
+        node_labels: str,
+        slug: str,
+        names: list[str],
+        attrs: dict[str, Any]
+) -> None:
     '''
-    Created Neo4j node using raw CYPHER.
+    Create a new :Page subtype node in Neo4j.
+
+    `node_labels` is sourced exclusively from EntityConfig.node_labels - a
+    hardcoded string, never from user input - so f-string interpolation here
+    is safe against Cypher injection.
+
+    `attrs` must already be normalised (camelCase Neo4j property names) via
+    normalize_patch_attributes before calling this function.
+
     Raises neo4j.exceptions.ConstraintError if slug is not unique
     '''
-
-    results, meta = db.cypher_query(config.create_query, data)
-
-    if not results:
-        raise RuntimeError(
-            'CREATE query returned no result - node was not created'
-        )
-
-    return dict(zip(meta, results[0]))
+    query = (
+        CREATE_NODE_TEMPLATE.format(node_labels=node_labels)
+    )
+    db.cypher_query(
+        query,
+        {
+            'slug': slug,
+            'names': names,
+            'attrs': attrs
+        }
+    )
 
 
 def slug_exists(slug: str) -> bool:

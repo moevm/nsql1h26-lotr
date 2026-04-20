@@ -1,3 +1,13 @@
+"""
+Output serializers for catalog list endpoints (GET /characters/, etc.)
+
+These describe the flat row shape returned by the catalog Cypher queries.
+They are used exclusively for GET list responses; POST now uses
+PageCreateSerializer from apps.pages.serializers and returns the full
+page representation (same as GET /pages/{slug}/).
+"""
+
+
 from rest_framework import serializers
 
 
@@ -49,44 +59,6 @@ class CharacterOutputSerializer(serializers.Serializer):
     born_in_name = serializers.CharField(allow_null=True)
 
 
-class CharacterCreateSerializer(serializers.Serializer):
-    '''Entrypoint fir POST /characters/'''
-
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    titles = _OptionalNamesField()
-    gender = serializers.ChoiceField(
-        choices=['male', 'female', 'unknown'],
-        allow_null=True,
-        required=False,
-        default=None
-    )
-    birth_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    death_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    hair = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    eyes = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    height = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    weapon = serializers.CharField(
-        max_length=80, allow_null=True, required=False, default=None
-    )
-    clothing = serializers.CharField(
-        max_length=80, allow_null=True, required=False, default=None
-    )
-    notable_for = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
-
-
 class RaceOutputSerializer(serializers.Serializer):
     slug = serializers.CharField()
     names = serializers.ListField(
@@ -102,35 +74,6 @@ class RaceOutputSerializer(serializers.Serializer):
     distinctions = serializers.CharField(allow_null=True)
 
 
-class RaceCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    lifespan = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    avg_height = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    hair = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    eyes = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    skin = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    weaponry = serializers.CharField(
-        max_length=100, allow_null=True, required=False, default=None
-    )
-    clothing = serializers.CharField(
-        max_length=100, allow_null=True, required=False, default=None
-    )
-    distinctions = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
-
-
 class LocationOutputSerializer(serializers.Serializer):
     slug = serializers.CharField()
     names = serializers.ListField(
@@ -143,26 +86,6 @@ class LocationOutputSerializer(serializers.Serializer):
     notable_for = serializers.CharField(allow_null=True)
 
 
-class LocationCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    entity_type = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    population = serializers.CharField(
-        max_length=200, allow_null=True, required=False, default=None
-    )
-    creation_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    destruction_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    notable_for = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
-
-
 class EventOutputSerializer(serializers.Serializer):
     slug = serializers.CharField()
     names = serializers.ListField(
@@ -173,26 +96,6 @@ class EventOutputSerializer(serializers.Serializer):
     end_date = serializers.CharField(allow_null=True)
     casualties = serializers.CharField(allow_null=True)
     notable_for = serializers.CharField(allow_null=True)
-
-
-class EventCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    entity_type = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    start_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    end_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    casualties = serializers.CharField(
-        max_length=200, allow_null=True, required=False, default=None
-    )
-    notable_for = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
 
 
 class OrganizationOutputSerializer(serializers.Serializer):
@@ -209,32 +112,6 @@ class OrganizationOutputSerializer(serializers.Serializer):
     notable_for = serializers.CharField(allow_null=True)
 
 
-class OrganizationCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    entity_type = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    founded_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    dissolved_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    clothing = serializers.CharField(
-        max_length=100, allow_null=True, required=False, default=None
-    )
-    weaponry = serializers.CharField(
-        max_length=100, allow_null=True, required=False, default=None
-    )
-    purpose = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
-    notable_for = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
-
-
 class TimelineOutputSerializer(serializers.Serializer):
     slug = serializers.CharField()
     names = serializers.ListField(
@@ -243,20 +120,6 @@ class TimelineOutputSerializer(serializers.Serializer):
     start_date = serializers.CharField(allow_null=True)
     end_date = serializers.CharField(allow_null=True)
     abbreviation = serializers.CharField(allow_null=True)
-
-
-class TimelineCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    start_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    end_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    abbreviation = serializers.CharField(
-        max_length=10, allow_null=True, required=False, default=None
-    )
 
 
 class ItemOutputSerializer(serializers.Serializer):
@@ -269,20 +132,6 @@ class ItemOutputSerializer(serializers.Serializer):
     notable_for = serializers.CharField(allow_null=True)
 
 
-class ItemCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    entity_type = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    material = serializers.CharField(
-        max_length=100, allow_null=True, required=False, default=None
-    )
-    notable_for = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
-
-
 class LanguageOutputSerializer(serializers.Serializer):
     slug = serializers.CharField()
     names = serializers.ListField(
@@ -291,24 +140,11 @@ class LanguageOutputSerializer(serializers.Serializer):
     family = serializers.CharField(allow_null=True)
 
 
-class LanguageCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    family = serializers.CharField(
-        max_length=80, allow_null=True, required=False, default=None
-    )
-
-
 class ScriptOutputSerializer(serializers.Serializer):
     slug = serializers.CharField()
     names = serializers.ListField(
         child=serializers.CharField(), allow_null=True
     )
-
-
-class ScriptCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
 
 
 # Pagination envelope - used in @extend_schema
