@@ -1,43 +1,65 @@
-// src/pages/EntityPage.tsx
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FaHeart, FaRegHeart, FaEdit } from 'react-icons/fa';
 import { MdOutlineFileDownload, MdOutlineFileUpload } from 'react-icons/md';
 import { SiRelay } from 'react-icons/si';
-import { useGetPage } from '../api/generated/pages/pages';
+import { useGetPage, useLikePage, useUnlikePage } from '../api/generated/pages/pages';
 import { useAuth } from '../context/AuthContext';
-import { isLiked, addLike, removeLike } from '../utils/likes';
+import { useQueryClient } from '@tanstack/react-query';
 import AuthModal from '../components/AuthModal';
 
 const EntityPage: React.FC = () => {
   const { type, slug } = useParams<{ type: string; slug: string }>();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useGetPage(slug!);
+  const likeMutation = useLikePage();
+  const unlikeMutation = useUnlikePage();
+
   const [liked, setLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showAuthModalForEdit, setShowAuthModalForEdit] = useState(false);
 
+  // При загрузке данных устанавливаем начальные значения лайков
   useEffect(() => {
-    if (user && data) {
-      setLiked(isLiked(user.username, data.slug));
-    } else {
-      setLiked(false);
+    if (data) {
+      setLiked(data.isLiked || false);
+      setLikesCount(data.likesCount || 0);
     }
-  }, [user, data]);
+  }, [data]);
 
-  const handleLike = () => {
+  // Очистка кэша при размонтировании (опционально)
+  useEffect(() => {
+    return () => {
+      queryClient.removeQueries({ queryKey: [`/pages/${slug}`] });
+    };
+  }, [slug, queryClient]);
+
+  const handleLike = async () => {
     if (!user) {
       setShowAuthModal(true);
       return;
     }
     if (!data) return;
-    if (liked) {
-      removeLike(user.username, data.slug);
-      setLiked(false);
-    } else {
-      addLike(user.username, data.slug);
-      setLiked(true);
+
+    try {
+      if (liked) {
+        const result = await unlikeMutation.mutateAsync({ slug: slug! });
+        setLiked(result.isLiked);
+        setLikesCount(result.likesCount);
+      } else {
+        const result = await likeMutation.mutateAsync({ slug: slug! });
+        setLiked(result.isLiked);
+        setLikesCount(result.likesCount);
+      }
+      // Обновляем данные пользователя в контексте
+      await refreshUser();
+      // Инвалидируем кэш страницы
+      await queryClient.invalidateQueries({ queryKey: [`/pages/${slug}`] });
+    } catch (err) {
+      console.error('Like/unlike failed:', err);
     }
   };
 
@@ -152,7 +174,7 @@ const EntityPage: React.FC = () => {
               className={`like-btn ${liked ? 'liked' : ''}`}
               onClick={handleLike}
             >
-              {liked ? <FaHeart /> : <FaRegHeart />}
+              {liked ? <FaHeart /> : <FaRegHeart />} {likesCount}
             </button>
             <button
               className="icon-btn"

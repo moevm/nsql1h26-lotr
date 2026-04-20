@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 interface Entity {
   slug: string;
@@ -32,6 +34,12 @@ const GenericCatalogPage: React.FC<GenericCatalogPageProps> = ({
 }) => {
   const sortedData = [...data].sort(sortByName);
   const { groups, sortedLetters } = groupByFirstLetter(sortedData);
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    return () => {
+      queryClient.removeQueries({ queryKey: ['/characters'] });
+    };
+  }, []);
 
   return (
     <div className="catalog-page">

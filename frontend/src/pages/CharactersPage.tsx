@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GenericCatalogPage from '../components/GenericCatalogPage';
 import { useListCharacters } from '../api/generated/characters/characters';
@@ -6,6 +6,7 @@ import FilterSection from '../components/FilterSection';
 import { FaPlus } from 'react-icons/fa';
 import AuthModal from '../components/AuthModal';
 import { useAuth } from '../context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 const CharactersFilters = () => (
   <>
@@ -49,6 +50,12 @@ const CharactersPage: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 20;
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    return () => {
+      queryClient.removeQueries({ queryKey: ['/characters'] });
+    };
+  }, []);
 
   const { data, isLoading, error } = useListCharacters({
     page,

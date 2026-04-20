@@ -6,6 +6,8 @@ import { useState } from 'react';
 import FilterSection from '../components/FilterSection';
 import AuthModal from '../components/AuthModal';
 import { useAuth } from '../context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 const LocationsFilters = () => (
   <>
@@ -37,11 +39,16 @@ const LocationsPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    return () => {
+      queryClient.removeQueries({ queryKey: ['/locations'] });
+    };
+  }, []);
 
-  // Используем сгенерированный хук для получения списка локаций
   const { data, isLoading, error } = useListLocations({
     page: 1,
-    page_size: 100,
+    page_size: 20,
   });
 
   if (isLoading) return <div className="loader">Загрузка...</div>;

@@ -3,11 +3,28 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEdit, FaHeart } from 'react-icons/fa';
 import EditProfileModal from '../components/EditProfileModal';
+import { useQueryClient } from '@tanstack/react-query';
+import { useGetMe } from '../api/generated/auth/auth';
 
 const ProfilePage: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const navigate = useNavigate();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { refetch, isLoading: refetchLoading } = useGetMe({
+    query: { enabled: false }
+  });
+
+  useEffect(() => {
+    refetch(); // выполняем запрос при монтировании страницы
+  }, [refetch]);
+
+  useEffect(() => {
+    return () => {
+      queryClient.removeQueries({ queryKey: ['/auth/me'] });
+    };
+  }, [queryClient]);
 
   // Редирект, если не авторизован
   useEffect(() => {
@@ -20,6 +37,10 @@ const ProfilePage: React.FC = () => {
     logout();
     navigate('/');
   };
+
+  if (isLoading) {
+    return <div className="loader">Загрузка профиля...</div>;
+  }
 
   if (!user) return null;
 

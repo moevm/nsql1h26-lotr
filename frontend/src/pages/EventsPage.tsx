@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { FaPlus } from 'react-icons/fa';
 import AuthModal from '../components/AuthModal';
 import { useAuth } from '../context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 const EventsFilters = () => (
   <>
@@ -26,8 +28,14 @@ const EventsPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    return () => {
+      queryClient.removeQueries({ queryKey: ['/events'] });
+    };
+  }, []);
 
-  const { data, isLoading, error } = useListEvents({ page: 1, page_size: 100 });
+  const { data, isLoading, error } = useListEvents({ page: 1, page_size: 20 });
 
   if (isLoading) return <div className="loader">Загрузка...</div>;
   if (error) return <div className="error">Ошибка загрузки</div>;
