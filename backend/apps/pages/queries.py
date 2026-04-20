@@ -286,15 +286,13 @@ PAGE_DETAIL_QUERY = '''\
 MATCH (p:Page {slug: $slug})
     OPTIONAL MATCH (p)-[:HAS_ARTICLE]->(a:Article)
 
-CALL {
-    WITH p
+CALL (p) {
     OPTIONAL MATCH (p)-[:IN_CATEGORY]->(cat:Category)
     WITH cat WHERE cat IS NOT NULL
     RETURN collect({slug: cat.slug, name: cat.name}) AS categories
 }
 
-CALL {
-    WITH p
+CALL (p) {
     OPTIONAL MATCH (p)-[out_rel]->(target:Page)
     WITH target, out_rel WHERE target IS NOT NULL
     OPTIONAL MATCH (target)-[:HAS_ARTICLE]->(ta:Article)
@@ -308,8 +306,7 @@ CALL {
     }) AS outgoing_rels
 }
 
-CALL {
-    WITH p
+CALL (p) {
     OPTIONAL MATCH (source:Page)-[in_rel]->(p)
     WITH source, in_rel WHERE source IS NOT NULL
     OPTIONAL MATCH (source)-[:HAS_ARTICLE]->(sa:Article)
@@ -323,14 +320,12 @@ CALL {
     }) AS incoming_rels
 }
 
-CALL {
-    WITH p
+CALL (p) {
     OPTIONAL MATCH (u:User)-[:LIKED]->(p)
     RETURN count(u) AS likes_count
 }
 
-CALL {
-    WITH p
+CALL (p) {
     OPTIONAL MATCH (comment:Comment)-[:ON]->(p)
     RETURN count(comment) AS comments_count
 }
