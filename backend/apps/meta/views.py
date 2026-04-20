@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework import serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -46,25 +45,21 @@ RELATION_TYPES = [
     {"type": "IS_SPOKEN_BY", "label": "Is spoken by", "from": ["race"], "to": ["language"]},
     {"type": "SPOKEN_IN", "label": "Spoken in", "from": ["language"], "to": ["location"]},
     {"type": "WRITTEN_IN", "label": "Written in", "from": ["language"], "to": ["script"]},
-    {"type": "HAS_ARTICLE", "label": "Has article", "from": ["character", "race", "location", "event", "organization", "timeline", "item", "language", "script"], "to": ["article"]},
-    {"type": "IN_CATEGORY", "label": "In category", "from": ["character", "race", "location", "event", "organization", "timeline", "item", "language", "script"], "to": ["category"]},
-    {"type": "SUBCATEGORY_OF", "label": "Subcategory of", "from": ["category"], "to": ["category"]},
-    {"type": "WROTE", "label": "Wrote", "from": ["user"], "to": ["comment"]},
-    {"type": "ON", "label": "On", "from": ["comment"], "to": ["character", "race", "location", "event", "organization", "timeline", "item", "language", "script"]},
-    {"type": "REPLY_TO", "label": "Reply to", "from": ["comment"], "to": ["comment"]},
-    {"type": "LIKED", "label": "Liked", "from": ["user"], "to": ["character", "race", "location", "event", "organization", "timeline", "item", "language", "script"]},
 ]
+
 
 class NodeTypeSerializer(serializers.Serializer):
     type = serializers.CharField()
     label = serializers.CharField()
     pluralLabel = serializers.CharField()
 
+
 class RelationTypeSerializer(serializers.Serializer):
     type = serializers.CharField()
     label = serializers.CharField()
     from_ = serializers.ListField(child=serializers.CharField(), source='from')
     to = serializers.ListField(child=serializers.CharField())
+
 
 @extend_schema(
     summary="List node types",
@@ -76,6 +71,7 @@ class RelationTypeSerializer(serializers.Serializer):
 def node_types(request):
     serializer = NodeTypeSerializer(NODE_TYPES, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 @extend_schema(
     summary="List relation types",
