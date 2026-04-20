@@ -39,4 +39,5 @@ urlpatterns = [
     path('api/v1/analytics/', include('apps.analytics.urls')),
     path('api/v1/bulk/', include('apps.bulk.urls')),
     path('api/v1/meta/', include('apps.meta.urls')),
+    path('api/v1/search/', include('apps.search.urls', namespace='search')),
 ]

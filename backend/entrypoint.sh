@@ -52,6 +52,9 @@ python manage.py migrate --noinput
 log "Installing neomodel labels and constraints..."
 neomodel_install_labels apps.pages.models
 
+log "Ensuring custom Neo4j indexes (fulltext, etc.)..."
+python manage.py ensure_indexes
+
 # Seed DB
 
 if python manage.py help seed > /dev/null 2>&1; then
