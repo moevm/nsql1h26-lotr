@@ -189,25 +189,86 @@ h1 {
   padding-right: 1rem;
 }
 
-/* Сетка имён в три колонки */
-.names-grid {
+/* Сетка имён в 2 колонки */
+.cards-grid {
+  margin-left: 4rem;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem 1rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
 }
 
-.character-link {
+.link-card-link {
+  text-decoration: none;
+}
+
+.link-card {
+  background-color: #825e332c;
+  backdrop-filter: blur(4px);
+  border-radius: 16px;
+  padding: 1rem;
+  transition: background 0.2s;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.link-card:hover {
+  background: #8b5a2b;
+}
+
+.link-card-name {
+  font-size: 1.5rem;
+  font-weight: bold;
   color: #f5e7d9;
-  text-align: left;
-  margin-left: 5rem;
-  font-size: 1rem;
-  transition: color 0.2s;
-  padding: 0.2rem 0;
+  margin-bottom: 0.5rem;
+  border-left: 3px solid #c7b198;
+  padding-left: 0.5rem;
 }
 
-.character-link:hover {
-  color: #c7b198;
-  text-decoration: underline;
+.link-card-preview {
+  font-size: 0.85rem;
+  color: #fdfaf7;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.preview-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.pagination-btn {
+  font-size: 1rem;
+  background: #8b5a2b;
+  border: none;
+  color: white;
+  padding: 0.4rem 1rem;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #6b3e1a;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  color: #f5e7d9;
 }
 
 /* Правая панель фильтров */

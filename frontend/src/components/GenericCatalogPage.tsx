@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 interface Entity {
   slug: string;
   name: string;
+  preview?: string[]; // первые 3 заполненных атрибута
 }
 
 interface GenericCatalogPageProps {
   title: string;
   entityType: string;
   data: Entity[];
-  headerActions?: React.ReactNode;   // элемент справа от заголовка
+  headerActions?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -29,7 +30,7 @@ const groupByFirstLetter = (items: Entity[]) => {
 const GenericCatalogPage: React.FC<GenericCatalogPageProps> = ({ 
   title, entityType, data, headerActions, children 
 }) => {
-  const sortedData = [...data].sort((a,b) => a.name.localeCompare(b.name));
+  const sortedData = [...data].sort(sortByName);
   const { groups, sortedLetters } = groupByFirstLetter(sortedData);
 
   return (
@@ -42,10 +43,19 @@ const GenericCatalogPage: React.FC<GenericCatalogPageProps> = ({
         {sortedLetters.map(letter => (
           <div key={letter} className="letter-group">
             <h2 className="letter-header">{letter}</h2>
-            <div className="names-grid">
+            <div className="cards-grid">
               {groups[letter].map(item => (
-                <Link key={item.slug} to={`/entity/${entityType}/${item.slug}`} className="character-link">
-                  {item.name}
+                <Link key={item.slug} to={`/entity/${entityType}/${item.slug}`} className="link-card-link">
+                  <div className="link-card">
+                    <div className="link-card-name">{item.name}</div>
+                    {item.preview && item.preview.length > 0 && (
+                      <div className="link-card-preview">
+                        {item.preview.map((attr, idx) => (
+                          <div key={idx} className="preview-item">{attr}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </Link>
               ))}
             </div>

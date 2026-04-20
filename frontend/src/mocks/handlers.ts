@@ -22,7 +22,6 @@ export const handlers = [
   // POST /characters - создание (только для админов)
   http.post('/api/v1/characters/', async ({ request }) => {
     const body = await request.json() as any;
-    console.log('Creating character:', body);
     
     // Генерируем slug из имени (упрощённо)
     const slug = body.name.toLowerCase().replace(/\s+/g, '-');

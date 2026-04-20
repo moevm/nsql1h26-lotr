@@ -7,6 +7,8 @@ export const axiosInstance = axios.create({
 
 // Интерсептор запроса: добавляем токен
 axiosInstance.interceptors.request.use((config) => {
+  console.log('🚀 Request URL:', config.url);
+  console.log('📦 Params:', config.params);
   if (config.url && !config.url.endsWith('/')) {
     config.url += '/';
   }

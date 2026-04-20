@@ -32,6 +32,7 @@ const EditPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { data: page, isLoading, error } = useGetPage(slug!);
   const updateMutation = useUpdatePage();
+  const [initialAttributes, setInitialAttributes] = useState<Record<string, any>>({});
 
   const [names, setNames] = useState<string[]>([]);
   const [articleText, setArticleText] = useState('');
@@ -47,8 +48,9 @@ const EditPage: React.FC = () => {
     if (page) {
       setNames(page.names || []);
       setArticleText(page.article?.text || '');
-      setArticleImageUrl(page.article?.imageUrl || '');
+      setArticleImageUrl(page.article?.imageUrl || null);
       setAttributes(page.attributes || {});
+      setInitialAttributes(page.attributes || {});
 
       const outGroups = Object.entries(page.relations?.outgoing || {}).map(([relType, items]) => ({
         relationType: relType,
@@ -184,9 +186,14 @@ const EditPage: React.FC = () => {
     e.preventDefault();
     setErrorMessage('');
 
-    // Очищаем атрибуты от null/undefined и пустых строк
+    const finalAttributes = { ...attributes };
+    Object.keys(initialAttributes).forEach(key => {
+      if (!(key in attributes)) {
+        finalAttributes[key] = null;
+      }
+    });
     const cleanedAttributes = Object.fromEntries(
-      Object.entries(attributes).filter(([_, v]) => v != null && v !== '')
+      Object.entries(finalAttributes).filter(([_, v]) => v !== undefined)
     );
 
     const outgoingObj: Record<string, any[]> = {};
@@ -264,14 +271,16 @@ const EditPage: React.FC = () => {
                 placeholder="Название атрибута"
               />
               <input
-                value={value ?? ''}
-                onChange={e => setAttributes(prev => ({ ...prev, [key]: e.target.value }))}
+                value={value === null ? '' : value}
+                onChange={e => {
+                  const newValue = e.target.value === '' ? null : e.target.value;
+                  setAttributes(prev => ({ ...prev, [key]: newValue }));
+                }}
                 placeholder="Значение"
               />
               <button type="button" onClick={() => removeAttribute(key)}>Удалить</button>
             </div>
           ))}
-          <button type="button" onClick={addAttribute}>+ Добавить атрибут</button>
         </section>
 
         {/* Исходящие связи */}

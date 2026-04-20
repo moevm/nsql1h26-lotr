@@ -1,3 +1,4 @@
+// src/pages/EntityPage.tsx
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FaHeart, FaRegHeart, FaEdit } from 'react-icons/fa';
@@ -180,12 +181,19 @@ const EntityPage: React.FC = () => {
               <h3>{mainName}</h3>
               <table className="attr-table">
                 <tbody>
-                  {Object.entries(data.attributes || {}).map(([key, value]) => (
-                    <tr key={key}>
-                      <td className="attr-key">{key.replace(/_/g, ' ')}</td>
-                      <td className="attr-value">{value as string}</td>
-                    </tr>
-                  ))}
+                  {Object.entries(data.attributes || {})
+                    .filter(([_, value]) => {
+                      if (value == null) return false;
+                      if (value === '') return false;
+                      if (Array.isArray(value) && value.length === 0) return false;
+                      return true;
+                    })
+                    .map(([key, value]) => (
+                      <tr key={key}>
+                        <td className="attr-key">{key.replace(/_/g, ' ')}</td>
+                        <td className="attr-value">{value as string}</td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>

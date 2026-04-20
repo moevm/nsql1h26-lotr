@@ -2,8 +2,10 @@ import GenericCatalogPage from '../components/GenericCatalogPage';
 import { useListOrganizations } from '../api/generated/organizations/organizations';
 import FilterSection from '../components/FilterSection';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaPlus } from 'react-icons/fa';
-import AddEntityModal from '../components/AddEntityModal';
+import AuthModal from '../components/AuthModal';
+import { useAuth } from '../context/AuthContext';
 
 const OrganizationsFilters = () => (
   <>
@@ -21,7 +23,10 @@ const OrganizationsFilters = () => (
 );
 
 const OrganizationsPage: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
   const { data, isLoading, error } = useListOrganizations({ page: 1, page_size: 100 });
 
   if (isLoading) return <div className="loader">Загрузка...</div>;
@@ -32,6 +37,14 @@ const OrganizationsPage: React.FC = () => {
     name: org.names?.[0] || 'Без имени',
   })) || [];
 
+  const handleAddClick = () => {
+    if (user) {
+      navigate('/create/organization');
+    } else {
+      setShowAuthModal(true);
+    }
+  };
+
   return (
     <>
       <GenericCatalogPage
@@ -39,18 +52,20 @@ const OrganizationsPage: React.FC = () => {
         entityType="organization"
         data={adaptedData}
         headerActions={
-          <button className="add-button" onClick={() => setIsModalOpen(true)}>
+          <button className="add-button" onClick={handleAddClick}>
             <FaPlus /> Add new organization
           </button>
         }
       >
         <OrganizationsFilters />
       </GenericCatalogPage>
-      {isModalOpen && (
-        <AddEntityModal
-          title="организации"
-          onClose={() => setIsModalOpen(false)}
-          onSave={() => setIsModalOpen(false)}
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => {
+            setShowAuthModal(false);
+            navigate('/create/organization');
+          }}
         />
       )}
     </>

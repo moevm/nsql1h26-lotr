@@ -2,8 +2,10 @@ import GenericCatalogPage from '../components/GenericCatalogPage';
 import { useListItems } from '../api/generated/items/items';
 import FilterSection from '../components/FilterSection';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaPlus } from 'react-icons/fa';
-import AddEntityModal from '../components/AddEntityModal';
+import AuthModal from '../components/AuthModal';
+import { useAuth } from '../context/AuthContext';
 
 const ItemsFilters = () => (
   <>
@@ -31,7 +33,10 @@ const ItemsFilters = () => (
 );
 
 const ItemsPage: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
   const { data, isLoading, error } = useListItems({ page: 1, page_size: 100 });
 
   if (isLoading) return <div className="loader">Загрузка...</div>;
@@ -42,6 +47,14 @@ const ItemsPage: React.FC = () => {
     name: item.names?.[0] || 'Без имени',
   })) || [];
 
+  const handleAddClick = () => {
+    if (user) {
+      navigate('/create/item');
+    } else {
+      setShowAuthModal(true);
+    }
+  };
+
   return (
     <>
       <GenericCatalogPage
@@ -49,18 +62,20 @@ const ItemsPage: React.FC = () => {
         entityType="item"
         data={adaptedData}
         headerActions={
-          <button className="add-button" onClick={() => setIsModalOpen(true)}>
+          <button className="add-button" onClick={handleAddClick}>
             <FaPlus /> Add new item
           </button>
         }
       >
         <ItemsFilters />
       </GenericCatalogPage>
-      {isModalOpen && (
-        <AddEntityModal
-          title="предмета"
-          onClose={() => setIsModalOpen(false)}
-          onSave={() => setIsModalOpen(false)}
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => {
+            setShowAuthModal(false);
+            navigate('/create/item');
+          }}
         />
       )}
     </>

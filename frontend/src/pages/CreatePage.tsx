@@ -1,5 +1,7 @@
+// src/pages/CreatePage.tsx
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCreateCharacter } from '../api/generated/characters/characters';
 import { useCreateLocation } from '../api/generated/locations/locations';
 import { useCreateEvent } from '../api/generated/events/events';
@@ -21,64 +23,79 @@ interface RelationGroup { relationType: string; items: RelationItem[]; }
 const CreatePage: React.FC = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  // Основные поля
+  // Общие поля
   const [namesInput, setNamesInput] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
-  // Связи
+  // Связи (общие)
   const [outgoingGroups, setOutgoingGroups] = useState<RelationGroup[]>([]);
   const [incomingGroups, setIncomingGroups] = useState<RelationGroup[]>([]);
   const [showAddOutgoingForm, setShowAddOutgoingForm] = useState(false);
   const [showAddIncomingForm, setShowAddIncomingForm] = useState(false);
 
-  // Специфичные поля для разных типов
-  // Персонаж
+  // --- Специфичные поля для разных типов ---
+  // Персонаж (оставляем как было, но можно добавить недостающие поля, если нужно)
   const [gender, setGender] = useState('');
-  const [birthDate, setBirthDate] = useState('');
-  const [deathDate, setDeathDate] = useState('');
+  const [birth_date, setBirth_date] = useState('');
+  const [death_date, setDeath_date] = useState('');
   const [hair, setHair] = useState('');
   const [eyes, setEyes] = useState('');
   const [height, setHeight] = useState('');
   const [weapon, setWeapon] = useState('');
   const [clothing, setClothing] = useState('');
-  const [notableFor, setNotableFor] = useState('');
-  const [titlesInput, setTitlesInput] = useState('');   // титулы через запятую
+  const [notable_for, setNotable_for] = useState('');
+  const [titlesInput, setTitlesInput] = useState('');
 
   // Локация
-  const [area, setArea] = useState('');
+  const [location_type, setLocation_type] = useState('');
   const [population, setPopulation] = useState('');
-  const [founded, setFounded] = useState('');
+  const [creation_date, setCreation_date] = useState('');
+  const [destruction_date, setDestruction_date] = useState('');
+  const [locationnotable_for, setLocationnotable_for] = useState('');
 
   // Событие
   const [eventType, setEventType] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [start_date, setStart_date] = useState('');
+  const [end_date, setEnd_date] = useState('');
+  const [casualties, setCasualties] = useState('');
+  const [eventnotable_for, setEventnotable_for] = useState('');
 
   // Предмет
   const [itemType, setItemType] = useState('');
   const [material, setMaterial] = useState('');
+  const [itemnotable_for, setItemnotable_for] = useState('');
 
   // Раса
-  const [distinctions, setDistinctions] = useState('');
   const [lifespan, setLifespan] = useState('');
-  const [avgHeight, setAvgHeight] = useState('');
+  const [avg_height, setAvg_height] = useState('');
+  const [raceHair, setRaceHair] = useState('');
+  const [raceEyes, setRaceEyes] = useState('');
+  const [skin, setSkin] = useState('');
+  const [weaponry, setWeaponry] = useState('');
+  const [raceClothing, setRaceClothing] = useState('');
+  const [distinctions, setDistinctions] = useState('');
 
   // Организация
-  const [orgType, setOrgType] = useState('');
-  const [foundedDate, setFoundedDate] = useState('');
+  const [organization_type, setorganization_type] = useState('');
+  const [founded_date, setFounded_date] = useState('');
+  const [dissolved_date, setDissolved_date] = useState('');
+  const [orgClothing, setOrgClothing] = useState('');
+  const [orgWeaponry, setOrgWeaponry] = useState('');
   const [purpose, setPurpose] = useState('');
+  const [orgnotable_for, setOrgnotable_for] = useState('');
 
   // Язык
   const [family, setFamily] = useState('');
 
   // Хронология
   const [abbreviation, setAbbreviation] = useState('');
-  const [startYear, setStartYear] = useState('');
-  const [endYear, setEndYear] = useState('');
+  const [timelineStart_date, setTimelineStart_date] = useState('');
+  const [timelineEnd_date, setTimelineEnd_date] = useState('');
 
-  // Выбор мутации
+  // Мутации
   const createCharacter = useCreateCharacter();
   const createLocation = useCreateLocation();
   const createEvent = useCreateEvent();
@@ -114,7 +131,7 @@ const CreatePage: React.FC = () => {
     return input.split(',').map(s => s.trim()).filter(s => s !== '');
   };
 
-  // Обработчики связей
+  // Обработчики связей (аналогично EditPage)
   const handleAddOutgoingRelation = (relType: string, relation: RelationItem) => {
     const idx = outgoingGroups.findIndex(g => g.relationType === relType);
     if (idx !== -1) {
@@ -134,80 +151,160 @@ const CreatePage: React.FC = () => {
     setShowAddIncomingForm(false);
   };
 
+  // Валидация обязательных полей
+  const validateRequired = (): string | null => {
+    if (!namesInput.trim()) return 'Необходимо указать хотя бы одно имя.';
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errorMsg = validateRequired();
+    if (errorMsg) {
+      alert(errorMsg);
+      return;
+    }
 
     const namesArray = parseCommaSeparated(namesInput);
-    if (namesArray.length === 0) return;
-    const firstname = namesArray[0];
-    const slug = generateSlug(firstname);
+    const slug = generateSlug(namesArray[0]);
 
-    const titlesArray = parseCommaSeparated(titlesInput);
-
+    // Общая структура
+    const now = new Date().toISOString();
     const common = {
       slug,
       names: namesArray,
-      article: { text: description, imageUrl: imageUrl },
+      article: {
+        text: description,
+        imageUrl: imageUrl || undefined,
+      },
+      categories: [],
+      relations: {},
     };
+
     let requestBody: any = { ...common };
 
-    const outgoing = outgoingGroups.reduce((acc, g) => {
-      acc[g.relationType] = g.items.map(item => ({ target: item.target, properties: item.properties }));
-      return acc;
-    }, {} as Record<string, any>);
-    const incoming = incomingGroups.reduce((acc, g) => {
-      acc[g.relationType] = g.items.map(item => ({ from: item.from, properties: item.properties }));
-      return acc;
-    }, {} as Record<string, any>);
-    requestBody.relations = { outgoing, incoming };
-
+    // Добавляем специфичные поля
     switch (type) {
-      case 'character':
+      case 'character': {
+        const titlesArray = parseCommaSeparated(titlesInput);
         requestBody = {
           ...requestBody,
           gender: gender || undefined,
-          birthDate: birthDate || undefined,
-          deathDate: deathDate || undefined,
+          birth_date: birth_date || undefined,
+          death_date: death_date || undefined,
           hair: hair || undefined,
           eyes: eyes || undefined,
           height: height || undefined,
           weapon: weapon || undefined,
           clothing: clothing || undefined,
-          notableFor: notableFor || undefined,
+          notable_for: notable_for || undefined,
           titles: titlesArray.length ? titlesArray : undefined,
         };
         break;
+      }
       case 'location':
-        requestBody = { ...requestBody, area, population, founded };
+        requestBody = {
+          ...requestBody,
+          location_type: location_type || undefined,
+          population: population || undefined,
+          creation_date: creation_date || undefined,
+          destruction_date: destruction_date || undefined,
+          notable_for: locationnotable_for || undefined,
+        };
         break;
       case 'event':
-        requestBody = { ...requestBody, eventType, startDate, endDate };
+        requestBody = {
+          ...requestBody,
+          eventType: eventType || undefined,
+          start_date: start_date || undefined,
+          end_date: end_date || undefined,
+          casualties: casualties || undefined,
+          notable_for: eventnotable_for || undefined,
+        };
         break;
       case 'item':
-        requestBody = { ...requestBody, itemType, material };
+        requestBody = {
+          ...requestBody,
+          itemType: itemType || undefined,
+          material: material || undefined,
+          notable_for: itemnotable_for || undefined,
+        };
         break;
       case 'race':
-        requestBody = { ...requestBody, distinctions, lifespan, avgHeight };
+        requestBody = {
+          ...requestBody,
+          lifespan: lifespan || undefined,
+          avg_height: avg_height || undefined,
+          hair: raceHair || undefined,
+          eyes: raceEyes || undefined,
+          skin: skin || undefined,
+          weaponry: weaponry || undefined,
+          clothing: raceClothing || undefined,
+          distinctions: distinctions || undefined,
+        };
         break;
       case 'organization':
-        requestBody = { ...requestBody, orgType, foundedDate, purpose };
+        requestBody = {
+          ...requestBody,
+          organization_type: organization_type || undefined,
+          founded_date: founded_date || undefined,
+          dissolved_date: dissolved_date || undefined,
+          clothing: orgClothing || undefined,
+          weaponry: orgWeaponry || undefined,
+          purpose: purpose || undefined,
+          notable_for: orgnotable_for || undefined,
+        };
         break;
       case 'language':
-        requestBody = { ...requestBody, family };
+        requestBody = {
+          ...requestBody,
+          family: family || undefined,
+        };
         break;
       case 'script':
+        // нет дополнительных полей
         break;
       case 'timeline':
-        requestBody = { ...requestBody, abbreviation, startDate: startYear, endDate: endYear };
+        requestBody = {
+          ...requestBody,
+          abbreviation: abbreviation || undefined,
+          start_date: timelineStart_date || undefined,
+          end_date: timelineEnd_date || undefined,
+        };
         break;
+    }
+
+    // Добавляем связи (преобразуем группы в плоский объект, как для редактирования)
+    const relationsObj: Record<string, any[]> = {};
+    outgoingGroups.forEach(group => {
+      if (group.relationType && group.items.length) {
+        relationsObj[group.relationType] = group.items.map(item => ({
+          slug: item.target?.slug || '',
+          properties: item.properties || {},
+        }));
+      }
+    });
+    incomingGroups.forEach(group => {
+      if (group.relationType && group.items.length) {
+        if (!relationsObj[group.relationType]) relationsObj[group.relationType] = [];
+        relationsObj[group.relationType].push(...group.items.map(item => ({
+          slug: item.from?.slug || '',
+          properties: item.properties || {},
+        })));
+      }
+    });
+    if (Object.keys(relationsObj).length) {
+      requestBody.relations = relationsObj;
     }
 
     try {
       const result = await createMutation.mutateAsync({ data: requestBody });
       const newSlug = result.slug || result.data?.slug;
+      await queryClient.invalidateQueries({ queryKey: [`/${type}s`] });
       navigate(`/entity/${type}/${newSlug}`);
     } catch (err) {
       console.error('Creation failed:', err);
+      alert('Ошибка создания. Проверьте консоль.');
     }
   };
 
@@ -217,26 +314,27 @@ const CreatePage: React.FC = () => {
         return (
           <section key="attributes">
             <h2>Атрибуты персонажа</h2>
-            <div className="attribute-row"><label>Gender</label><select value={gender} onChange={e=>setGender(e.target.value)}><option value="">Не указано</option><option value="Male">Мужской</option><option value="Female">Женский</option></select></div>
-            <div className="attribute-row"><label>Birth date</label><input value={birthDate} onChange={e=>setBirthDate(e.target.value)} /></div>
-            <div className="attribute-row"><label>Death date</label><input value={deathDate} onChange={e=>setDeathDate(e.target.value)} /></div>
-            <div className="attribute-row"><label>Hair</label><input value={hair} onChange={e=>setHair(e.target.value)} /></div>
-            <div className="attribute-row"><label>Eyes</label><input value={eyes} onChange={e=>setEyes(e.target.value)} /></div>
-            <div className="attribute-row"><label>Height</label><input value={height} onChange={e=>setHeight(e.target.value)} /></div>
-            <div className="attribute-row"><label>Weapon</label><input value={weapon} onChange={e=>setWeapon(e.target.value)} /></div>
-            <div className="attribute-row"><label>Clothing</label><input value={clothing} onChange={e=>setClothing(e.target.value)} /></div>
-            <div className="attribute-row"><label>Notable for</label><input value={notableFor} onChange={e=>setNotableFor(e.target.value)} /></div>
-            <div className="attribute-row"><label>Титулы (через запятую)</label><input value={titlesInput} onChange={e => setTitlesInput(e.target.value)}/>
-            </div>
+            <div className="attribute-row"><label>Пол</label><select value={gender} onChange={e=>setGender(e.target.value)}><option value="">Не указано</option><option value="Male">Мужской</option><option value="Female">Женский</option></select></div>
+            <div className="attribute-row"><label>Дата рождения</label><input value={birth_date} onChange={e=>setBirth_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Дата смерти</label><input value={death_date} onChange={e=>setDeath_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Волосы</label><input value={hair} onChange={e=>setHair(e.target.value)} /></div>
+            <div className="attribute-row"><label>Глаза</label><input value={eyes} onChange={e=>setEyes(e.target.value)} /></div>
+            <div className="attribute-row"><label>Рост</label><input value={height} onChange={e=>setHeight(e.target.value)} /></div>
+            <div className="attribute-row"><label>Оружие</label><input value={weapon} onChange={e=>setWeapon(e.target.value)} /></div>
+            <div className="attribute-row"><label>Одежда</label><input value={clothing} onChange={e=>setClothing(e.target.value)} /></div>
+            <div className="attribute-row"><label>Чем известен</label><input value={notable_for} onChange={e=>setNotable_for(e.target.value)} /></div>
+            <div className="attribute-row"><label>Титулы (через запятую)</label><input value={titlesInput} onChange={e=>setTitlesInput(e.target.value)} placeholder="King, Hero" /></div>
           </section>
         );
       case 'location':
         return (
           <section key="attributes">
             <h2>Атрибуты локации</h2>
-            <div className="attribute-row"><label>Площадь</label><input value={area} onChange={e=>setArea(e.target.value)} /></div>
+            <div className="attribute-row"><label>Тип локации</label><input value={location_type} onChange={e=>setLocation_type(e.target.value)} /></div>
             <div className="attribute-row"><label>Население</label><input value={population} onChange={e=>setPopulation(e.target.value)} /></div>
-            <div className="attribute-row"><label>Основана</label><input value={founded} onChange={e=>setFounded(e.target.value)} /></div>
+            <div className="attribute-row"><label>Дата создания</label><input value={creation_date} onChange={e=>setCreation_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Дата разрушения</label><input value={destruction_date} onChange={e=>setDestruction_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Чем известна</label><input value={locationnotable_for} onChange={e=>setLocationnotable_for(e.target.value)} /></div>
           </section>
         );
       case 'event':
@@ -244,8 +342,10 @@ const CreatePage: React.FC = () => {
           <section key="attributes">
             <h2>Атрибуты события</h2>
             <div className="attribute-row"><label>Тип события</label><input value={eventType} onChange={e=>setEventType(e.target.value)} /></div>
-            <div className="attribute-row"><label>Дата начала</label><input value={startDate} onChange={e=>setStartDate(e.target.value)} /></div>
-            <div className="attribute-row"><label>Дата конца</label><input value={endDate} onChange={e=>setEndDate(e.target.value)} /></div>
+            <div className="attribute-row"><label>Дата начала</label><input value={start_date} onChange={e=>setStart_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Дата конца</label><input value={end_date} onChange={e=>setEnd_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Потери</label><input value={casualties} onChange={e=>setCasualties(e.target.value)} /></div>
+            <div className="attribute-row"><label>Чем известно</label><input value={eventnotable_for} onChange={e=>setEventnotable_for(e.target.value)} /></div>
           </section>
         );
       case 'item':
@@ -254,6 +354,7 @@ const CreatePage: React.FC = () => {
             <h2>Атрибуты предмета</h2>
             <div className="attribute-row"><label>Тип предмета</label><input value={itemType} onChange={e=>setItemType(e.target.value)} /></div>
             <div className="attribute-row"><label>Материал</label><input value={material} onChange={e=>setMaterial(e.target.value)} /></div>
+            <div className="attribute-row"><label>Чем известен</label><input value={itemnotable_for} onChange={e=>setItemnotable_for(e.target.value)} /></div>
           </section>
         );
       case 'race':
@@ -262,16 +363,25 @@ const CreatePage: React.FC = () => {
             <h2>Атрибуты расы</h2>
             <div className="attribute-row"><label>Отличительные черты</label><input value={distinctions} onChange={e=>setDistinctions(e.target.value)} /></div>
             <div className="attribute-row"><label>Продолжительность жизни</label><input value={lifespan} onChange={e=>setLifespan(e.target.value)} /></div>
-            <div className="attribute-row"><label>Средний рост</label><input value={avgHeight} onChange={e=>setAvgHeight(e.target.value)} /></div>
+            <div className="attribute-row"><label>Средний рост</label><input value={avg_height} onChange={e=>setAvg_height(e.target.value)} /></div>
+            <div className="attribute-row"><label>Волосы</label><input value={raceHair} onChange={e=>setRaceHair(e.target.value)} /></div>
+            <div className="attribute-row"><label>Глаза</label><input value={raceEyes} onChange={e=>setRaceEyes(e.target.value)} /></div>
+            <div className="attribute-row"><label>Кожа</label><input value={skin} onChange={e=>setSkin(e.target.value)} /></div>
+            <div className="attribute-row"><label>Оружие</label><input value={weaponry} onChange={e=>setWeaponry(e.target.value)} /></div>
+            <div className="attribute-row"><label>Одежда</label><input value={raceClothing} onChange={e=>setRaceClothing(e.target.value)} /></div>
           </section>
         );
       case 'organization':
         return (
           <section key="attributes">
             <h2>Атрибуты организации</h2>
-            <div className="attribute-row"><label>Тип организации</label><input value={orgType} onChange={e=>setOrgType(e.target.value)} /></div>
-            <div className="attribute-row"><label>Дата основания</label><input value={foundedDate} onChange={e=>setFoundedDate(e.target.value)} /></div>
+            <div className="attribute-row"><label>Тип организации</label><input value={organization_type} onChange={e=>setorganization_type(e.target.value)} /></div>
+            <div className="attribute-row"><label>Дата основания</label><input value={founded_date} onChange={e=>setFounded_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Дата роспуска</label><input value={dissolved_date} onChange={e=>setDissolved_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Одежда</label><input value={orgClothing} onChange={e=>setOrgClothing(e.target.value)} /></div>
+            <div className="attribute-row"><label>Оружие</label><input value={orgWeaponry} onChange={e=>setOrgWeaponry(e.target.value)} /></div>
             <div className="attribute-row"><label>Цель</label><input value={purpose} onChange={e=>setPurpose(e.target.value)} /></div>
+            <div className="attribute-row"><label>Чем известна</label><input value={orgnotable_for} onChange={e=>setOrgnotable_for(e.target.value)} /></div>
           </section>
         );
       case 'language':
@@ -286,8 +396,8 @@ const CreatePage: React.FC = () => {
           <section key="attributes">
             <h2>Атрибуты хронологии</h2>
             <div className="attribute-row"><label>Аббревиатура</label><input value={abbreviation} onChange={e=>setAbbreviation(e.target.value)} /></div>
-            <div className="attribute-row"><label>Год начала</label><input value={startYear} onChange={e=>setStartYear(e.target.value)} /></div>
-            <div className="attribute-row"><label>Год конца</label><input value={endYear} onChange={e=>setEndYear(e.target.value)} /></div>
+            <div className="attribute-row"><label>Дата начала</label><input value={timelineStart_date} onChange={e=>setTimelineStart_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Дата конца</label><input value={timelineEnd_date} onChange={e=>setTimelineEnd_date(e.target.value)} /></div>
           </section>
         );
       default:
@@ -301,8 +411,8 @@ const CreatePage: React.FC = () => {
       <form onSubmit={handleSubmit}>
         <section className="basic-info">
           <h2>Основная информация</h2>
-          <label>Имена (через запятую, первое будет использовано для slug)</label>
-          <input type="text" value={namesInput} onChange={e => setNamesInput(e.target.value)} placeholder="Frodo Baggins, Frodo, Ring-bearer" required />
+          <label>Имена (через запятую) *</label>
+          <input type="text" value={namesInput} onChange={e => setNamesInput(e.target.value)} required />
           <label>Изображение (URL)</label>
           <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
           <label>Описание</label>
@@ -340,7 +450,9 @@ const CreatePage: React.FC = () => {
         </section>
 
         <div className="edit-actions">
-          <button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? 'Создание...' : 'Создать'}</button>
+          <button type="submit" disabled={createMutation.isPending}>
+            {createMutation.isPending ? 'Создание...' : 'Создать'}
+          </button>
           <button type="button" onClick={() => navigate(`/${type}s`)}>Отмена</button>
         </div>
       </form>

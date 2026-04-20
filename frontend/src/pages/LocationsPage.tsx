@@ -1,9 +1,11 @@
 import GenericCatalogPage from '../components/GenericCatalogPage';
+import { useNavigate } from 'react-router-dom';
 import { useListLocations } from '../api/generated/locations/locations';
-import AddEntityModal from '../components/AddEntityModal';
 import { FaPlus } from 'react-icons/fa';
 import { useState } from 'react';
 import FilterSection from '../components/FilterSection';
+import AuthModal from '../components/AuthModal';
+import { useAuth } from '../context/AuthContext';
 
 const LocationsFilters = () => (
   <>
@@ -32,7 +34,9 @@ const LocationsFilters = () => (
 );
 
 const LocationsPage: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Используем сгенерированный хук для получения списка локаций
   const { data, isLoading, error } = useListLocations({
@@ -49,6 +53,14 @@ const LocationsPage: React.FC = () => {
     name: location.names?.[0] || 'Без имени',
   })) || [];
 
+  const handleAddClick = () => {
+    if (user) {
+      navigate('/create/location');
+    } else {
+      setShowAuthModal(true);
+    }
+  };
+
   return (
     <>
       <GenericCatalogPage
@@ -56,7 +68,7 @@ const LocationsPage: React.FC = () => {
         entityType="location"
         data={adaptedData}
         headerActions={
-          <button className="add-button" onClick={() => setIsModalOpen(true)}>
+          <button className="add-button" onClick={handleAddClick}>
             <FaPlus /> Add new location
           </button>
         }
@@ -64,14 +76,12 @@ const LocationsPage: React.FC = () => {
         <LocationsFilters />
       </GenericCatalogPage>
 
-      {isModalOpen && (
-        <AddEntityModal
-          title="локации"
-          onClose={() => setIsModalOpen(false)}
-          onSave={(formData) => {
-            console.log('Сохранение локации:', formData);
-            // Здесь позже будет вызов useCreateLocation
-            setIsModalOpen(false);
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => {
+            setShowAuthModal(false);
+            navigate('/create/location');
           }}
         />
       )}

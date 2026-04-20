@@ -47,20 +47,44 @@ const CharactersPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
   const { data, isLoading, error } = useListCharacters({
-    page: 1,
-    page_size: 100,
+    page,
+    page_size: pageSize,
   });
 
-  // Адаптируем данные для GenericCatalogPage
-  const adaptedData = data?.results?.map(character => ({
-    slug: character.slug,
-    name: character.names?.[0] || 'Без имени', // первый элемент массива names
-  })) || [];
+  // Адаптируем данные
+  const adaptedData = data?.results?.map(character => {
+    const previewItems: string[] = [];
+    if (character.notable_for && character.notable_for.trim() !== '') {
+      previewItems.push(`Notable for: ${character.notable_for}`);
+    }
+    if (character.gender && character.gender.trim() !== '') {
+      previewItems.push(`Gender: ${character.gender}`);
+    }
+    if (character.birth_date && character.birth_date.trim() !== '') {
+      previewItems.push(`Birth date: ${character.birth_date}`);
+    }
+    const preview = previewItems.slice(0, 3);
+    return {
+      slug: character.slug,
+      name: character.names?.[0] || 'Без имени',
+      preview,
+    };
+  }) || [];
 
-  console.log('data from API:', data);
-  console.log('adaptedData:', adaptedData);
+  const totalCount = data?.count || 0;
+  const hasPrev = data?.previous !== null;
+  const hasNext = data?.next !== null;
+
+  const handlePrevPage = () => {
+    if (hasPrev) setPage(p => p - 1);
+  };
+  const handleNextPage = () => {
+    if (hasNext) setPage(p => p + 1);
+  };
 
   const handleAddClick = () => {
     if (user) {
@@ -72,7 +96,7 @@ const CharactersPage: React.FC = () => {
 
   if (isLoading) return <div className="loader">Загрузка...</div>;
   if (error) return <div className="error">Ошибка загрузки</div>;
-  
+
   return (
     <>
       <GenericCatalogPage
@@ -87,6 +111,27 @@ const CharactersPage: React.FC = () => {
       >
         <CharactersFilters />
       </GenericCatalogPage>
+
+      <div className="pagination-container">
+        <button
+          className="pagination-btn"
+          onClick={handlePrevPage}
+          disabled={!hasPrev || isLoading}
+        >
+          ← Назад
+        </button>
+        <span className="pagination-info">
+          Страница {page} (всего: {Math.ceil(totalCount / pageSize)})
+        </span>
+        <button
+          className="pagination-btn"
+          onClick={handleNextPage}
+          disabled={!hasNext || isLoading}
+        >
+          Вперёд →
+        </button>
+      </div>
+
       {showAuthModal && (
         <AuthModal
           onClose={() => setShowAuthModal(false)}

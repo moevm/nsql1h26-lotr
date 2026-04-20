@@ -2,8 +2,10 @@ import GenericCatalogPage from '../components/GenericCatalogPage';
 import { useListLanguages } from '../api/generated/languages/languages';
 import FilterSection from '../components/FilterSection';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaPlus } from 'react-icons/fa';
-import AddEntityModal from '../components/AddEntityModal';
+import AuthModal from '../components/AuthModal';
+import { useAuth } from '../context/AuthContext';
 
 const LanguagesFilters = () => (
   <>
@@ -21,7 +23,10 @@ const LanguagesFilters = () => (
 );
 
 const LanguagesPage: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
   const { data, isLoading, error } = useListLanguages({ page: 1, page_size: 100 });
 
   if (isLoading) return <div className="loader">Загрузка...</div>;
@@ -32,6 +37,14 @@ const LanguagesPage: React.FC = () => {
     name: lang.names?.[0] || 'Без имени',
   })) || [];
 
+  const handleAddClick = () => {
+    if (user) {
+      navigate('/create/language');
+    } else {
+      setShowAuthModal(true);
+    }
+  };
+
   return (
     <>
       <GenericCatalogPage
@@ -39,18 +52,20 @@ const LanguagesPage: React.FC = () => {
         entityType="language"
         data={adaptedData}
         headerActions={
-          <button className="add-button" onClick={() => setIsModalOpen(true)}>
+          <button className="add-button" onClick={handleAddClick}>
             <FaPlus /> Add new language
           </button>
         }
       >
         <LanguagesFilters />
       </GenericCatalogPage>
-      {isModalOpen && (
-        <AddEntityModal
-          title="языка"
-          onClose={() => setIsModalOpen(false)}
-          onSave={() => setIsModalOpen(false)}
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => {
+            setShowAuthModal(false);
+            navigate('/create/language');
+          }}
         />
       )}
     </>
