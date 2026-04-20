@@ -53,6 +53,8 @@ from .services import (
     _MAX_PAGE_SIZE,
 )
 
+from apps.pages.services import get_page
+
 
 # Parsing helper functions
 
@@ -194,14 +196,12 @@ class CatalogView(APIView):
             return _conflict_response(data['slug'])
 
         try:
-            created = create_entity(self.config, data)
+            create_entity(self.config, data)
         except ConstraintError:
             return _conflict_response(data['slug'])
 
-        return Response(
-            self.output_serializer_class(created).data,
-            status=status.HTTP_201_CREATED,
-        )
+        page_data = get_page(data['slug'], user_id=None)
+        return Response(page_data, status=status.HTTP_201_CREATED)
 
 
 class CharacterListView(CatalogView):

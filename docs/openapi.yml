@@ -2593,60 +2593,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-                - gender
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                titles:
-                  type: array
-                  items:
-                    type: string
-                gender:
-                  type: string
-                  enum:
-                    - male
-                    - female
-                    - unknown
-                birth_date:
-                  type: string
-                death_date:
-                  type: string
-                hair:
-                  type: string
-                eyes:
-                  type: string
-                height:
-                  type: string
-                weapon:
-                  type: string
-                clothing:
-                  type: string
-                notable_for:
-                  type: string
-                article:
-                  type: object
-                  properties:
-                    text:
-                      type: string
-                    image_url:
-                      type: string
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
-                  additionalProperties:
-                    type: array
-                    items:
-                      type: string
+              $ref: "#/components/schemas/CharacterPage"
       responses:
         "201":
           description: Character created
@@ -2731,40 +2678,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                lifespan:
-                  type: string
-                avg_height:
-                  type: string
-                hair:
-                  type: string
-                eyes:
-                  type: string
-                skin:
-                  type: string
-                weaponry:
-                  type: string
-                clothing:
-                  type: string
-                distinctions:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/RacePage"
       responses:
         "201":
           description: Race created
@@ -2849,34 +2763,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                entity_type:
-                  type: string
-                population:
-                  type: string
-                creation_date:
-                  type: string
-                destruction_date:
-                  type: string
-                notable_for:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/LocationPage"
       responses:
         "201":
           description: Location created
@@ -2961,34 +2848,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                entity_type:
-                  type: string
-                start_date:
-                  type: string
-                end_date:
-                  type: string
-                casualties:
-                  type: string
-                notable_for:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/EventPage"
       responses:
         "201":
           description: Event created
@@ -3081,38 +2941,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                entity_type:
-                  type: string
-                founded_date:
-                  type: string
-                dissolved_date:
-                  type: string
-                clothing:
-                  type: string
-                weaponry:
-                  type: string
-                purpose:
-                  type: string
-                notable_for:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/OrganizationPage"
       responses:
         "201":
           description: Organization created
@@ -3177,31 +3006,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-                - abbreviation
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                abbreviation:
-                  type: string
-                start_date:
-                  type: string
-                end_date:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/TimelinePage"
       responses:
         "201":
           description: Timeline created
@@ -3274,30 +3079,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                entity_type:
-                  type: string
-                material:
-                  type: string
-                notable_for:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/ItemPage"
       responses:
         "201":
           description: Item created
@@ -3354,26 +3136,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                family:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/LanguagePage"
       responses:
         "201":
           description: Language created
@@ -3426,24 +3189,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/ScriptPage"
       responses:
         "201":
           description: Script created
