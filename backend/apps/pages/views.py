@@ -29,9 +29,9 @@ _ARTICLE_RESPONSE = inline_serializer(
     name="ArticleResponse",
     fields={
         "text": serializers.CharField(allow_null=True),
-        "imageUrl": serializers.URLField(allow_null=True),
-        "createdAt": serializers.DateTimeField(allow_null=True),
-        "updatedAt": serializers.DateTimeField(allow_null=True),
+        "image_url": serializers.URLField(allow_null=True),
+        "created_at": serializers.DateTimeField(allow_null=True),
+        "updated_at": serializers.DateTimeField(allow_null=True),
     },
     allow_null=True,
 )
@@ -74,23 +74,23 @@ _PAGE_DETAIL_RESPONSE = inline_serializer(
             ),
         ),
         "categories": serializers.ListField(child=_CATEGORY_SUMMARY),
-        "likesCount": serializers.IntegerField(),
-        "isLiked": serializers.BooleanField(
+        "likes_count": serializers.IntegerField(),
+        "is_liked": serializers.BooleanField(
             allow_null=True,
             help_text="null for unauthenticated requests.",
         ),
-        "commentsCount": serializers.IntegerField(),
+        "comments_count": serializers.IntegerField(),
     },
 )
 
 _LIKE_RESPONSE = inline_serializer(
     name="LikeResponse",
     fields={
-        "likesCount": serializers.IntegerField(),
-        "isLiked":    serializers.BooleanField(),
+        "likes_count": serializers.IntegerField(),
+        "is_liked":    serializers.BooleanField(),
     },
 )
- 
+
 _SLUG_PARAMETER = OpenApiParameter(
     "slug",
     OpenApiTypes.STR,
