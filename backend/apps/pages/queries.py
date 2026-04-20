@@ -16,6 +16,9 @@ Security note - relationship type interpolation:
 """
 
 
+from rest_framework.exceptions import ValidationError
+
+
 # Maps Neo4j node label to API entity-type string
 LABEL_TO_TYPE: dict[str, str] = {
     'Character': 'character',
@@ -157,6 +160,14 @@ _ATTR_API_TO_DB: dict[str, dict[str, str]] = {
 }
 
 
+# Whitelist for enum fields
+_FIELD_CHOICES: dict[str, dict[str, frozenset[str]]] = {
+    'character': {
+        'gender': frozenset({'Male', 'Female', 'Unknown'}),
+    },
+}
+
+
 def build_attributes_for_response(props: dict, entity_type: str) -> dict:
     '''
     Extract and rename entity-specific attributes
@@ -185,13 +196,29 @@ def normalize_patch_attributes(raw_attrs: dict, entity_type: str) -> dict:
         _TYPE_ATTR_KEYS.get(entity_type, ())
     )
     api_to_db = _ATTR_API_TO_DB.get(entity_type, {})
+    choices = _FIELD_CHOICES.get(entity_type, {})
 
     result: dict = {}
+    errors: dict = {}
+
     for api_key, value in raw_attrs.items():
         db_key = api_to_db.get(api_key, api_key)
 
-        if db_key in allowed_db_keys:
-            result[db_key] = value
+        if db_key not in allowed_db_keys:
+            continue
+
+        if value is not None and db_key in choices:
+            if value not in choices[db_key]:
+                errors[api_key] = [
+                    f'"{value} is not a valid choice. '
+                    f'Must be one of: {sorted(choices[db_key])}'
+                ]
+            continue
+
+        result[db_key] = value
+
+    if errors:
+        raise ValidationError({'attributes': errors})
 
     return result
 

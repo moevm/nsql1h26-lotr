@@ -29,6 +29,29 @@ _STATUS_TO_CODE: dict[int, str] = {
 }
 
 
+def _flatten_errors(data: Any, parent_key: str = '') -> dict[str, list[str]]:
+    '''Converts nested DRF errors to a flat list'''
+    result: dict[str, list[str]] = {}
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if key in ('non_field_errors', 'detail'):
+                continue
+
+            new_key = f"{parent_key}.{key}" if parent_key else key
+
+            if isinstance(value, dict):
+                if any(isinstance(v, list) for v in value.values()):
+                    result.update(_flatten_errors(value, new_key))
+
+            elif isinstance(value, list):
+                result[new_key] = value
+
+            elif isinstance(value, str):
+                result[new_key] = [value]
+
+    return result
+
+
 def custom_exception_handler(exc: Exception, context: Any) -> Response | None:
     response = exception_handler(exc, context)
 
@@ -38,30 +61,29 @@ def custom_exception_handler(exc: Exception, context: Any) -> Response | None:
     data = response.data
 
     fields: dict[str, Any] | None = None
-    message: str = 'An error occured.'
+    message: str = 'An error occurred.'
 
     if isinstance(data, dict):
-        # ValidationError: {"field": ["error"], "non_field_errors": ["..."]}
-        if any(isinstance(v, list) for v in data.values()):
-            fields = {
-                k: v if isinstance(v, list) else [v]
-                for k, v in data.items()
-                if k != 'detail'
-            }
+        fields = _flatten_errors(data)
 
-            # non_field_errors -> removed in message, not in fields
-            if 'non_field_errors' in fields:
-                non_field = fields.pop('non_field_errors')
-                message = non_field[0] if non_field else message
-
-            elif 'detail' in data:
-                message = str(data['detail'])
-
-        elif 'detail' in data:
+        if 'detail' in data:
             message = str(data['detail'])
 
+        elif 'non_field_errors' in data:
+            non_field = data['non_field_errors']
+            message = non_field[0] if isinstance(non_field, list) else str(non_field)
+
+        elif not fields:
+            # fallback
+            message = str(next(
+                iter(data.values()),
+                'An error occured [fallback].'
+            ))
     elif isinstance(data, str):
         message = data
+
+    elif isinstance(data, list):
+        message = data[0] if data else 'An error occured.'
 
     response.data = {
         'error': {
@@ -70,5 +92,4 @@ def custom_exception_handler(exc: Exception, context: Any) -> Response | None:
             'fields': fields if fields else None,
         }
     }
-
     return response
