@@ -60,6 +60,11 @@ class RelationTypeSerializer(serializers.Serializer):
     from_ = serializers.ListField(child=serializers.CharField(), source='from')
     to = serializers.ListField(child=serializers.CharField())
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['from'] = data.pop('from_')
+        return data
+
 
 @extend_schema(
     summary="List node types",
