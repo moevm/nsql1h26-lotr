@@ -81,12 +81,11 @@ class MeSerializer(serializers.ModelSerializer):
 class MePatchSerializer(serializers.Serializer):
     '''
     Partial update of current user profile.
-    avatarUrl maps to avatar_url.
     password requiers password_current.
     '''
 
     username = serializers.CharField(required=False)
-    avatarUrl = serializers.URLField(
+    avatar_url = serializers.URLField(
         required=False,
         allow_blank=True,
         allow_null=True,
@@ -118,8 +117,8 @@ class MePatchSerializer(serializers.Serializer):
         return attrs
 
     def update(self, instance: User, validated_data: dict) -> User:
-        if 'avatarUrl' in validated_data:
-            instance.avatar_url = validated_data.pop('avatarUrl')
+        if 'avatar_url' in validated_data:
+            instance.avatar_url = validated_data.pop('avatar_url')
 
         if 'password' in validated_data:
             current = validated_data.pop('password_current', None)

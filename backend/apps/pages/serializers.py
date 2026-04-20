@@ -25,7 +25,7 @@ class ArticleUpdateSerializer(serializers.Serializer):
     '''Inline article upsert inside PATCH /pages/{slug}'''
 
     text = serializers.CharField(allow_blank=True, required=False, default='')
-    imageUrl = serializers.URLField(
+    image_url = serializers.URLField(
         allow_null=True, required=False, default=None
     )
 

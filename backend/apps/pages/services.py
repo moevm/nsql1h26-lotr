@@ -63,7 +63,7 @@ def _node_summary(
         'slug': item.get(f'{prefix}Slug'),
         'type': entity_type,
         'name': names[0] if names else None,
-        'imageUrl': item.get(f'{prefix}ImageUrl'),
+        'image_url': item.get(f'{prefix}ImageUrl'),
     }
 
 
@@ -126,11 +126,11 @@ def _row_to_page_dict(row: dict[str, Any]) -> dict[str, Any]:
         updated_at = article_props.get("updatedAt")
         article = {
             "text":      article_props.get("text"),
-            "imageUrl":  article_props.get("imageUrl"),
+            "image_url":  article_props.get("imageUrl"),
 
             # TODO: check if it works or always fallbacks
-            "createdAt": created_at.isoformat() if hasattr(created_at, "isoformat") else created_at,
-            "updatedAt": updated_at.isoformat() if hasattr(updated_at, "isoformat") else updated_at,
+            "created_at": created_at.isoformat() if hasattr(created_at, "isoformat") else created_at,
+            "updated_at": updated_at.isoformat() if hasattr(updated_at, "isoformat") else updated_at,
         }
 
     attributes = build_attributes_for_response(props, entity_type)
@@ -151,9 +151,9 @@ def _row_to_page_dict(row: dict[str, Any]) -> dict[str, Any]:
         "article": article,
         "relations": relations,
         "categories": row.get("categories") or [],
-        "likesCount": likes_count,
-        "isLiked": is_liked,
-        "commentsCount": comments_count,
+        "likes_count": likes_count,
+        "is_liked": is_liked,
+        "comments_count": comments_count,
     }
 
 
@@ -237,7 +237,7 @@ def _apply_article(slug: str, article: dict) -> None:
         {
             'slug': slug,
             'text': article.get('text') or '',
-            'image_url': article.get('imageUrl'),
+            'image_url': article.get('image_url'),
         },
     )
 
@@ -464,8 +464,8 @@ def _execute_like_query(
 
     row = dict(zip(meta, results[0]))
     return {
-        'likesCount': row['likes_count'],
-        'isLiked': row['is_liked'],
+        'likes_count': row['likes_count'],
+        'is_liked': row['is_liked'],
     }
 
 

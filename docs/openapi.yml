@@ -140,7 +140,7 @@ components:
         - username
         - email
         - role
-        - createdAt
+        - created_at
       properties:
         username:
           type: string
@@ -152,11 +152,11 @@ components:
           enum:
             - viewer
             - admin
-        avatarUrl:
+        avatar_url:
           type: string
           nullable: true
           format: uri
-        createdAt:
+        created_at:
           type: string
           format: date-time
     Tokens:
@@ -233,7 +233,7 @@ components:
         email:
           type: string
           format: email
-        avatarUrl:
+        avatar_url:
           type: string
           format: uri
         password:
@@ -256,7 +256,7 @@ components:
           description: Page type (character, race, location, ...)
         name:
           type: string
-        imageUrl:
+        image_url:
           type: string
           nullable: true
     Article:
@@ -264,13 +264,13 @@ components:
       properties:
         text:
           type: string
-        imageUrl:
+        image_url:
           type: string
           nullable: true
-        createdAt:
+        created_at:
           type: string
           format: date-time
-        updatedAt:
+        updated_at:
           type: string
           format: date-time
     CategorySummary:
@@ -296,7 +296,7 @@ components:
           type: string
         name:
           type: string
-        imageUrl:
+        image_url:
           type: string
           nullable: true
     RelationItem:
@@ -312,7 +312,7 @@ components:
           additionalProperties: true
           description: |
             Edge properties. See GET /meta/relation-types/ for allowed fields per relation type.
-            Example for MEMBER_OF: { "role": "string", "fromDate": "string", "toDate": "string" }
+            Example for MEMBER_OF: { "role": "string", "from_date": "string", "to_date": "string" }
     Relations:
       type: object
       properties:
@@ -352,10 +352,10 @@ components:
             - male
             - female
             - unknown
-        birthDate:
+        birth_date:
           type: string
           nullable: true
-        deathDate:
+        death_date:
           type: string
           nullable: true
         hair:
@@ -373,7 +373,7 @@ components:
         clothing:
           type: string
           nullable: true
-        notableFor:
+        notable_for:
           type: string
           nullable: true
       description: Character page-specific attributes.
@@ -383,7 +383,7 @@ components:
         lifespan:
           type: string
           nullable: true
-        avgHeight:
+        avg_height:
           type: string
           nullable: true
         hair:
@@ -408,51 +408,51 @@ components:
     LocationAttributes:
       type: object
       properties:
-        locationType:
+        entity_type:
           type: string
           nullable: true
         population:
           type: string
           nullable: true
-        creationDate:
+        creation_date:
           type: string
           nullable: true
-        destructionDate:
+        destruction_date:
           type: string
           nullable: true
-        notableFor:
+        notable_for:
           type: string
           nullable: true
       description: Location page-specific attributes.
     EventAttributes:
       type: object
       properties:
-        eventType:
+        entity_type:
           type: string
           nullable: true
-        startDate:
+        start_date:
           type: string
           nullable: true
-        endDate:
+        end_date:
           type: string
           nullable: true
         casualties:
           type: string
           nullable: true
-        notableFor:
+        notable_for:
           type: string
           nullable: true
       description: Event page-specific attributes.
     OrganizationAttributes:
       type: object
       properties:
-        organizationType:
+        entity_type:
           type: string
           nullable: true
-        foundedDate:
+        founded_date:
           type: string
           nullable: true
-        dissolvedDate:
+        dissolved_date:
           type: string
           nullable: true
         purpose:
@@ -464,7 +464,7 @@ components:
         clothing:
           type: string
           nullable: true
-        notableFor:
+        notable_for:
           type: string
           nullable: true
       description: Organization page-specific attributes.
@@ -473,23 +473,23 @@ components:
       properties:
         abbreviation:
           type: string
-        startDate:
+        start_date:
           type: string
           nullable: true
-        endDate:
+        end_date:
           type: string
           nullable: true
       description: Timeline page-specific attributes.
     ItemAttributes:
       type: object
       properties:
-        itemType:
+        entity_type:
           type: string
           nullable: true
         material:
           type: string
           nullable: true
-        notableFor:
+        notable_for:
           type: string
           nullable: true
       description: Item page-specific attributes.
@@ -513,9 +513,9 @@ components:
         - article
         - relations
         - categories
-        - likesCount
-        - commentsCount
-        - isLiked
+        - likes_count
+        - comments_count
+        - is_liked
       properties:
         slug:
           type: string
@@ -533,13 +533,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CategorySummary"
-        likesCount:
+        likes_count:
           type: integer
-        isLiked:
+        is_liked:
           type: boolean
           nullable: true
           description: null for unauthenticated users
-        commentsCount:
+        comments_count:
           type: integer
     CharacterPage:
       allOf:
@@ -682,7 +682,7 @@ components:
           properties:
             text:
               type: string
-            imageUrl:
+            image_url:
               type: string
         categories:
           type: array
@@ -742,12 +742,12 @@ components:
               type: string
               enum:
                 - character
-            notableFor:
+            notable_for:
               type: string
               nullable: true
             gender:
               type: string
-            birthDate:
+            birth_date:
               type: string
               nullable: true
             race:
@@ -768,7 +768,7 @@ components:
             lifespan:
               type: string
               nullable: true
-            avgHeight:
+            avg_height:
               type: string
               nullable: true
       description: Race catalog list item.
@@ -781,13 +781,13 @@ components:
               type: string
               enum:
                 - location
-            locationType:
+            entity_type:
               type: string
               nullable: true
-            notableFor:
+            notable_for:
               type: string
               nullable: true
-            creationDate:
+            creation_date:
               type: string
               nullable: true
       description: Location catalog list item.
@@ -800,13 +800,13 @@ components:
               type: string
               enum:
                 - event
-            eventType:
+            entity_type:
               type: string
               nullable: true
-            startDate:
+            start_date:
               type: string
               nullable: true
-            endDate:
+            end_date:
               type: string
               nullable: true
       description: Event catalog list item.
@@ -819,10 +819,10 @@ components:
               type: string
               enum:
                 - organization
-            organizationType:
+            entity_type:
               type: string
               nullable: true
-            foundedDate:
+            founded_date:
               type: string
               nullable: true
             purpose:
@@ -840,10 +840,10 @@ components:
                 - timeline
             abbreviation:
               type: string
-            startDate:
+            start_date:
               type: string
               nullable: true
-            endDate:
+            end_date:
               type: string
               nullable: true
       description: Timeline catalog list item.
@@ -856,13 +856,13 @@ components:
               type: string
               enum:
                 - item
-            itemType:
+            entity_type:
               type: string
               nullable: true
             material:
               type: string
               nullable: true
-            notableFor:
+            notable_for:
               type: string
               nullable: true
       description: Item catalog list item.
@@ -895,7 +895,7 @@ components:
         - id
         - text
         - author
-        - createdAt
+        - created_at
       properties:
         id:
           type: string
@@ -907,10 +907,10 @@ components:
           properties:
             username:
               type: string
-            avatarUrl:
+            avatar_url:
               type: string
               nullable: true
-        createdAt:
+        created_at:
           type: string
           format: date-time
     CommentRequest:
@@ -934,12 +934,12 @@ components:
         description:
           type: string
           nullable: true
-        parentSlug:
+        parent_slug:
           type: string
           nullable: true
-        childCount:
+        child_count:
           type: integer
-        pageCount:
+        page_count:
           type: integer
     CategoryDetail:
       allOf:
@@ -963,7 +963,7 @@ components:
                     type: string
                   name:
                     type: string
-                  pageCount:
+                  page_count:
                     type: integer
             pages:
               allOf:
@@ -989,7 +989,7 @@ components:
           type: string
         description:
           type: string
-        parentSlug:
+        parent_slug:
           type: string
     CategoryUpdateRequest:
       type: object
@@ -998,7 +998,7 @@ components:
           type: string
         description:
           type: string
-        parentSlug:
+        parent_slug:
           type: string
           nullable: true
     AdminUser:
@@ -1017,17 +1017,17 @@ components:
       type: object
       required:
         - username
-        - createdAt
+        - created_at
       properties:
         username:
           type: string
-        avatarUrl:
+        avatar_url:
           type: string
           nullable: true
-        createdAt:
+        created_at:
           type: string
           format: date-time
-        commentsCount:
+        comments_count:
           type: integer
         likedPages:
           type: array
@@ -1056,7 +1056,7 @@ components:
           type: string
         name:
           type: string
-        imageUrl:
+        image_url:
           type: string
           nullable: true
     GlobalStats:
@@ -1137,7 +1137,7 @@ components:
           type: string
         name:
           type: string
-        connectionsCount:
+        connections_count:
           type: integer
     NeighborsResponse:
       type: object
@@ -1162,13 +1162,13 @@ components:
         stats:
           type: object
           properties:
-            totalNeighbors:
+            total_neighbors:
               type: integer
-            byType:
+            by_type:
               type: object
               additionalProperties:
                 type: integer
-            byRelation:
+            by_relation:
               type: object
               additionalProperties:
                 type: integer
@@ -1191,7 +1191,7 @@ components:
             properties:
               node:
                 $ref: "#/components/schemas/PageSummary"
-              edgeToNext:
+              edge_to_next:
                 type: object
                 nullable: true
                 properties:
@@ -1202,11 +1202,11 @@ components:
     CustomAnalyticsData:
       type: object
       properties:
-        entityType:
+        entity_type:
           type: string
-        xAttr:
+        x_attr:
           type: string
-        yAttr:
+        y_attr:
           type: string
         agg:
           type: string
@@ -2024,12 +2024,12 @@ components:
     LikeStateResponse:
       type: object
       required:
-        - likesCount
-        - isLiked
+        - likes_count
+        - is_liked
       properties:
-        likesCount:
+        likes_count:
           type: integer
-        isLiked:
+        is_liked:
           type: boolean
     PageResponse:
       oneOf:
@@ -2059,14 +2059,14 @@ components:
       required:
         - slug
         - name
-        - pageCount
+        - page_count
         - children
       properties:
         slug:
           type: string
         name:
           type: string
-        pageCount:
+        page_count:
           type: integer
         children:
           type: array
@@ -2614,9 +2614,9 @@ paths:
                     - male
                     - female
                     - unknown
-                birthDate:
+                birth_date:
                   type: string
-                deathDate:
+                death_date:
                   type: string
                 hair:
                   type: string
@@ -2628,14 +2628,14 @@ paths:
                   type: string
                 clothing:
                   type: string
-                notableFor:
+                notable_for:
                   type: string
                 article:
                   type: object
                   properties:
                     text:
                       type: string
-                    imageUrl:
+                    image_url:
                       type: string
                 categories:
                   type: array
@@ -2743,7 +2743,7 @@ paths:
                     type: string
                 lifespan:
                   type: string
-                avgHeight:
+                avg_height:
                   type: string
                 hair:
                   type: string
@@ -2859,15 +2859,15 @@ paths:
                   type: array
                   items:
                     type: string
-                locationType:
+                entity_type:
                   type: string
                 population:
                   type: string
-                creationDate:
+                creation_date:
                   type: string
-                destructionDate:
+                destruction_date:
                   type: string
-                notableFor:
+                notable_for:
                   type: string
                 article:
                   $ref: "#/components/schemas/Article"
@@ -2971,15 +2971,15 @@ paths:
                   type: array
                   items:
                     type: string
-                eventType:
+                entity_type:
                   type: string
-                startDate:
+                start_date:
                   type: string
-                endDate:
+                end_date:
                   type: string
                 casualties:
                   type: string
-                notableFor:
+                notable_for:
                   type: string
                 article:
                   $ref: "#/components/schemas/Article"
@@ -3091,11 +3091,11 @@ paths:
                   type: array
                   items:
                     type: string
-                organizationType:
+                entity_type:
                   type: string
-                foundedDate:
+                founded_date:
                   type: string
-                dissolvedDate:
+                dissolved_date:
                   type: string
                 clothing:
                   type: string
@@ -3103,7 +3103,7 @@ paths:
                   type: string
                 purpose:
                   type: string
-                notableFor:
+                notable_for:
                   type: string
                 article:
                   $ref: "#/components/schemas/Article"
@@ -3190,9 +3190,9 @@ paths:
                     type: string
                 abbreviation:
                   type: string
-                startDate:
+                start_date:
                   type: string
-                endDate:
+                end_date:
                   type: string
                 article:
                   $ref: "#/components/schemas/Article"
@@ -3284,11 +3284,11 @@ paths:
                   type: array
                   items:
                     type: string
-                itemType:
+                entity_type:
                   type: string
                 material:
                   type: string
-                notableFor:
+                notable_for:
                   type: string
                 article:
                   $ref: "#/components/schemas/Article"

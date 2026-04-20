@@ -80,20 +80,80 @@ _TYPE_ATTR_KEYS: dict[str, tuple[str, ...]] = {
 # Location / Event / organization / Item all use the bare 'type' property
 # in Neo4j. Rename it to a descriptive API key in the GET response.
 _TYPE_PROP_RENAME: dict[str, dict[str, str]] = {
-    'location': {'type': 'locationType'},
-    'event': {'type': 'eventType'},
-    'organization': {'type': 'organizationType'},
-    'item': {'type': 'itemType'},
+    'character': {
+        'birthDate': 'birth_date',
+        'deathDate': 'death_date',
+        'notableFor': 'notable_for',
+    },
+    'race': {
+        'avgHeight': 'avg_height',
+    },
+    'location': {
+        'type': 'entity_type',
+        'creationDate': 'creation_date',
+        'destructionDate': 'destruction_date',
+        'notableFor': 'notable_for',
+    },
+    'event': {
+        'type': 'entity_type',
+        'startDate': 'start_date',
+        'endDate': 'end_date',
+        'notableFor': 'notable_for',
+    },
+    'organization': {
+        'type': 'entity_type',
+        'foundedDate': 'founded_date',
+        'dissolvedDate': 'dissolved_date',
+        'notableFor': 'notable_for',
+    },
+    'timeline': {
+        'startDate': 'start_date',
+        'endDate': 'end_date',
+    },
+    'item': {
+        'type': 'entity_type',
+        'notableFor': 'notable_for',
+    },
 }
 
 
 # Reverse mappings: API attribute name to Neo4j property name.
 # Used in PATCH to convert the incoming JSON to DB column names.
 _ATTR_API_TO_DB: dict[str, dict[str, str]] = {
-    'location': {'locationType': 'type'},
-    'event': {'eventType': 'type'},
-    'organization': {'organizationType': 'type'},
-    'item': {'itemType': 'type'},
+    'character': {
+        'birth_date': 'birthDate',
+        'death_date': 'deathDate',
+        'notable_for': 'notableFor',
+    },
+    'race': {
+        'avg_height': 'avgHeight',
+    },
+    'location': {
+        'entity_type': 'type',
+        'creation_date': 'creationDate',
+        'destruction_date': 'destructionDate',
+        'notable_for': 'notableFor',
+    },
+    'event': {
+        'entity_type': 'type',
+        'start_date': 'startDate',
+        'end_date': 'endDate',
+        'notable_for': 'notableFor',
+    },
+    'organization': {
+        'entity_type': 'type',
+        'founded_date': 'foundedDate',
+        'dissolved_date': 'dissolvedDate',
+        'notable_for': 'notableFor',
+    },
+    'timeline': {
+        'start_date': 'startDate',
+        'end_date': 'endDate',
+    },
+    'item': {
+        'entity_type': 'type',
+        'notable_for': 'notableFor',
+    },
 }
 
 
