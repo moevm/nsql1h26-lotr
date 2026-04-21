@@ -7,7 +7,7 @@
 1. Клонируйте репозиторий и перейдите в директорию проекта:
 ```bash
 git clone https://github.com/moevm/nsql1h26-lotr.git
-cd nsql1h26
+cd nsql1h26-lotr
 ```
 
 2. Создайте файл `.env` в корне проекта (можно скопировать из `.env.example`):
