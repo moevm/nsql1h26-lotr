@@ -265,6 +265,35 @@ ALLOWED_REL_TYPES: frozenset[str] = frozenset({
     'WRITTEN_IN',
 })
 
+REL_DIRECTION_ALLOWED_TYPES: dict[str, dict[str, set[str]]] = {
+    'OF_RACE': {'from': {'character'}, 'to': {'race'}},
+    'MEMBER_OF': {'from': {'character'}, 'to': {'organization'}},
+    'PARTICIPATED_IN': {'from': {'character'}, 'to': {'event'}},
+    'BORN_IN': {'from': {'character'}, 'to': {'location'}},
+    'DIED_IN': {'from': {'character'}, 'to': {'location'}},
+    'DWELLED_IN': {'from': {'character'}, 'to': {'location'}},
+    'SPEAKS': {'from': {'character'}, 'to': {'language'}},
+    'CHILD_OF': {'from': {'character'}, 'to': {'character'}},
+    'MARRIED_TO': {'from': {'character'}, 'to': {'character'}},
+    'SIBLING_OF': {'from': {'character'}, 'to': {'character'}},
+    'LIVED_DURING': {'from': {'character'}, 'to': {'timeline'}},
+    'RULED': {'from': {'character'}, 'to': {'location', 'race'}},
+    'WIELDS': {'from': {'character'}, 'to': {'item'}},
+    'OWNS': {'from': {'character'}, 'to': {'item'}},
+    'BORE': {'from': {'character'}, 'to': {'item'}},
+    'CRAFTED': {'from': {'character'}, 'to': {'item'}},
+    'SUBRACE_OF': {'from': {'race'}, 'to': {'race'}},
+    'INHABITS': {'from': {'race'}, 'to': {'location'}},
+    'REGION_OF': {'from': {'location'}, 'to': {'location'}},
+    'TOOK_PLACE_IN': {'from': {'event'}, 'to': {'location'}},
+    'PART_OF': {'from': {'event'}, 'to': {'event'}},
+    'OCCURRED_DURING': {'from': {'event'}, 'to': {'timeline'}},
+    'BASED_IN': {'from': {'organization'}, 'to': {'location'}},
+    'SPOKEN_BY': {'from': {'language'}, 'to': {'race'}},  # IS_SPOKEN_BY  ??
+    'SPOKEN_IN': {'from': {'language'}, 'to': {'location'}},
+    'WRITTEN_IN': {'from': {'language'}, 'to': {'script'}},
+}
+
 
 # Read query
 
@@ -370,6 +399,35 @@ WITH $slugs AS all_slugs
 UNWIND all_slugs AS slug
 OPTIONAL MATCH (c:Category {slug: slug})
 RETURN slug, c IS NOT NULL AS exists
+'''
+
+# Returns (slug, labels) for every matched :Page node.
+# Slugs that do NOT match any :Page are simply absent from results - the
+# caller detects missing slugs by diffing the input set against the result set.
+# Used in services.py to combine slug-existence validation with type lookup
+# in a single round-trip, replacing the two-query pattern.
+PAGE_SLUGS_WITH_LABELS_QUERY = '''\
+WITH $slugs AS all_slugs
+UNWIND all_slugs AS slug
+MATCH (p:Page {slug: slug})
+RETURN slug, labels(p) AS labels
+'''
+
+# Delete ALL outgoing :Page->:Page edges from a node.
+# Used when PATCH sends outgoing: {} (explicit empty = "clear all outgoing").
+# Only edges whose target also carries the :Page label are removed, so
+# HAS_ARTICLE, IN_CATEGORY, etc. (which target non-Page nodes) are untouched.
+PAGE_DELETE_ALL_OUTGOING_RELS_QUERY = '''\
+MATCH (p:Page {slug: $slug})-[r]->(target:Page)
+DELETE r
+'''
+
+# Delete ALL incoming :Page->:Page edges to a node.
+# Used when PATCH sends incoming: {} (explicit empty = "clear all incoming").
+# Edges from non-Page sources (User LIKED, Comment ON) are not touched.
+PAGE_DELETE_ALL_INCOMING_RELS_QUERY = '''\
+MATCH (source:Page)-[r]->(p:Page {slug: $slug})
+DELETE r
 '''
 
 

@@ -22,6 +22,7 @@ from rest_framework.exceptions import NotFound, ValidationError
 
 from .queries import (
     ALLOWED_REL_TYPES,
+    REL_DIRECTION_ALLOWED_TYPES,
     CATEGORY_SLUGS_EXISTS_QUERY,
     PAGE_ARTICLE_UPSERT_QUERY,
     PAGE_ATTRS_UPDATE_QUERY,
@@ -38,6 +39,9 @@ from .queries import (
     PAGE_LIKE_ADD_QUERY,
     PAGE_LIKE_REMOVE_QUERY,
     PAGE_FETCH_LABELS_QUERY,
+    PAGE_DELETE_ALL_OUTGOING_RELS_QUERY,
+    PAGE_DELETE_ALL_INCOMING_RELS_QUERY,
+    PAGE_SLUGS_WITH_LABELS_QUERY,
     build_attributes_for_response,
     labels_to_type,
     normalize_patch_attributes,
@@ -159,22 +163,33 @@ def _row_to_page_dict(row: dict[str, Any]) -> dict[str, Any]:
 
 # Pre-flight validation helpers
 
-def _validate_page_slugs_exist(
+def _fetch_and_validate_page_types(
         slugs: list[str],
-        field: str = 'relations'
-) -> None:
+        field: str = 'relations',
+) -> dict[str, str]:
     '''
-    Batch-check that all given slugs exist as :Page nodes in one round-trip.
+    Batch-check that all slugs exist as :Page nodes AND return their entity
+    types.  One DB round-trip replaces the old two-step pattern of
+    `_validate_page_slugs_exist` + a second type-lookup query.
     '''
     if not slugs:
-        return
+        return {}
 
-    results, _ = db.cypher_query(PAGE_SLUGS_EXIST_QUERY, {'slugs': slugs})
-    missing = sorted(row[0] for row in results if not row[1])
+    results, _ = db.cypher_query(
+        PAGE_SLUGS_WITH_LABELS_QUERY, {'slugs': list(set(slugs))}
+    )
+    slug_to_type: dict[str, str] = {
+        row[0]: labels_to_type(row[1] or []) or 'unknown'
+        for row in results
+    }
+
+    missing = sorted(s for s in slugs if s not in slug_to_type)
     if missing:
         raise ValidationError(
             {field: [f'Page(s) not found: {", ".join(missing)}']}
         )
+
+    return slug_to_type
 
 
 def _validate_category_slugs_exist(slugs: list[str]) -> None:
@@ -211,6 +226,88 @@ def _validate_rel_types(
                 ]
             }
         )
+
+
+def _validate_rel_types_for_entity(
+        entity_type: str,
+        outgoing: dict,
+        incoming: dict,
+) -> None:
+    '''
+    Check that each relationship type is compatible with the current node's
+    entity type without requiring any DB lookup.
+
+    This is a cheap pre-flight guard; endpoint-type validation (checking each
+    target/source slug's type) is done separately in
+    _validate_rel_endpoint_types after slugs are fetched from the DB.
+    '''
+    errors: dict[str, list[str]] = {}
+
+    for rel_type in outgoing:
+        constraint = REL_DIRECTION_ALLOWED_TYPES.get(rel_type)
+        if constraint and entity_type not in constraint['from']:
+            errors[f'relations.outgoing.{rel_type}'] = [
+                f'Relation {rel_type} cannot originate from a {entity_type}. '
+                f'Allowed source types: {sorted(constraint["from"])}.'
+            ]
+
+    for rel_type in incoming:
+        constraint = REL_DIRECTION_ALLOWED_TYPES.get(rel_type)
+        if constraint and entity_type not in constraint['to']:
+            errors[f'relations.incoming.{rel_type}'] = [
+                f'Relation {rel_type} cannot terminate at a {entity_type}. '
+                f'Allowed target types: {sorted(constraint["to"])}.'
+            ]
+
+    if errors:
+        raise ValidationError(errors)
+
+
+def _validate_rel_endpoint_types(
+        outgoing: dict,
+        incoming: dict,
+        slug_to_type: dict[str, str],
+) -> None:
+    '''
+    Check that each target/source slug has the correct entity type for its
+    relationship type.
+
+    Called after _validate_rel_types_for_entity (which checks the current
+    node) and after _fetch_and_validate_page_types (which confirms existence).
+    '''
+    errors: dict[str, list[str]] = {}
+
+    for rel_type, targets in outgoing.items():
+        constraint = REL_DIRECTION_ALLOWED_TYPES.get(rel_type)
+        if not constraint:
+            # unknown rel_types already rejected by _validate_rel_types
+            continue
+
+        for t in targets:
+            target_type = slug_to_type.get(t['slug'], 'unknown')
+            if target_type not in constraint['to']:
+                errors.setdefault(f'relations.outgoing.{rel_type}', []).append(
+                    f"Target '{t['slug']}' is a {target_type}. "
+                    f"Relation {rel_type} requires a target of type: "
+                    f"{sorted(constraint['to'])}."
+                )
+
+    for rel_type, sources in incoming.items():
+        constraint = REL_DIRECTION_ALLOWED_TYPES.get(rel_type)
+        if not constraint:
+            continue
+
+        for s in sources:
+            source_type = slug_to_type.get(s['slug'], 'unknown')
+            if source_type not in constraint['from']:
+                errors.setdefault(f'relations.incoming.{rel_type}', []).append(
+                    f"Source '{s['slug']}' is a {source_type}. "
+                    f"Relation {rel_type} requires a source of type: "
+                    f"{sorted(constraint['from'])}."
+                )
+
+    if errors:
+        raise ValidationError(errors)
 
 
 # Write helpers (called inside db.transaction)
@@ -266,6 +363,11 @@ def _apply_outgoing_relations(slug: str, outgoing: dict) -> None:
 
     Two separate queries avoids the Cartesian product explosion.
     '''
+    if not outgoing:
+        # Explicit empty dict: wipe all outgoing :Page→:Page edges.
+        db.cypher_query(PAGE_DELETE_ALL_OUTGOING_RELS_QUERY, {'slug': slug})
+        return
+
     for rel_type, targets in outgoing.items():
         assert rel_type in ALLOWED_REL_TYPES, f'rel_type leaked: {rel_type}'
 
@@ -273,6 +375,7 @@ def _apply_outgoing_relations(slug: str, outgoing: dict) -> None:
             PAGE_RELS_OUTGOING_DELETE_TEMPLATE.format(rel_type=rel_type),
             {'slug': slug},
         )
+
         if targets:
             db.cypher_query(
                 PAGE_RELS_OUTGOING_CREATE_TEMPLATE.format(rel_type=rel_type),
@@ -299,6 +402,11 @@ def _apply_incoming_relations(slug: str, incoming: dict) -> None:
          it does NOT affect source nodes' other outgoing edges.
       2. Create new (source)-[:rel_type]->(slug) edges.
     '''
+    if not incoming:
+        # Explicit empty dict: wipe all incoming :Page→:Page edges.
+        db.cypher_query(PAGE_DELETE_ALL_INCOMING_RELS_QUERY, {'slug': slug})
+        return
+
     for rel_type, sources in incoming.items():
         assert rel_type in ALLOWED_REL_TYPES, f'rel_type leaked: {rel_type}'
 
@@ -352,7 +460,15 @@ def update_page(
         validated_data: dict,
         user_id: int | None = None,
 ) -> dict[str, Any]:
-    '''Apply a partial update and return the refreshed page.'''
+    '''
+    Apply a partial update and return the refreshed page.
+
+    Relations None-vs-{} semantics (enforced by _RelationDirectionField):
+      - outgoing / incoming is None -> field was omitted -> no change
+      - outgoing / incoming is {} -> explicitly empty -> delete all edges
+                                                         in that direction
+      - outgoing / incoming has keys -> per-type replacement
+    '''
 
     results, _ = db.cypher_query(PAGE_FETCH_LABELS_QUERY, {'slug': slug})
 
@@ -365,9 +481,9 @@ def update_page(
     entity_type = labels_to_type(results[0][0]) or 'unknown'
 
     # Extract relation sub-dicts
-    raw_relations: dict = validated_data.get("relations") or {}
-    outgoing: dict = raw_relations.get("outgoing") or {}
-    incoming: dict = raw_relations.get("incoming") or {}
+    raw_relations: dict = validated_data.get('relations') or {}
+    outgoing: dict | None = raw_relations.get('outgoing')  # None if absent
+    incoming: dict | None = raw_relations.get('incoming')  # None if absent
 
     categories: list | None = validated_data.get('categories')
 
@@ -377,18 +493,44 @@ def update_page(
     if incoming:
         _validate_rel_types(incoming, 'incoming')
 
-    # Target / source slug existence
-    if outgoing:
-        outgoing_slugs = [
-            t["slug"] for targets in outgoing.values() for t in targets
-        ]
-        _validate_page_slugs_exist(outgoing_slugs, "relations.outgoing")
+    # Validate rel-type vs current entity type
+    if outgoing is not None or incoming is not None:
+        _validate_rel_types_for_entity(
+            entity_type,
+            outgoing or {},
+            incoming or {},
+        )
 
-    if incoming:
-        incoming_slugs = [
-            s["slug"] for sources in incoming.values() for s in sources
-        ]
-        _validate_page_slugs_exist(incoming_slugs, "relations.incoming")
+    # Target / source slug existence + type lookup
+    # Collect slugs from non-empty target/source lists only
+    outgoing_slugs: list[str] = [
+        t['slug']
+        for targets in (outgoing or {}).values()
+        for t in targets
+    ]
+    incoming_slugs: list[str] = [
+        s['slug']
+        for sources in (incoming or {}).values()
+        for s in sources
+    ]
+
+    slug_to_type: dict[str, str] = {}
+    if outgoing_slugs:
+        slug_to_type.update(
+            _fetch_and_validate_page_types(outgoing_slugs, 'relations.outgoing')
+        )
+    if incoming_slugs:
+        slug_to_type.update(
+            _fetch_and_validate_page_types(incoming_slugs, 'relations.incoming')
+        )
+
+    # Validate endpoint type compatibility
+    if outgoing_slugs or incoming_slugs:
+        _validate_rel_endpoint_types(
+            outgoing or {},
+            incoming or {},
+            slug_to_type,
+        )
 
     # Category existense
     if categories:
@@ -411,9 +553,9 @@ def update_page(
         if categories is not None:
             _apply_categories(slug, categories)
 
-        if outgoing:
+        if outgoing is not None:
             _apply_outgoing_relations(slug, outgoing)
-        if incoming:
+        if incoming is not None:
             _apply_incoming_relations(slug, incoming)
 
     # Re-fetch after commit to return the canonical representation
