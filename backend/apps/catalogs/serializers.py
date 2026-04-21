@@ -1,26 +1,14 @@
+"""
+Output serializers for catalog list endpoints (GET /characters/, etc.)
+
+These describe the flat row shape returned by the catalog Cypher queries.
+They are used exclusively for GET list responses; POST now uses
+PageCreateSerializer from apps.pages.serializers and returns the full
+page representation (same as GET /pages/{slug}/).
+"""
+
+
 from rest_framework import serializers
-
-
-class _NamesField(serializers.ListField):
-    '''names: LIST<STRING>, at least one value'''
-
-    child = serializers.CharField(max_length=100)
-
-    def __init__(self, **kwargs) -> None:
-        kwargs.setdefault('min_length', 1)
-        super().__init__(**kwargs)
-
-
-class _OptionalNamesField(serializers.ListField):
-    '''Optional LIST<STRING>, defaults to empty list'''
-
-    child = serializers.CharField(max_length=100)
-
-    def __init__(self, **kwargs) -> None:
-        kwargs.setdefault('required', False)
-        kwargs.setdefault('allow_null', True)
-        kwargs.setdefault('default', list)
-        super().__init__(**kwargs)
 
 
 class CharacterOutputSerializer(serializers.Serializer):
@@ -29,6 +17,7 @@ class CharacterOutputSerializer(serializers.Serializer):
     names = serializers.ListField(
         child=serializers.CharField(), allow_null=True
     )
+    name = serializers.SerializerMethodField()
     titles = serializers.ListField(
         child=serializers.CharField(), allow_null=True
     )
@@ -42,49 +31,9 @@ class CharacterOutputSerializer(serializers.Serializer):
     clothing = serializers.CharField(allow_null=True)
     notable_for = serializers.CharField(allow_null=True)
 
-    race_slug = serializers.CharField(allow_null=True)
-    race_name = serializers.CharField(allow_null=True)
-
-    born_in_slug = serializers.CharField(allow_null=True)
-    born_in_name = serializers.CharField(allow_null=True)
-
-
-class CharacterCreateSerializer(serializers.Serializer):
-    '''Entrypoint fir POST /characters/'''
-
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    titles = _OptionalNamesField()
-    gender = serializers.ChoiceField(
-        choices=['Male', 'Female', 'Unknown'],
-        allow_null=True,
-        required=False,
-        default=None
-    )
-    birth_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    death_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    hair = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    eyes = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    height = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    weapon = serializers.CharField(
-        max_length=80, allow_null=True, required=False, default=None
-    )
-    clothing = serializers.CharField(
-        max_length=80, allow_null=True, required=False, default=None
-    )
-    notable_for = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
+    def get_name(self, obj: dict) -> str | None:
+        names = obj.get('names') or []
+        return names[0] if names else None
 
 
 class RaceOutputSerializer(serializers.Serializer):
@@ -92,6 +41,7 @@ class RaceOutputSerializer(serializers.Serializer):
     names = serializers.ListField(
         child=serializers.CharField(), allow_null=True
     )
+    name = serializers.SerializerMethodField()
     lifespan = serializers.CharField(allow_null=True)
     avg_height = serializers.CharField(allow_null=True)
     hair = serializers.CharField(allow_null=True)
@@ -101,34 +51,9 @@ class RaceOutputSerializer(serializers.Serializer):
     clothing = serializers.CharField(allow_null=True)
     distinctions = serializers.CharField(allow_null=True)
 
-
-class RaceCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    lifespan = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    avg_height = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    hair = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    eyes = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    skin = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    weaponry = serializers.CharField(
-        max_length=100, allow_null=True, required=False, default=None
-    )
-    clothing = serializers.CharField(
-        max_length=100, allow_null=True, required=False, default=None
-    )
-    distinctions = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
+    def get_name(self, obj: dict) -> str | None:
+        names = obj.get('names') or []
+        return names[0] if names else None
 
 
 class LocationOutputSerializer(serializers.Serializer):
@@ -136,31 +61,16 @@ class LocationOutputSerializer(serializers.Serializer):
     names = serializers.ListField(
         child=serializers.CharField(), allow_null=True
     )
+    name = serializers.SerializerMethodField()
     entity_type = serializers.CharField(allow_null=True)
     population = serializers.CharField(allow_null=True)
     creation_date = serializers.CharField(allow_null=True)
     destruction_date = serializers.CharField(allow_null=True)
     notable_for = serializers.CharField(allow_null=True)
 
-
-class LocationCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    entity_type = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    population = serializers.CharField(
-        max_length=200, allow_null=True, required=False, default=None
-    )
-    creation_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    destruction_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    notable_for = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
+    def get_name(self, obj: dict) -> str | None:
+        names = obj.get('names') or []
+        return names[0] if names else None
 
 
 class EventOutputSerializer(serializers.Serializer):
@@ -168,31 +78,16 @@ class EventOutputSerializer(serializers.Serializer):
     names = serializers.ListField(
         child=serializers.CharField(), allow_null=True
     )
+    name = serializers.SerializerMethodField()
     entity_type = serializers.CharField(allow_null=True)
     start_date = serializers.CharField(allow_null=True)
     end_date = serializers.CharField(allow_null=True)
     casualties = serializers.CharField(allow_null=True)
     notable_for = serializers.CharField(allow_null=True)
 
-
-class EventCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    entity_type = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    start_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    end_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    casualties = serializers.CharField(
-        max_length=200, allow_null=True, required=False, default=None
-    )
-    notable_for = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
+    def get_name(self, obj: dict) -> str | None:
+        names = obj.get('names') or []
+        return names[0] if names else None
 
 
 class OrganizationOutputSerializer(serializers.Serializer):
@@ -200,6 +95,7 @@ class OrganizationOutputSerializer(serializers.Serializer):
     names = serializers.ListField(
         child=serializers.CharField(), allow_null=True
     )
+    name = serializers.SerializerMethodField()
     entity_type = serializers.CharField(allow_null=True)
     founded_date = serializers.CharField(allow_null=True)
     dissolved_date = serializers.CharField(allow_null=True)
@@ -208,31 +104,9 @@ class OrganizationOutputSerializer(serializers.Serializer):
     purpose = serializers.CharField(allow_null=True)
     notable_for = serializers.CharField(allow_null=True)
 
-
-class OrganizationCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    entity_type = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    founded_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    dissolved_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    clothing = serializers.CharField(
-        max_length=100, allow_null=True, required=False, default=None
-    )
-    weaponry = serializers.CharField(
-        max_length=100, allow_null=True, required=False, default=None
-    )
-    purpose = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
-    notable_for = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
+    def get_name(self, obj: dict) -> str | None:
+        names = obj.get('names') or []
+        return names[0] if names else None
 
 
 class TimelineOutputSerializer(serializers.Serializer):
@@ -240,23 +114,14 @@ class TimelineOutputSerializer(serializers.Serializer):
     names = serializers.ListField(
         child=serializers.CharField(), allow_null=True
     )
+    name = serializers.SerializerMethodField()
     start_date = serializers.CharField(allow_null=True)
     end_date = serializers.CharField(allow_null=True)
     abbreviation = serializers.CharField(allow_null=True)
 
-
-class TimelineCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    start_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    end_date = serializers.CharField(
-        max_length=30, allow_null=True, required=False, default=None
-    )
-    abbreviation = serializers.CharField(
-        max_length=10, allow_null=True, required=False, default=None
-    )
+    def get_name(self, obj: dict) -> str | None:
+        names = obj.get('names') or []
+        return names[0] if names else None
 
 
 class ItemOutputSerializer(serializers.Serializer):
@@ -264,23 +129,14 @@ class ItemOutputSerializer(serializers.Serializer):
     names = serializers.ListField(
         child=serializers.CharField(), allow_null=True
     )
+    name = serializers.SerializerMethodField()
     entity_type = serializers.CharField(allow_null=True)
     material = serializers.CharField(allow_null=True)
     notable_for = serializers.CharField(allow_null=True)
 
-
-class ItemCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    entity_type = serializers.CharField(
-        max_length=60, allow_null=True, required=False, default=None
-    )
-    material = serializers.CharField(
-        max_length=100, allow_null=True, required=False, default=None
-    )
-    notable_for = serializers.CharField(
-        max_length=300, allow_null=True, required=False, default=None
-    )
+    def get_name(self, obj: dict) -> str | None:
+        names = obj.get('names') or []
+        return names[0] if names else None
 
 
 class LanguageOutputSerializer(serializers.Serializer):
@@ -288,15 +144,12 @@ class LanguageOutputSerializer(serializers.Serializer):
     names = serializers.ListField(
         child=serializers.CharField(), allow_null=True
     )
+    name = serializers.SerializerMethodField()
     family = serializers.CharField(allow_null=True)
 
-
-class LanguageCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
-    family = serializers.CharField(
-        max_length=80, allow_null=True, required=False, default=None
-    )
+    def get_name(self, obj: dict) -> str | None:
+        names = obj.get('names') or []
+        return names[0] if names else None
 
 
 class ScriptOutputSerializer(serializers.Serializer):
@@ -304,11 +157,11 @@ class ScriptOutputSerializer(serializers.Serializer):
     names = serializers.ListField(
         child=serializers.CharField(), allow_null=True
     )
+    name = serializers.SerializerMethodField()
 
-
-class ScriptCreateSerializer(serializers.Serializer):
-    slug = serializers.SlugField(max_length=80, required=True)
-    names = _NamesField()
+    def get_name(self, obj: dict) -> str | None:
+        names = obj.get('names') or []
+        return names[0] if names else None
 
 
 # Pagination envelope - used in @extend_schema

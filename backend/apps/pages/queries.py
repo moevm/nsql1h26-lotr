@@ -163,7 +163,7 @@ _ATTR_API_TO_DB: dict[str, dict[str, str]] = {
 # Whitelist for enum fields
 _FIELD_CHOICES: dict[str, dict[str, frozenset[str]]] = {
     'character': {
-        'gender': frozenset({'Male', 'Female', 'Unknown'}),
+        'gender': frozenset({'male', 'female', 'unknown'}),
     },
 }
 
@@ -213,6 +213,8 @@ def normalize_patch_attributes(raw_attrs: dict, entity_type: str) -> dict:
                     f'"{value} is not a valid choice. '
                     f'Must be one of: {sorted(choices[db_key])}'
                 ]
+            else:
+                result[db_key] = value
             continue
 
         result[db_key] = value
@@ -284,15 +286,13 @@ PAGE_DETAIL_QUERY = '''\
 MATCH (p:Page {slug: $slug})
     OPTIONAL MATCH (p)-[:HAS_ARTICLE]->(a:Article)
 
-CALL {
-    WITH p
+CALL (p) {
     OPTIONAL MATCH (p)-[:IN_CATEGORY]->(cat:Category)
     WITH cat WHERE cat IS NOT NULL
     RETURN collect({slug: cat.slug, name: cat.name}) AS categories
 }
 
-CALL {
-    WITH p
+CALL (p) {
     OPTIONAL MATCH (p)-[out_rel]->(target:Page)
     WITH target, out_rel WHERE target IS NOT NULL
     OPTIONAL MATCH (target)-[:HAS_ARTICLE]->(ta:Article)
@@ -306,8 +306,7 @@ CALL {
     }) AS outgoing_rels
 }
 
-CALL {
-    WITH p
+CALL (p) {
     OPTIONAL MATCH (source:Page)-[in_rel]->(p)
     WITH source, in_rel WHERE source IS NOT NULL
     OPTIONAL MATCH (source)-[:HAS_ARTICLE]->(sa:Article)
@@ -321,14 +320,12 @@ CALL {
     }) AS incoming_rels
 }
 
-CALL {
-    WITH p
+CALL (p) {
     OPTIONAL MATCH (u:User)-[:LIKED]->(p)
     RETURN count(u) AS likes_count
 }
 
-CALL {
-    WITH p
+CALL (p) {
     OPTIONAL MATCH (comment:Comment)-[:ON]->(p)
     RETURN count(comment) AS comments_count
 }

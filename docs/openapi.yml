@@ -2495,76 +2495,105 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
-          description: Substring match in names
+          description: |
+            Comma-separated list of values (OR). Substring match in any of the character's names.
+            Example: `?name=Frodo,Sam`
+        - name: titles
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list (OR). Substring match in any of the character's titles.
         - name: gender
           in: query
           schema:
             type: string
-            enum:
-              - male
-              - female
-              - unknown
-        - name: birth_date
-          in: query
-          schema:
-            type: string
-        - name: death_date
-          in: query
-          schema:
-            type: string
+          description: |
+            Comma-separated list (OR). Case-insensitive exact match.
+            Allowed values: `male`, `female`, `unknown`.
         - name: is_alive
           in: query
           schema:
             type: boolean
+          description: Single boolean. `true` for living characters (`deathDate` is null), `false` for deceased.
+        - name: birth_date
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list (OR). Substring match in `birthDate`.
+        - name: death_date
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list (OR). Substring match in `deathDate`.
         - name: hair
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `hair`.
         - name: eyes
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `eyes`.
         - name: height
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `height`.
         - name: weapon
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `weapon`.
         - name: clothing
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `clothing`.
         - name: notable_for
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `notableFor`.
         - name: race
           in: query
           schema:
             type: string
-            description: Race slug
+          description: |
+            Comma-separated list of race slugs (OR). Filters characters belonging to any of the given races
+            (via `OF_RACE` relationship).
         - name: organization
           in: query
           schema:
             type: string
-        - name: location
-          in: query
-          schema:
-            type: string
+          description: |
+            Comma-separated list of organization slugs (OR). Filters characters who are members of any of the given organizations
+            (via `MEMBER_OF`).
         - name: event
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of event slugs (OR). Filters characters who participated in any of the given events
+            (via `PARTICIPATED_IN`).
         - name: item
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of item slugs (OR). Filters characters connected to any of the given items
+            via `OWNS`, `WIELDS`, `BORE`, or `CRAFTED` relationships.
+        - name: location
+          in: query
+          schema:
+            type: string
+          description: |
+            Comma-separated list of location slugs (OR). Filters characters connected to any of the given locations
+            via `BORN_IN`, `DIED_IN`, or `DWELLED_IN`.
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -2593,60 +2622,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-                - gender
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                titles:
-                  type: array
-                  items:
-                    type: string
-                gender:
-                  type: string
-                  enum:
-                    - male
-                    - female
-                    - unknown
-                birth_date:
-                  type: string
-                death_date:
-                  type: string
-                hair:
-                  type: string
-                eyes:
-                  type: string
-                height:
-                  type: string
-                weapon:
-                  type: string
-                clothing:
-                  type: string
-                notable_for:
-                  type: string
-                article:
-                  type: object
-                  properties:
-                    text:
-                      type: string
-                    image_url:
-                      type: string
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
-                  additionalProperties:
-                    type: array
-                    items:
-                      type: string
+              $ref: "#/components/schemas/CharacterPage"
       responses:
         "201":
           description: Character created
@@ -2667,42 +2643,58 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in any of the race's names.
         - name: lifespan
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `lifespan`.
         - name: avg_height
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `avgHeight`.
         - name: hair
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `hair`.
         - name: eyes
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `eyes`.
         - name: skin
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `skin`.
         - name: weaponry
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `weaponry`.
         - name: clothing
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `clothing`.
         - name: distinctions
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `distinctions`.
+        - name: location
+          in: query
+          schema:
+            type: string
+          description: |
+            Comma-separated list of location slugs (OR). Filters races that inhabit any of the given locations
+            (via `INHABITS` relationship).
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -2731,40 +2723,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                lifespan:
-                  type: string
-                avg_height:
-                  type: string
-                hair:
-                  type: string
-                eyes:
-                  type: string
-                skin:
-                  type: string
-                weaponry:
-                  type: string
-                clothing:
-                  type: string
-                distinctions:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/RacePage"
       responses:
         "201":
           description: Race created
@@ -2781,46 +2740,62 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
-        - name: type
+          description: Comma-separated list (OR). Substring match in any of the location's names.
+        - name: entity_type
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `type` (e.g., region, valley, kingdom).
         - name: population
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `population`.
         - name: creation_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `creationDate`.
         - name: destruction_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `destructionDate`.
         - name: is_destroyed
           in: query
           schema:
             type: boolean
+          description: Single boolean. `true` for locations with `destructionDate` IS NOT NULL, `false` otherwise.
         - name: notable_for
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `notableFor`.
         - name: character
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of character slugs (OR). Filters locations connected to any of the given characters
+            via `BORN_IN`, `DIED_IN`, or `DWELLED_IN` (incoming).
         - name: event
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of event slugs (OR). Filters locations where any of the given events took place
+            (incoming `TOOK_PLACE_IN`).
         - name: organization
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of organization slugs (OR). Filters locations where any of the given organizations are based
+            (incoming `BASED_IN`).
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -2849,34 +2824,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                entity_type:
-                  type: string
-                population:
-                  type: string
-                creation_date:
-                  type: string
-                destruction_date:
-                  type: string
-                notable_for:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/LocationPage"
       responses:
         "201":
           description: Location created
@@ -2897,42 +2845,50 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
-        - name: type
+          description: Comma-separated list (OR). Substring match in any of the event's names.
+        - name: entity_type
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `type` (e.g., war, battle, council).
         - name: start_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `startDate`.
         - name: end_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `endDate`.
         - name: casualties
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `casualties`.
         - name: notable_for
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `notableFor`.
         - name: character
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of character slugs (OR). Filters events in which any of the given characters participated
+            (incoming `PARTICIPATED_IN`).
         - name: location
           in: query
           schema:
             type: string
-        - name: organization
-          in: query
-          schema:
-            type: string
+          description: |
+            Comma-separated list of location slugs (OR). Filters events that took place in any of the given locations
+            (outgoing `TOOK_PLACE_IN`).
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -2961,34 +2917,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                entity_type:
-                  type: string
-                start_date:
-                  type: string
-                end_date:
-                  type: string
-                casualties:
-                  type: string
-                notable_for:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/EventPage"
       responses:
         "201":
           description: Event created
@@ -3009,50 +2938,65 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
-        - name: type
+          description: Comma-separated list (OR). Substring match in any of the organization's names.
+        - name: entity_type
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `type`.
         - name: founded_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `foundedDate`.
         - name: dissolved_date
           in: query
           schema:
             type: string
-        - name: is_active
+          description: Comma-separated list (OR). Substring match in `dissolvedDate`.
+        - name: is_dissolved
           in: query
           schema:
             type: boolean
+          description: Single boolean. `true` for organizations with `dissolvedDate` IS NOT NULL, `false` otherwise.
         - name: clothing
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `clothing`.
         - name: weaponry
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `weaponry`.
         - name: purpose
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `purpose`.
         - name: notable_for
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `notableFor`.
         - name: character
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of character slugs (OR). Filters organizations that have any of the given characters as members
+            (incoming `MEMBER_OF`).
         - name: location
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of location slugs (OR). Filters organizations based in any of the given locations
+            (outgoing `BASED_IN`).
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -3081,38 +3025,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                entity_type:
-                  type: string
-                founded_date:
-                  type: string
-                dissolved_date:
-                  type: string
-                clothing:
-                  type: string
-                weaponry:
-                  type: string
-                purpose:
-                  type: string
-                notable_for:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/OrganizationPage"
       responses:
         "201":
           description: Organization created
@@ -3137,18 +3050,22 @@ paths:
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in any of the timeline's names.
         - name: abbreviation
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `abbreviation`.
         - name: start_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `startDate`.
         - name: end_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `endDate`.
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -3177,31 +3094,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-                - abbreviation
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                abbreviation:
-                  type: string
-                start_date:
-                  type: string
-                end_date:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/TimelinePage"
       responses:
         "201":
           description: Timeline created
@@ -3222,30 +3115,33 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
-        - name: type
+          description: Comma-separated list (OR). Substring match in any of the item's names.
+        - name: entity_type
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `type` (ring, sword, etc.).
         - name: material
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `material`.
         - name: notable_for
           in: query
           schema:
             type: string
-        - name: owner
+          description: Comma-separated list (OR). Substring match in `notableFor`.
+        - name: character
           in: query
           schema:
             type: string
-        - name: location
-          in: query
-          schema:
-            type: string
+          description: |
+            Comma-separated list of character slugs (OR). Filters items connected to any of the given characters
+            via `OWNS`, `WIELDS`, `BORE`, or `CRAFTED` (incoming).
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -3274,30 +3170,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                entity_type:
-                  type: string
-                material:
-                  type: string
-                notable_for:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/ItemPage"
       responses:
         "201":
           description: Item created
@@ -3318,14 +3191,16 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in any of the language's names.
         - name: family
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `family`.
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -3354,26 +3229,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                family:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/LanguagePage"
       responses:
         "201":
           description: Language created
@@ -3394,10 +3250,11 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in any of the script's names.
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -3426,24 +3283,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/ScriptPage"
       responses:
         "201":
           description: Script created

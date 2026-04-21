@@ -22,11 +22,7 @@ RETURN
     c.height AS height,
     c.weapon AS weapon,
     c.clothing AS clothing,
-    c.notableFor AS notable_for,
-    race.slug AS race_slug,
-    race.names[0] AS race_name,
-    born_loc.slug AS born_in_slug,
-    born_loc.names[0] AS born_in_name
+    c.notableFor AS notable_for
 """
 
 CHARACTER_COUNT_QUERY = """\
@@ -36,36 +32,6 @@ MATCH (c:Character)
 WITH c, race, born_loc
 {where}
 RETURN count(c) AS total
-"""
-
-CHARACTER_CREATE_QUERY = """\
-CREATE (c:Character:Page {
-    slug: $slug,
-    names: $names,
-    titles: $titles,
-    gender: $gender,
-    birthDate: $birth_date,
-    deathDate: $death_date,
-    hair: $hair,
-    eyes: $eyes,
-    height: $height,
-    weapon: $weapon,
-    clothing: $clothing,
-    notableFor: $notable_for
-})
-RETURN
-    c.slug AS slug,
-    c.names AS names,
-    c.titles AS titles,
-    c.gender AS gender,
-    c.birthDate AS birth_date,
-    c.deathDate AS death_date,
-    c.hair AS hair,
-    c.eyes AS eyes,
-    c.height AS height,
-    c.weapon AS weapon,
-    c.clothing AS clothing,
-    c.notableFor AS notable_for
 """
 
 # Whitelist for sort field: API param -> Cypher expression
@@ -104,32 +70,6 @@ MATCH (r:Race)
 RETURN count(r) AS total
 """
 
-RACE_CREATE_QUERY = """\
-CREATE (r:Race:Page {
-    slug: $slug,
-    names: $names,
-    lifespan: $lifespan,
-    avgHeight: $avg_height,
-    hair: $hair,
-    eyes: $eyes,
-    skin: $skin,
-    weaponry: $weaponry,
-    clothing: $clothing,
-    distinctions: $distinctions
-})
-RETURN
-    r.slug AS slug,
-    r.names AS names,
-    r.lifespan AS lifespan,
-    r.avgHeight AS avg_height,
-    r.hair AS hair,
-    r.eyes AS eyes,
-    r.skin AS skin,
-    r.weaponry AS weaponry,
-    r.clothing AS clothing,
-    r.distinctions AS distinctions
-"""
-
 RACE_SORT_FIELDS: dict[str, str] = {
     "name": "r.names[0]",
     "lifespan": "r.lifespan",
@@ -158,26 +98,6 @@ LOCATION_COUNT_QUERY = """\
 MATCH (l:Location)
 {where}
 RETURN count(l) AS total
-"""
-
-LOCATION_CREATE_QUERY = """\
-CREATE (l:Location:Page {
-    slug: $slug,
-    names: $names,
-    type: $entity_type,
-    population: $population,
-    creationDate: $creation_date,
-    destructionDate: $destruction_date,
-    notableFor: $notable_for
-})
-RETURN
-    l.slug AS slug,
-    l.names AS names,
-    l.type AS entity_type,
-    l.population AS population,
-    l.creationDate AS creation_date,
-    l.destructionDate AS destruction_date,
-    l.notableFor AS notable_for
 """
 
 LOCATION_SORT_FIELDS: dict[str, str] = {
@@ -209,26 +129,6 @@ EVENT_COUNT_QUERY = """\
 MATCH (e:Event)
 {where}
 RETURN count(e) AS total
-"""
-
-EVENT_CREATE_QUERY = """\
-CREATE (e:Event:Page {
-    slug: $slug,
-    names: $names,
-    type: $entity_type,
-    startDate: $start_date,
-    endDate: $end_date,
-    casualties: $casualties,
-    notableFor: $notable_for
-})
-RETURN
-    e.slug AS slug,
-    e.names AS names,
-    e.type AS entity_type,
-    e.startDate AS start_date,
-    e.endDate AS end_date,
-    e.casualties AS casualties,
-    e.notableFor AS notable_for
 """
 
 EVENT_SORT_FIELDS: dict[str, str] = {
@@ -265,30 +165,6 @@ MATCH (o:Organization)
 RETURN count(o) AS total
 """
 
-ORGANIZATION_CREATE_QUERY = """\
-CREATE (o:Organization:Page {
-    slug: $slug,
-    names: $names,
-    type: $entity_type,
-    foundedDate: $founded_date,
-    dissolvedDate: $dissolved_date,
-    clothing: $clothing,
-    weaponry: $weaponry,
-    purpose: $purpose,
-    notableFor: $notable_for
-})
-RETURN
-    o.slug AS slug,
-    o.names AS names,
-    o.type AS entity_type,
-    o.foundedDate AS founded_date,
-    o.dissolvedDate AS dissolved_date,
-    o.clothing AS clothing,
-    o.weaponry AS weaponry,
-    o.purpose AS purpose,
-    o.notableFor AS notable_for
-"""
-
 ORGANIZATION_SORT_FIELDS: dict[str, str] = {
     "name": "o.names[0]",
     "entity_type": "o.type",
@@ -316,22 +192,6 @@ TIMELINE_COUNT_QUERY = """\
 MATCH (t:Timeline)
 {where}
 RETURN count(t) AS total
-"""
-
-TIMELINE_CREATE_QUERY = """\
-CREATE (t:Timeline:Page {
-    slug: $slug,
-    names: $names,
-    startDate: $start_date,
-    endDate: $end_date,
-    abbreviation: $abbreviation
-})
-RETURN
-    t.slug AS slug,
-    t.names AS names,
-    t.startDate AS start_date,
-    t.endDate AS end_date,
-    t.abbreviation AS abbreviation
 """
 
 TIMELINE_SORT_FIELDS: dict[str, str] = {
@@ -363,22 +223,6 @@ MATCH (i:Item)
 RETURN count(i) AS total
 """
 
-ITEM_CREATE_QUERY = """\
-CREATE (i:Item:Page {
-    slug: $slug,
-    names: $names,
-    type: $entity_type,
-    material: $material,
-    notableFor: $notable_for
-})
-RETURN
-    i.slug AS slug,
-    i.names AS names,
-    i.type AS entity_type,
-    i.material AS material,
-    i.notableFor AS notable_for
-"""
-
 ITEM_SORT_FIELDS: dict[str, str] = {
     "name": "i.names[0]",
     "entity_type": "i.type",
@@ -406,18 +250,6 @@ MATCH (lang:Language)
 RETURN count(lang) AS total
 """
 
-LANGUAGE_CREATE_QUERY = """\
-CREATE (lang:Language:Page {
-    slug: $slug,
-    names: $names,
-    family: $family
-})
-RETURN
-    lang.slug AS slug,
-    lang.names AS names,
-    lang.family AS family
-"""
-
 LANGUAGE_SORT_FIELDS: dict[str, str] = {
     "name": "lang.names[0]",
     "family": "lang.family",
@@ -443,17 +275,13 @@ MATCH (s:Script)
 RETURN count(s) AS total
 """
 
-SCRIPT_CREATE_QUERY = """\
-CREATE (s:Script:Page {
-    slug: $slug,
-    names: $names
-})
-RETURN
-    s.slug AS slug,
-    s.names AS names
-"""
-
 SCRIPT_SORT_FIELDS: dict[str, str] = {
     "name": "s.names[0]",
 }
 SCRIPT_DEFAULT_SORT = "s.names[0] ASC"
+
+
+CREATE_NODE_TEMPLATE = '''\
+CREATE (n:{node_labels} {{slug: $slug, names: $names}})
+SET n += $attrs
+'''

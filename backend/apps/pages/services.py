@@ -1,6 +1,6 @@
 '''
 Business logic for GET / PATCH / DELETE /pages/{slug}/.
- 
+
 Layer responsibilities:
   services.py - all Neo4j interaction and domain logic
   views.py - HTTP parsing, permissions, response assembly only

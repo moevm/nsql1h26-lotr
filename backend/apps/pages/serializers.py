@@ -142,3 +142,29 @@ class PageUpdateSerializer(serializers.Serializer):
             )
 
         return attrs
+
+
+class PageCreateSerializer(PageUpdateSerializer):
+    '''
+    Input serializer for POST /{catalog}/ (character, race, location, etc.)
+
+    Extends PageUpdateSerializer with:
+      - slug: required (the new page's public identifier)
+      - names: required (at least one name is mandatory)
+      - attributes, article, categories, relations: all optional, same as PATCH
+
+    The entity type is implicit from the endpoint, not in the body.
+    '''
+
+    slug = serializers.SlugField(max_length=80, required=True)
+
+    names = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        min_length=1,
+        required=True,
+    )
+
+    def validate(self, attrs: dict) -> dict:
+        # slug and names are always present.
+        # no "at least one field" guard needed.
+        return attrs
