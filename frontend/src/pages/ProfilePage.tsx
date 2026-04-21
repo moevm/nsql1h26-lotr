@@ -39,7 +39,7 @@ const ProfilePage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div className="loader">Загрузка профиля...</div>;
+    return <div className="loader">Loading profile...</div>;
   }
 
   if (!user) return null;
@@ -71,7 +71,7 @@ const ProfilePage: React.FC = () => {
         </h2>
         {!user.likedPages || user.likedPages.length === 0 ? (
           <div className="liked-placeholder">
-            <p>Нет понравившихся страниц</p>
+            <p>No liked pages</p>
           </div>
         ) : (
           <ul className="liked-list">

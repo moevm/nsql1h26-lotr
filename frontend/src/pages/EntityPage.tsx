@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FaHeart, FaRegHeart, FaEdit } from 'react-icons/fa';
 import { MdOutlineFileDownload, MdOutlineFileUpload } from 'react-icons/md';
 import { SiRelay } from 'react-icons/si';
-import { useGetPage, useLikePage, useUnlikePage } from '../api/generated/pages/pages';
+import { useGetPage, useLikePage, useUnlikePage, useDeletePage } from '../api/generated/pages/pages';
 import type { LikeStateResponse } from '../api/generated/models';
 import { useAuth } from '../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -18,10 +18,12 @@ const EntityPage: React.FC = () => {
   const pageData = data as any;
   const likeMutation = useLikePage();
   const unlikeMutation = useUnlikePage();
+  const deleteMutation = useDeletePage();
 
   const [liked, setLiked] = useState(false);
   const [likes_count, setlikes_count] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingEdit, setPendingEdit] = useState(false);
   const [pendingLike, setPendingLike] = useState(false);
 
@@ -70,6 +72,27 @@ const EntityPage: React.FC = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (user.role !== 'admin') {
+      alert('Only administrators can delete pages.');
+      return;
+    }
+    const confirmed = window.confirm('Are you sure you want to delete this page? This action is irreversible.');
+    if (!confirmed) return;
+    try {
+      await deleteMutation.mutateAsync({ slug: slug! });
+      // После успешного удаления перенаправляем на список
+      navigate(`/${type}s`);
+    } catch (err) {
+      console.error('Delete failed:', err);
+      alert('Error deleting page.');
+    }
+  };
+
   // Обработчик редактирования
   const handleEditClick = () => {
     if (!user) {
@@ -80,7 +103,7 @@ const EntityPage: React.FC = () => {
     if (user.role === 'admin') {
       navigate(`/edit/${type}/${slug}`);
     } else {
-      alert('Только администраторы могут редактировать страницы.');
+      alert('Only administrators can edit pages.');
     }
   };
 
@@ -90,7 +113,7 @@ const EntityPage: React.FC = () => {
       if (user.role === 'admin') {
         navigate(`/edit/${type}/${slug}`);
       } else {
-        alert('Только администраторы могут редактировать страницы.');
+        alert('Only administrators can edit pages.');
       }
       setPendingEdit(false);
     }
@@ -104,13 +127,13 @@ const EntityPage: React.FC = () => {
     }
   }, [user, pendingLike]);
 
-  if (isLoading) return <div className="loader">Загрузка...</div>;
+  if (isLoading) return <div className="loader">Loading...</div>;
   if (error) {
     // Извлекаем статус и сообщение из ошибки Axios
     const axiosError = error as any;
-    let errorMessage = 'Ошибка загрузки страницы';
+    let errorMessage = 'Error loading page';
     if (axiosError.response?.status === 404) {
-      errorMessage = 'Страница не найдена';
+      errorMessage = 'Page not found';
     } else if (axiosError.response?.data?.error?.message) {
       errorMessage = axiosError.response.data.error.message;
     } else if (axiosError.message) {
@@ -118,13 +141,13 @@ const EntityPage: React.FC = () => {
     }
     alert(errorMessage);
   }
-  if (!data) return <div className="error">Страница не найдена</div>;
+  if (!data) return <div className="error">Page not found</div>;
 
-  const mainName = pageData?.names?.[0] || 'Без имени';
+  const mainName = pageData?.names?.[0] || 'Unnamed';
   const article = pageData?.article || { text: '', image_url: '', created_at: null, updated_at: null };
 
   const formatDate = (isoString: string | null) => {
-    if (!isoString) return 'Дата неизвестна';
+    if (!isoString) return 'Date unknown';
     return new Date(isoString).toLocaleDateString('ru-RU', {
       year: 'numeric',
       month: 'long',
@@ -140,7 +163,7 @@ const EntityPage: React.FC = () => {
     direction: 'outgoing' | 'incoming'
   ) => {
     const entries = Object.entries(relations || {});
-    if (entries.length === 0) return <p>Нет связей</p>;
+    if (entries.length === 0) return <p>No relations</p>;
 
     return (
       <div className="relations-group">
@@ -182,37 +205,42 @@ const EntityPage: React.FC = () => {
           <div className="entity-left-header">
             <h1 className="entity-title">{mainName}</h1>
             <div className="entity-actions">
-              <button className="icon-btn" title="Экспорт">
+              <button className="icon-btn" title="Export">
                 <MdOutlineFileDownload />
               </button>
-              <button className="icon-btn" title="Импорт">
+              <button className="icon-btn" title="Import">
                 <MdOutlineFileUpload />
               </button>
               <span className="entity-dates">
-                Создана: {created_at} | Обновлена: {updated_at}
+                Created: {created_at} | Updated: {updated_at}
               </span>
+              {user?.role === 'admin' && (
+                <button className="delete-btn" title="Delete" onClick={handleDelete}>
+                  Delete page
+                </button>
+              )}
             </div>
           </div>
 
           <div className="article-text">
-            <p>{article.text || 'Описание отсутствует'}</p>
+            <p>{article.text || 'Description missing'}</p>
           </div>
 
           <details className="relations-section">
-            <summary>Исходящие связи</summary>
+            <summary>Outgoing relations</summary>
             {renderRelationList(outgoingRelations, 'outgoing')}
           </details>
 
           <details className="relations-section">
-            <summary>Входящие связи</summary>
+            <summary>Incoming relations</summary>
             {renderRelationList(incomingRelations, 'incoming')}
           </details>
 
           <div className="comments-section">
-            <h3>Комментарии</h3>
+            <h3>Comments</h3>
             <div className="comment-input">
-              <input type="text" placeholder="Написать комментарий..." disabled />
-              <button disabled>Отправить</button>
+              <input type="text" placeholder="Write a comment..." disabled />
+              <button disabled>Send</button>
             </div>
             <div className="todo">
               <p>Комментарии появятся на следующей итерации</p>
@@ -229,11 +257,11 @@ const EntityPage: React.FC = () => {
             >
               {liked ? <FaHeart /> : <FaRegHeart />} {likes_count}
             </button>
-            <button
-              className="icon-btn" onClick={handleEditClick}
-            >
-              <FaEdit />
-            </button>
+            {user?.role === 'admin' && (
+              <button className="icon-btn" onClick={handleEditClick}>
+                <FaEdit />
+              </button>
+            )}
             <button className="icon-btn" disabled>
               <SiRelay />
             </button>

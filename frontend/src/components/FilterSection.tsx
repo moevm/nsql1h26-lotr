@@ -10,7 +10,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({ title, children }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="filter-section">
-      <div className="filter-header" onClick={() => setIsOpen(!isOpen)}>
+      <div className={`filter-header ${isOpen ? 'open' : ''}`} onClick={() => setIsOpen(!isOpen)}>
         <span>{isOpen ? <FaChevronDown size="1em" /> : <FaChevronRight size="1em" />}</span>
         <h3>{title}</h3>
       </div>

@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.error('Login failed:', error);
       const serverError = error.response?.data;
-      let message = 'Неверное имя пользователя или пароль';
+      let message = 'Incorrect username or password';
       if (serverError?.error?.message) {
         message = serverError.error.message;
       } else if (serverError?.message) {
@@ -115,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.error('Registration failed:', error);
       const serverError = error.response?.data;
-      let message = 'Ошибка регистрации';
+      let message = 'Registration failed';
       if (serverError?.error?.message) {
         message = serverError.error.message;
       } else if (serverError?.message) {

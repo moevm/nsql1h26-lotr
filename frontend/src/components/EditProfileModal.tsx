@@ -19,15 +19,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose, onSuccess 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      setError('Email обязателен');
+      setError('Email is required');
       return;
     }
     if (!currentPassword) {
-      setError('Текущий пароль обязателен для любых изменений');
+      setError('Current password is required for any changes');
       return;
     }
     if (newPassword && newPassword !== confirmPassword) {
-      setError('Новый пароль и подтверждение не совпадают');
+      setError('New password and confirmation do not match');
       return;
     }
     const updateData: UpdateMeRequest = {
@@ -42,7 +42,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose, onSuccess 
       onClose();
       onSuccess?.();
     } else {
-      setError('Не удалось обновить профиль. Проверьте правильность текущего пароля.');
+      setError('Failed to update profile. Check your current password');
     }
   };
 
@@ -53,7 +53,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose, onSuccess 
           <button className="modal-close-btn" onClick={onClose}>
             <IoClose size="24px" />
           </button>
-          <h2>Редактировать профиль</h2>
+          <h2>Edit Profile</h2>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -64,20 +64,20 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose, onSuccess 
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <label>Текущий пароль (обязательно)</label>
+            <label>Current password (required)</label>
             <input
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
             />
-            <label>Новый пароль (оставьте пустым, чтобы не менять)</label>
+            <label>New password (leave blank to keep unchanged)</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
-            <label>Подтверждение нового пароля</label>
+            <label>Confirm new password</label>
             <input
               type="password"
               value={confirmPassword}
@@ -87,7 +87,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose, onSuccess 
           </div>
           <div className="modal-footer">
             <button type="submit" className="save-btn">
-              Сохранить
+              Save
             </button>
           </div>
         </form>

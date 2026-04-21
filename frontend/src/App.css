@@ -1,6 +1,6 @@
 @font-face {
   font-family: 'CrimsonPro';
-  src: url('/fonts/CrimsonPro.ttg') format('ttf');
+  src: url('/fonts/CrimsonPro.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -8,14 +8,14 @@
 
 @font-face {
   font-family: 'Ringbearer';
-  src: url('/fonts/Ringbearer.ttf') format('ttf');
+  src: url('/fonts/Ringbearer.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
 
 * {
-  font-family: 'Ringbearer', 'Segoe UI', sans-serif;
+  font-family: 'CrimsonPro', 'Segoe UI', sans-serif;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -83,6 +83,7 @@ body {
 }
 
 .icon-with-text {
+  font-family: 'Ringbearer';
   display: flex;
   align-items: center;
   gap: 10px;
@@ -136,11 +137,13 @@ h1 {
 }
 
 .categories-list a {
+  font-family: 'Ringbearer';
   color: #f5e7d9;
   transition: color 0.2s;
 }
 
 .categories-list a:hover {
+  font-family: 'Ringbearer';
   color: #c7b198;
   text-decoration: underline;
 }
@@ -209,7 +212,7 @@ h1 {
 }
 
 .link-card-name {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: bold;
   color: #f5e7d9;
   margin-bottom: 0.5rem;
@@ -218,7 +221,7 @@ h1 {
 }
 
 .link-card-preview {
-  font-size: 0.85rem;
+  font-size: 1rem;
   color: #fdfaf7;
   display: flex;
   flex-direction: column;
@@ -232,6 +235,7 @@ h1 {
 }
 
 .pagination-container {
+  font-size: 1.2rem;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -240,7 +244,7 @@ h1 {
 }
 
 .pagination-btn {
-  font-size: 1rem;
+  font-size: 1.2rem;
   background: #8b5a2b;
   border: none;
   color: white;
@@ -274,6 +278,7 @@ h1 {
 }
 
 .filters-main-title {
+  font-family: 'Ringbearer';
   color: #ffffff;
   font-size: 2rem;
   text-align: right;
@@ -295,24 +300,6 @@ h1 {
   padding: 0.8rem 0.8rem 0.6rem 1.5rem;
 }
 
-.filter-content {
-  text-align: left;
-  padding: 0.5rem 0 0.5rem 1.5rem;
-  background-color: #dedede;
-  border-radius: 0 0 16px 16px;
-}
-
-.filter-placeholder label {
-  display: block;
-  margin: 0.4rem 0;
-  color: #000000;
-  font-size: 0.95rem;
-}
-
-.filter-placeholder input {
-  margin-right: 0.6rem;
-}
-
 .catalog-header {
   display: flex;
   justify-content: space-between;
@@ -327,6 +314,7 @@ h1 {
   border: none;
   color: white;
   padding: 0.5rem 1rem;
+  margin-right: 2rem;
   border-radius: 30px;
   cursor: pointer;
   display: inline-flex;
@@ -363,6 +351,7 @@ h1 {
 }
 
 .modal-header {
+  font-size: 1.1rem;
   display: flex;
   padding: 1rem 1.5rem;
   align-items: center;
@@ -383,6 +372,7 @@ h1 {
 }
 
 .modal-body {
+  font-size: 1.1rem;
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -433,6 +423,20 @@ h1 {
 }
 
 .save-btn:hover {
+  background: #6b3e1a;
+}
+
+.delete-btn {
+  background: #8b432b;
+  color: white;
+  padding: 0.5rem 2rem;
+  border-radius: 30px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.delete-btn:hover {
   background: #6b3e1a;
 }
 
@@ -500,7 +504,7 @@ h1 {
 }
 
 .entity-title {
-  font-size: 2rem;
+  font-size: 2.5rem;
   margin: 0;
 }
 
@@ -510,10 +514,12 @@ h1 {
   font-size: 0.85rem;
   color: #c7b198;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .entity-dates {
   white-space: nowrap;
+  font-size: 0.9rem;
 }
 
 .icon-btn {
@@ -551,6 +557,7 @@ h1 {
 }
 
 .article-text {
+  font-size: 1.5rem;
   color: #ffffff;
   text-align: justify;
   background: none;
@@ -560,6 +567,7 @@ h1 {
 }
 
 .relations-section {
+  font-size: 1.1rem;
   text-align: center;
   background: #bbbbbb;
   border-radius: 12px;
@@ -650,7 +658,7 @@ h1 {
 .entity-attributes h3{
   margin-top: -0.5rem;
   margin-bottom: 0.5rem;
-  font-size: 1.7rem;
+  font-size: 2rem;
 }
 
 .entity-image {
@@ -700,6 +708,7 @@ h1 {
 
 .attr-value {
   color: #292929;
+  
 }
 
 /* Страница профиля */
@@ -907,6 +916,7 @@ h1 {
   color: #f5e7d9;
   padding: 0.4rem;
   border-radius: 8px;
+  font-size: 1rem;
 }
 
 .add-relation-form option {
@@ -914,6 +924,10 @@ h1 {
 }
 
 .add-relation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  font-size: 1.1rem;
   border-radius: 8px;
   padding: 1rem;
   margin: 1rem 0;
@@ -940,10 +954,10 @@ h1 {
 .form-actions {
   display: flex;
   gap: 1rem;
-  margin-top: 1rem;
 }
 
 .attribute-row {
+  font-size: 1.1rem;
   display: flex;
   gap: 1rem;
   margin-bottom: 0.5rem;
@@ -1046,4 +1060,176 @@ h1 {
   padding: 0.75rem;
   text-align: center;
   color: #aaa;
+}
+/* Общий контейнер для поля фильтра */
+.filter-field {
+  margin-bottom: 0.5rem;
+}
+
+/* Текстовые поля ввода */
+.filter-text-input {
+  width: 90%;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #8b5a2b;
+  background: #2c2a28;
+  color: #f5e7d9;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.filter-text-input:focus {
+  outline: none;
+  border-color: #c7b198;
+}
+
+/* Группа чекбоксов (для gender, alive status) */
+.checkbox-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.checkbox-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: normal;
+  cursor: pointer;
+  color: #f5e7d9;
+  font-size: 1rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: #8b5a2b;
+}
+
+/* Кнопка сброса фильтров */
+.filter-actions {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.reset-filters-btn {
+  background: #5a4a3a;
+  border: none;
+  color: #f5e7d9;
+  padding: 0.4rem 1rem;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 1.3rem;
+  transition: background 0.2s;
+}
+
+.reset-filters-btn:hover {
+  background: #3e2e22;
+}
+
+.apply-filters-btn {
+  background: #765432;
+  border: none;
+  color: #f5e7d9;
+  padding: 0.4rem 1rem;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 1.3rem;
+  margin: 1rem;
+  margin-top: 0;
+  transition: background 0.2s;
+}
+
+.apply-filters-btn:hover {
+  background: #503824;
+}
+
+/* Стили для FilterSection */
+.filter-section {
+  margin-bottom: 0.5rem;
+}
+
+.filter-header {
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #584430;
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.filter-header.open {
+  border-radius: 12px 12px 0 0;
+}
+
+.filter-header:hover {
+  background: #3a3530;
+}
+
+.filter-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #f5e7d9;
+  letter-spacing: 0.5px;
+}
+
+/* Контент внутри */
+.filter-content {
+  color: #000000;
+  padding-top: 0;
+  padding: 1rem;
+  background: #3e3630a3;
+  border-radius: 0 0 12px 12px;
+}
+
+.sort-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.sort-controls select {
+  background: #2c2a28;
+  border: 1px solid #8b5a2b;
+  color: #f5e7d9;
+  padding: 0.5rem;
+  border-radius: 30px;
+  cursor: pointer;
+  text-align: center;
+}
+.sort-order-btn {
+  background: #2c2a28;
+  border: 1px solid #8b5a2b;
+  padding: 0.5rem;
+  color: #f5e7d9;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sort-order-btn:hover {
+  background: #8b5a2b;
+}
+.apply-sort-btn {
+  background: #8b5a2b;
+  border: none;
+  color: white;
+  padding: 0.5rem 0.8rem;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.apply-sort-btn:hover {
+  background: #6b3e1a;
 }

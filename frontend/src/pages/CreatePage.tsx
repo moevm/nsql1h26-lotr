@@ -1,4 +1,3 @@
-// src/pages/CreatePage.tsx
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,8 +15,6 @@ import AddRelationForm from '../components/AddRelationForm';
 interface RelationItem {
   target?: { slug: string; type: string; name: string; image_url: string };
   from?: { slug: string; type: string; name: string; image_url: string };
-  properties: Record<string, any>;
-  propertiesString?: string;
 }
 interface RelationGroup { relationType: string; items: RelationItem[]; }
 
@@ -31,13 +28,13 @@ const CreatePage: React.FC = () => {
   const [description, setDescription] = useState('');
   const [image_url, setimage_url] = useState('');
 
-  // Связи (общие)
+  // Связ
   const [outgoingGroups, setOutgoingGroups] = useState<RelationGroup[]>([]);
   const [incomingGroups, setIncomingGroups] = useState<RelationGroup[]>([]);
   const [showAddOutgoingForm, setShowAddOutgoingForm] = useState(false);
   const [showAddIncomingForm, setShowAddIncomingForm] = useState(false);
 
-  // --- Специфичные поля для разных типов ---
+  // Специфичные поля для разных типов
   const [gender, setGender] = useState('');
   const [birth_date, setBirth_date] = useState('');
   const [death_date, setDeath_date] = useState('');
@@ -110,7 +107,7 @@ const CreatePage: React.FC = () => {
     case 'language':  createMutation = createLanguage; break;
     case 'script':    createMutation = createScript; break;
     case 'timeline':  createMutation = createTimeline; break;
-    default: return <div>Неизвестный тип сущности</div>;
+    default: return <div>Unknown entity type</div>;
   }
 
   const generateSlug = (input: string) => input
@@ -124,7 +121,7 @@ const CreatePage: React.FC = () => {
     return input.split(',').map(s => s.trim()).filter(s => s !== '');
   };
 
-  // --- Функции для управления связями (как в EditPage) ---
+  // Функции для управления связями
   const updateOutgoingGroupType = (groupIndex: number, newType: string) => {
     setOutgoingGroups(prev => prev.map((g, i) => i === groupIndex ? { ...g, relationType: newType } : g));
   };
@@ -147,12 +144,6 @@ const CreatePage: React.FC = () => {
       if (field.startsWith('target.')) {
         const targetField = field.split('.')[1];
         (newItems[itemIndex].target as any)[targetField] = value;
-      } else if (field === 'properties') {
-        newItems[itemIndex].propertiesString = value;
-        // Пытаемся распарсить, чтобы обновить properties (опционально)
-        try {
-          newItems[itemIndex].properties = JSON.parse(value);
-        } catch (e) {}
       }
       return { ...g, items: newItems };
     }));
@@ -183,11 +174,6 @@ const CreatePage: React.FC = () => {
       if (field.startsWith('from.')) {
         const fromField = field.split('.')[1];
         (newItems[itemIndex].from as any)[fromField] = value;
-      } else if (field === 'properties') {
-        newItems[itemIndex].propertiesString = value;
-        try {
-          newItems[itemIndex].properties = JSON.parse(value);
-        } catch (e) {}
       }
       return { ...g, items: newItems };
     }));
@@ -216,7 +202,7 @@ const CreatePage: React.FC = () => {
   };
 
   const validateRequired = (): string | null => {
-    if (!namesInput.trim()) return 'Необходимо указать хотя бы одно имя.';
+    if (!namesInput.trim()) return 'At least one name must be specified';
     return null;
   };
 
@@ -309,24 +295,14 @@ const CreatePage: React.FC = () => {
     let requestBody: any = { ...common };
     if (Object.keys(attributes).length) requestBody.attributes = attributes;
 
-    // Формируем relations с outgoing и incoming
+    // Формируем relations
     const outgoingRelationsObj: Record<string, any[]> = {};
     outgoingGroups.forEach(group => {
       if (group.relationType && group.items.length) {
         outgoingRelationsObj[group.relationType] = group.items.map(item => {
-          let props = item.properties;
-          // Если есть временная строка, пытаемся её распарсить
-          if (item.propertiesString !== undefined) {
-            try {
-              props = JSON.parse(item.propertiesString);
-            } catch (e) {
-              console.warn('Invalid JSON for properties, using empty object');
-              props = {};
-            }
-          }
           return {
             slug: item.target?.slug || '',
-            properties: props,
+            properties: {},
           };
         });
       }
@@ -335,17 +311,9 @@ const CreatePage: React.FC = () => {
     incomingGroups.forEach(group => {
       if (group.relationType && group.items.length) {
         incomingRelationsObj[group.relationType] = group.items.map(item => {
-          let props = item.properties;
-          if (item.propertiesString !== undefined) {
-            try {
-              props = JSON.parse(item.propertiesString);
-            } catch (e) {
-              props = {};
-            }
-          }
           return {
             slug: item.from?.slug || '',
-            properties: props,
+            properties: {},
           };
         });
       }
@@ -366,7 +334,7 @@ const CreatePage: React.FC = () => {
     } catch (err: any) {
       console.error('Creation failed:', err);
       const serverError = err.response?.data;
-      let errorMessage = 'Ошибка создания.';
+      let errorMessage = 'Creation failed';
       if (serverError?.error?.message) {
         errorMessage = serverError.error.message;
       } else if (serverError?.message) {
@@ -383,91 +351,91 @@ const CreatePage: React.FC = () => {
       case 'character':
         return (
           <section key="attributes">
-            <h2>Атрибуты персонажа</h2>
-            <div className="attribute-row"><label>Пол</label><select value={gender} onChange={e=>setGender(e.target.value)}><option value="unknown">Не указано</option><option value="male">Мужской</option><option value="female">Женский</option></select></div>
-            <div className="attribute-row"><label>Дата рождения</label><input value={birth_date} onChange={e=>setBirth_date(e.target.value)} /></div>
-            <div className="attribute-row"><label>Дата смерти</label><input value={death_date} onChange={e=>setDeath_date(e.target.value)} /></div>
-            <div className="attribute-row"><label>Волосы</label><input value={hair} onChange={e=>setHair(e.target.value)} /></div>
-            <div className="attribute-row"><label>Глаза</label><input value={eyes} onChange={e=>setEyes(e.target.value)} /></div>
-            <div className="attribute-row"><label>Рост</label><input value={height} onChange={e=>setHeight(e.target.value)} /></div>
-            <div className="attribute-row"><label>Оружие</label><input value={weapon} onChange={e=>setWeapon(e.target.value)} /></div>
-            <div className="attribute-row"><label>Одежда</label><input value={clothing} onChange={e=>setClothing(e.target.value)} /></div>
-            <div className="attribute-row"><label>Чем известен</label><input value={notable_for} onChange={e=>setNotable_for(e.target.value)} /></div>
-            <div className="attribute-row"><label>Титулы (через запятую)</label><input value={titlesInput} onChange={e=>setTitlesInput(e.target.value)} placeholder="King, Hero" /></div>
+            <h2>Character attributes</h2>
+            <div className="attribute-row"><label>Gender</label><select value={gender} onChange={e=>setGender(e.target.value)}><option value="unknown">unknown</option><option value="male">male</option><option value="female">female</option></select></div>
+            <div className="attribute-row"><label>Birth date</label><input value={birth_date} onChange={e=>setBirth_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Death date</label><input value={death_date} onChange={e=>setDeath_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Hair</label><input value={hair} onChange={e=>setHair(e.target.value)} /></div>
+            <div className="attribute-row"><label>Eyes</label><input value={eyes} onChange={e=>setEyes(e.target.value)} /></div>
+            <div className="attribute-row"><label>Height</label><input value={height} onChange={e=>setHeight(e.target.value)} /></div>
+            <div className="attribute-row"><label>Weapon</label><input value={weapon} onChange={e=>setWeapon(e.target.value)} /></div>
+            <div className="attribute-row"><label>Clothing</label><input value={clothing} onChange={e=>setClothing(e.target.value)} /></div>
+            <div className="attribute-row"><label>Notable for</label><input value={notable_for} onChange={e=>setNotable_for(e.target.value)} /></div>
+            <div className="attribute-row"><label>Titles (separated by commas)</label><input value={titlesInput} onChange={e=>setTitlesInput(e.target.value)} placeholder="King, Hero" /></div>
           </section>
         );
       case 'location':
         return (
           <section key="attributes">
-            <h2>Атрибуты локации</h2>
-            <div className="attribute-row"><label>Тип локации</label><input value={location_type} onChange={e=>setLocation_type(e.target.value)} /></div>
-            <div className="attribute-row"><label>Население</label><input value={population} onChange={e=>setPopulation(e.target.value)} /></div>
-            <div className="attribute-row"><label>Дата создания</label><input value={creation_date} onChange={e=>setCreation_date(e.target.value)} /></div>
-            <div className="attribute-row"><label>Дата разрушения</label><input value={destruction_date} onChange={e=>setDestruction_date(e.target.value)} /></div>
-            <div className="attribute-row"><label>Чем известна</label><input value={locationnotable_for} onChange={e=>setLocationnotable_for(e.target.value)} /></div>
+            <h2>Location attributes</h2>
+            <div className="attribute-row"><label>Location type</label><input value={location_type} onChange={e=>setLocation_type(e.target.value)} /></div>
+            <div className="attribute-row"><label>Population</label><input value={population} onChange={e=>setPopulation(e.target.value)} /></div>
+            <div className="attribute-row"><label>Creation date</label><input value={creation_date} onChange={e=>setCreation_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Destruction date</label><input value={destruction_date} onChange={e=>setDestruction_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Notable for</label><input value={locationnotable_for} onChange={e=>setLocationnotable_for(e.target.value)} /></div>
           </section>
         );
       case 'event':
         return (
           <section key="attributes">
-            <h2>Атрибуты события</h2>
-            <div className="attribute-row"><label>Тип события</label><input value={event_type} onChange={e=>setEvent_type(e.target.value)} /></div>
-            <div className="attribute-row"><label>Дата начала</label><input value={start_date} onChange={e=>setStart_date(e.target.value)} /></div>
-            <div className="attribute-row"><label>Дата конца</label><input value={end_date} onChange={e=>setEnd_date(e.target.value)} /></div>
-            <div className="attribute-row"><label>Потери</label><input value={casualties} onChange={e=>setCasualties(e.target.value)} /></div>
-            <div className="attribute-row"><label>Чем известно</label><input value={eventnotable_for} onChange={e=>setEventnotable_for(e.target.value)} /></div>
+            <h2>Event attributes</h2>
+            <div className="attribute-row"><label>Event type</label><input value={event_type} onChange={e=>setEvent_type(e.target.value)} /></div>
+            <div className="attribute-row"><label>Start date</label><input value={start_date} onChange={e=>setStart_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>End date</label><input value={end_date} onChange={e=>setEnd_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Casualties</label><input value={casualties} onChange={e=>setCasualties(e.target.value)} /></div>
+            <div className="attribute-row"><label>Notable for</label><input value={eventnotable_for} onChange={e=>setEventnotable_for(e.target.value)} /></div>
           </section>
         );
       case 'item':
         return (
           <section key="attributes">
-            <h2>Атрибуты предмета</h2>
-            <div className="attribute-row"><label>Тип предмета</label><input value={item_type} onChange={e=>setItem_type(e.target.value)} /></div>
-            <div className="attribute-row"><label>Материал</label><input value={material} onChange={e=>setMaterial(e.target.value)} /></div>
-            <div className="attribute-row"><label>Чем известен</label><input value={itemnotable_for} onChange={e=>setItemnotable_for(e.target.value)} /></div>
+            <h2>Item attributes</h2>
+            <div className="attribute-row"><label>Item type</label><input value={item_type} onChange={e=>setItem_type(e.target.value)} /></div>
+            <div className="attribute-row"><label>Material</label><input value={material} onChange={e=>setMaterial(e.target.value)} /></div>
+            <div className="attribute-row"><label>Notable for</label><input value={itemnotable_for} onChange={e=>setItemnotable_for(e.target.value)} /></div>
           </section>
         );
       case 'race':
         return (
           <section key="attributes">
-            <h2>Атрибуты расы</h2>
-            <div className="attribute-row"><label>Отличительные черты</label><input value={distinctions} onChange={e=>setDistinctions(e.target.value)} /></div>
-            <div className="attribute-row"><label>Продолжительность жизни</label><input value={lifespan} onChange={e=>setLifespan(e.target.value)} /></div>
-            <div className="attribute-row"><label>Средний рост</label><input value={avg_height} onChange={e=>setAvg_height(e.target.value)} /></div>
-            <div className="attribute-row"><label>Волосы</label><input value={raceHair} onChange={e=>setRaceHair(e.target.value)} /></div>
-            <div className="attribute-row"><label>Глаза</label><input value={raceEyes} onChange={e=>setRaceEyes(e.target.value)} /></div>
-            <div className="attribute-row"><label>Кожа</label><input value={skin} onChange={e=>setSkin(e.target.value)} /></div>
-            <div className="attribute-row"><label>Оружие</label><input value={weaponry} onChange={e=>setWeaponry(e.target.value)} /></div>
-            <div className="attribute-row"><label>Одежда</label><input value={raceClothing} onChange={e=>setRaceClothing(e.target.value)} /></div>
+            <h2>Race attributes</h2>
+            <div className="attribute-row"><label>Distinctions</label><input value={distinctions} onChange={e=>setDistinctions(e.target.value)} /></div>
+            <div className="attribute-row"><label>Lifespan</label><input value={lifespan} onChange={e=>setLifespan(e.target.value)} /></div>
+            <div className="attribute-row"><label>Average height</label><input value={avg_height} onChange={e=>setAvg_height(e.target.value)} /></div>
+            <div className="attribute-row"><label>Hair</label><input value={raceHair} onChange={e=>setRaceHair(e.target.value)} /></div>
+            <div className="attribute-row"><label>Eyes</label><input value={raceEyes} onChange={e=>setRaceEyes(e.target.value)} /></div>
+            <div className="attribute-row"><label>Skin</label><input value={skin} onChange={e=>setSkin(e.target.value)} /></div>
+            <div className="attribute-row"><label>Weaponry</label><input value={weaponry} onChange={e=>setWeaponry(e.target.value)} /></div>
+            <div className="attribute-row"><label>Clothing</label><input value={raceClothing} onChange={e=>setRaceClothing(e.target.value)} /></div>
           </section>
         );
       case 'organization':
         return (
           <section key="attributes">
-            <h2>Атрибуты организации</h2>
-            <div className="attribute-row"><label>Тип организации</label><input value={organization_type} onChange={e=>setorganization_type(e.target.value)} /></div>
-            <div className="attribute-row"><label>Дата основания</label><input value={founded_date} onChange={e=>setFounded_date(e.target.value)} /></div>
-            <div className="attribute-row"><label>Дата роспуска</label><input value={dissolved_date} onChange={e=>setDissolved_date(e.target.value)} /></div>
-            <div className="attribute-row"><label>Одежда</label><input value={orgClothing} onChange={e=>setOrgClothing(e.target.value)} /></div>
-            <div className="attribute-row"><label>Оружие</label><input value={orgWeaponry} onChange={e=>setOrgWeaponry(e.target.value)} /></div>
-            <div className="attribute-row"><label>Цель</label><input value={purpose} onChange={e=>setPurpose(e.target.value)} /></div>
-            <div className="attribute-row"><label>Чем известна</label><input value={orgnotable_for} onChange={e=>setOrgnotable_for(e.target.value)} /></div>
+            <h2>Organization attributes</h2>
+            <div className="attribute-row"><label>Organization type</label><input value={organization_type} onChange={e=>setorganization_type(e.target.value)} /></div>
+            <div className="attribute-row"><label>Founded date</label><input value={founded_date} onChange={e=>setFounded_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Dissolved date</label><input value={dissolved_date} onChange={e=>setDissolved_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>Clothing</label><input value={orgClothing} onChange={e=>setOrgClothing(e.target.value)} /></div>
+            <div className="attribute-row"><label>Weaponry</label><input value={orgWeaponry} onChange={e=>setOrgWeaponry(e.target.value)} /></div>
+            <div className="attribute-row"><label>Purpose</label><input value={purpose} onChange={e=>setPurpose(e.target.value)} /></div>
+            <div className="attribute-row"><label>Notable for</label><input value={orgnotable_for} onChange={e=>setOrgnotable_for(e.target.value)} /></div>
           </section>
         );
       case 'language':
         return (
           <section key="attributes">
-            <h2>Атрибуты языка</h2>
-            <div className="attribute-row"><label>Семья</label><input value={family} onChange={e=>setFamily(e.target.value)} /></div>
+            <h2>Language attributes</h2>
+            <div className="attribute-row"><label>Family</label><input value={family} onChange={e=>setFamily(e.target.value)} /></div>
           </section>
         );
       case 'timeline':
         return (
           <section key="attributes">
-            <h2>Атрибуты хронологии</h2>
-            <div className="attribute-row"><label>Аббревиатура</label><input value={abbreviation} onChange={e=>setAbbreviation(e.target.value)} /></div>
-            <div className="attribute-row"><label>Дата начала</label><input value={timelineStart_date} onChange={e=>setTimelineStart_date(e.target.value)} /></div>
-            <div className="attribute-row"><label>Дата конца</label><input value={timelineEnd_date} onChange={e=>setTimelineEnd_date(e.target.value)} /></div>
+            <h2>Timeline attributes</h2>
+            <div className="attribute-row"><label>abbreviation</label><input value={abbreviation} onChange={e=>setAbbreviation(e.target.value)} /></div>
+            <div className="attribute-row"><label>Start date</label><input value={timelineStart_date} onChange={e=>setTimelineStart_date(e.target.value)} /></div>
+            <div className="attribute-row"><label>End date</label><input value={timelineEnd_date} onChange={e=>setTimelineEnd_date(e.target.value)} /></div>
           </section>
         );
       default:
@@ -477,15 +445,15 @@ const CreatePage: React.FC = () => {
 
   return (
     <div className="edit-page">
-      <h1>Создание новой сущности: {type}</h1>
+      <h1>Creating a new entity: {type}</h1>
       <form onSubmit={handleSubmit}>
         <section className="basic-info">
-          <h2>Основная информация</h2>
-          <label>Имена (через запятую) *</label>
+          <h2>Basic info</h2>
+          <label>Names (separated by commas)*</label>
           <input type="text" value={namesInput} onChange={e => setNamesInput(e.target.value)} required />
-          <label>Изображение (URL)</label>
+          <label>Image (URL)</label>
           <input value={image_url} onChange={e => setimage_url(e.target.value)} />
-          <label>Описание</label>
+          <label>Description</label>
           <textarea rows={10} value={description} onChange={e => setDescription(e.target.value)} />
         </section>
 
@@ -493,22 +461,22 @@ const CreatePage: React.FC = () => {
 
         {/* Исходящие связи */}
         <section>
-          <h2>Исходящие связи</h2>
+          <h2>Outgoing relations</h2>
           {outgoingGroups.map((group, gIdx) => (
             <div key={gIdx} className="relation-group">
               <div className="relation-group-header">
-                <label>Тип связи:</label>
+                <label>Relation type:</label>
                 <input
                   value={group.relationType ?? ''}
                   onChange={e => updateOutgoingGroupType(gIdx, e.target.value)}
-                  placeholder="например, friend_of"
+                  placeholder="for example, friend_of"
                 />
-                <button type="button" onClick={() => removeOutgoingGroup(gIdx)}>Удалить группу</button>
+                <button type="button" onClick={() => removeOutgoingGroup(gIdx)}>Delete group</button>
               </div>
               {group.items.map((item, iIdx) => (
                 <div key={iIdx} className="relation-item">
                   <div className="relation-field">
-                    <label>slug цели:</label>
+                    <label>target slug:</label>
                     <input
                       value={item.target?.slug ?? ''}
                       onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.slug', e.target.value)}
@@ -516,7 +484,7 @@ const CreatePage: React.FC = () => {
                     />
                   </div>
                   <div className="relation-field">
-                    <label>type цели:</label>
+                    <label>target type:</label>
                     <input
                       value={item.target?.type ?? ''}
                       onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.type', e.target.value)}
@@ -524,37 +492,28 @@ const CreatePage: React.FC = () => {
                     />
                   </div>
                   <div className="relation-field">
-                    <label>name цели:</label>
+                    <label>target name:</label>
                     <input
                       value={item.target?.name ?? ''}
                       onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.name', e.target.value)}
-                      placeholder="Отображаемое имя"
+                      placeholder="name"
                     />
                   </div>
                   <div className="relation-field">
-                    <label>image_url цели:</label>
+                    <label>target image_url:</label>
                     <input
                       value={item.target?.image_url ?? ''}
                       onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.image_url', e.target.value)}
-                      placeholder="URL изображения"
+                      placeholder="image URL"
                     />
                   </div>
-                  <div className="relation-field">
-                    <label>Свойства (JSON):</label>
-                    <textarea
-                      rows={2}
-                      value={item.propertiesString !== undefined ? item.propertiesString : JSON.stringify(item.properties, null, 2)}
-                      onChange={e => updateOutgoingItem(gIdx, iIdx, 'properties', e.target.value)}
-                      placeholder='{"ключ": "значение"}'
-                    />
-                  </div>
-                  <button type="button" onClick={() => removeOutgoingItem(gIdx, iIdx)}>Удалить связь</button>
+                  <button type="button" onClick={() => removeOutgoingItem(gIdx, iIdx)}>Delete realtion</button>
                 </div>
               ))}
-              <button type="button" onClick={() => addOutgoingItem(gIdx)}>+ Добавить связь этого типа</button>
+              <button type="button" onClick={() => addOutgoingItem(gIdx)}>+ Add relationship of this type</button>
             </div>
           ))}
-          <button type="button" onClick={() => setShowAddOutgoingForm(true)}>+ Добавить новую исходящую связь</button>
+          <button type="button" onClick={() => setShowAddOutgoingForm(true)}>+ Add new outgoing relation</button>
           {showAddOutgoingForm && (
             <AddRelationForm
               direction="outgoing"
@@ -567,22 +526,22 @@ const CreatePage: React.FC = () => {
 
         {/* Входящие связи */}
         <section>
-          <h2>Входящие связи</h2>
+          <h2>Incoming relations</h2>
           {incomingGroups.map((group, gIdx) => (
             <div key={gIdx} className="relation-group">
               <div className="relation-group-header">
-                <label>Тип связи:</label>
+                <label>Relation type:</label>
                 <input
                   value={group.relationType ?? ''}
                   onChange={e => updateIncomingGroupType(gIdx, e.target.value)}
-                  placeholder="например, member_of"
+                  placeholder="for example, member_of"
                 />
-                <button type="button" onClick={() => removeIncomingGroup(gIdx)}>Удалить группу</button>
+                <button type="button" onClick={() => removeIncomingGroup(gIdx)}>Delete group</button>
               </div>
               {group.items.map((item, iIdx) => (
                 <div key={iIdx} className="relation-item">
                   <div className="relation-field">
-                    <label>slug источника:</label>
+                    <label>source slug:</label>
                     <input
                       value={item.from?.slug ?? ''}
                       onChange={e => updateIncomingItem(gIdx, iIdx, 'from.slug', e.target.value)}
@@ -590,7 +549,7 @@ const CreatePage: React.FC = () => {
                     />
                   </div>
                   <div className="relation-field">
-                    <label>type источника:</label>
+                    <label>source type:</label>
                     <input
                       value={item.from?.type ?? ''}
                       onChange={e => updateIncomingItem(gIdx, iIdx, 'from.type', e.target.value)}
@@ -598,37 +557,28 @@ const CreatePage: React.FC = () => {
                     />
                   </div>
                   <div className="relation-field">
-                    <label>name источника:</label>
+                    <label>source name:</label>
                     <input
                       value={item.from?.name ?? ''}
                       onChange={e => updateIncomingItem(gIdx, iIdx, 'from.name', e.target.value)}
-                      placeholder="Отображаемое имя"
+                      placeholder="name"
                     />
                   </div>
                   <div className="relation-field">
-                    <label>image_url источника:</label>
+                    <label>source image_url:</label>
                     <input
                       value={item.from?.image_url ?? ''}
                       onChange={e => updateIncomingItem(gIdx, iIdx, 'from.image_url', e.target.value)}
-                      placeholder="URL изображения"
+                      placeholder="image URL"
                     />
                   </div>
-                  <div className="relation-field">
-                    <label>Свойства (JSON):</label>
-                    <textarea
-                      rows={2}
-                      value={item.propertiesString !== undefined ? item.propertiesString : JSON.stringify(item.properties, null, 2)}
-                      onChange={e => updateIncomingItem(gIdx, iIdx, 'properties', e.target.value)}
-                      placeholder='{"роль": "участник"}'
-                    />
-                  </div>
-                  <button type="button" onClick={() => removeIncomingItem(gIdx, iIdx)}>Удалить связь</button>
+                  <button type="button" onClick={() => removeIncomingItem(gIdx, iIdx)}>Delete relation</button>
                 </div>
               ))}
-              <button type="button" onClick={() => addIncomingItem(gIdx)}>+ Добавить связь этого типа</button>
+              <button type="button" onClick={() => addIncomingItem(gIdx)}>+ Add relationship of this type</button>
             </div>
           ))}
-          <button type="button" onClick={() => setShowAddIncomingForm(true)}>+ Добавить новую входящую связь</button>
+          <button type="button" onClick={() => setShowAddIncomingForm(true)}>+ Add new incoming relation</button>
           {showAddIncomingForm && (
             <AddRelationForm
               direction="incoming"
@@ -641,9 +591,9 @@ const CreatePage: React.FC = () => {
 
         <div className="edit-actions">
           <button type="submit" disabled={createMutation.isPending}>
-            {createMutation.isPending ? 'Создание...' : 'Создать'}
+            {createMutation.isPending ? 'Creating...' : 'Create'}
           </button>
-          <button type="button" onClick={() => navigate(`/${type}s`)}>Отмена</button>
+          <button type="button" onClick={() => navigate(`/${type}s`)}>Cancel</button>
         </div>
       </form>
     </div>

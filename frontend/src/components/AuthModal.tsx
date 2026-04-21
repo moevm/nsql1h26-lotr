@@ -19,7 +19,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!username || !password) {
-      setError('Заполните все поля');
+      setError('Fill in all fields');
       return;
     }
     const success = await login(username, password);
@@ -27,18 +27,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       onClose();
       onSuccess?.();
     } else {
-      setError('Неверное имя пользователя или пароль');
+      setError('Invalid username or password');
     }
   };
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!username || !email || !password || !confirmPassword) {
-      setError('Заполните все поля');
+      setError('Fill in all fields');
       return;
     }
     if (password !== confirmPassword) {
-      setError('Пароли не совпадают');
+      setError('Passwords do not match');
       return;
     }
     const success = await register(username, email, password);
@@ -46,7 +46,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       onClose();
       onSuccess?.();
     } else {
-      setError('Пользователь с таким именем уже существует');
+      setError('User with this username already exists');
     }
   };
 
@@ -57,12 +57,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
           <button className="modal-close-btn" onClick={onClose}>
             <IoClose size="24px" />
           </button>
-          <h2>{isLoginMode ? 'Вход' : 'Регистрация'}</h2>
+          <h2>{isLoginMode ? 'Login' : 'Registration'}</h2>
         </div>
 
         <form onSubmit={isLoginMode ? handleLogin : handleRegister}>
           <div className="modal-body">
-            <label>Имя пользователя</label>
+            <label>Username</label>
             <input
               type="text"
               value={username}
@@ -82,7 +82,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
               </>
             )}
 
-            <label>Пароль</label>
+            <label>Password</label>
             <input
               type="password"
               value={password}
@@ -92,7 +92,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
 
             {!isLoginMode && (
               <>
-                <label>Подтверждение пароля</label>
+                <label>Confirm password</label>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -114,7 +114,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
                 setError('');
               }}
             >
-              {isLoginMode ? 'Register' : 'Back to login'}
+              {isLoginMode ? 'Register' : 'Back to Login'}
             </button>
             <button type="submit" className="register-btn">
               {isLoginMode ? 'Log in' : 'Register'}

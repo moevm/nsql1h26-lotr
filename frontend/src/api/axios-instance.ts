@@ -7,7 +7,7 @@ export const axiosInstance = axios.create({
 
 // Интерсептор запроса: добавляем токен
 axiosInstance.interceptors.request.use((config) => {
-  if (config.url && !config.url.endsWith('/')) {
+  if (config.method !== 'get' && config.url && !config.url.endsWith('/')) {
     config.url += '/';
   }
   const token = localStorage.getItem('access_token');

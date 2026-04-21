@@ -4,7 +4,7 @@ import { useDebounce } from '../hooks/useDebounce';
 interface AddRelationFormProps {
   direction: 'outgoing' | 'incoming';
   onAdd: (relationType: string, relation: any) => void;
-  currentEntityType: string; // тип редактируемой сущности
+  currentEntityType: string;
   onCancel: () => void;
 }
 
@@ -19,18 +19,20 @@ const AddRelationForm: React.FC<AddRelationFormProps> = ({ direction, onAdd, cur
   const [isLoading, setIsLoading] = useState(false);
   const debouncedQuery = useDebounce(searchQuery, 300);
 
-  // Загрузка метаданных
   useEffect(() => {
     fetch('/api/v1/meta/node-types').then(r => r.json()).then(setNodeTypes);
     fetch('/api/v1/meta/relation-types').then(r => r.json()).then(setRelationTypes);
   }, []);
 
-  // Фильтрация доступных типов связей
-  const availableRelationTypes = relationTypes.filter(rel =>
-    rel.from.includes(currentEntityType) && rel.to.includes(selectedTargetType)
-  );
+  // Фильтрация типов связей в зависимости от направления
+  const availableRelationTypes = relationTypes.filter(rel => {
+    if (direction === 'outgoing') {
+      return rel.from.includes(currentEntityType) && rel.to.includes(selectedTargetType);
+    } else {
+      return rel.from.includes(selectedTargetType) && rel.to.includes(currentEntityType);
+    }
+  });
 
-  // Поиск целевых сущностей
   useEffect(() => {
     if (!debouncedQuery || debouncedQuery.length < 2 || !selectedTargetType) {
       setSearchResults([]);
@@ -61,33 +63,33 @@ const AddRelationForm: React.FC<AddRelationFormProps> = ({ direction, onAdd, cur
 
   return (
     <div className="add-relation-form">
-      <h4>Добавить {direction === 'outgoing' ? 'исходящую' : 'входящую'} связь</h4>
+      <h4>Add {direction === 'outgoing' ? 'outgoing' : 'incoming'} relation</h4>
       <div>
-        <label>Тип целевой сущности:</label>
+        <label>Target entity type:</label>
         <select value={selectedTargetType} onChange={e => setSelectedTargetType(e.target.value)}>
-          <option value="">Выберите...</option>
+          <option value="">Select...</option>
           {nodeTypes.map(nt => <option key={nt.type} value={nt.type}>{nt.label}</option>)}
         </select>
       </div>
       {selectedTargetType && (
         <div>
-          <label>Тип связи:</label>
+          <label>Relation type:</label>
           <select value={selectedRelationType} onChange={e => setSelectedRelationType(e.target.value)}>
-            <option value="">Выберите...</option>
+            <option value="">Select...</option>
             {availableRelationTypes.map(rel => <option key={rel.type} value={rel.type}>{rel.label}</option>)}
           </select>
         </div>
       )}
       {selectedRelationType && (
         <div>
-          <label>Поиск сущности:</label>
+          <label>Entity search:</label>
           <input
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Введите имя..."
+            placeholder="Enter name..."
           />
-          {isLoading && <div>Загрузка...</div>}
+          {isLoading && <div>Loading...</div>}
           {searchResults.length > 0 && (
             <ul className="search-results">
               {searchResults.map(res => (
@@ -97,12 +99,14 @@ const AddRelationForm: React.FC<AddRelationFormProps> = ({ direction, onAdd, cur
               ))}
             </ul>
           )}
-          {selectedTarget && <div>Выбрано: {selectedTarget.name}</div>}
+          {selectedTarget && <div>Selected: {selectedTarget.name}</div>}
         </div>
       )}
       <div className="form-actions">
-        <button type="button" onClick={handleSubmit} disabled={!selectedTarget || selectedTargetType != selectedTarget.type}>Добавить</button>
-        <button type="button" onClick={onCancel}>Отмена</button>
+        <button type="button" onClick={handleSubmit} disabled={!selectedTarget || selectedTargetType !== selectedTarget.type}>
+          Add
+        </button>
+        <button type="button" onClick={onCancel}>Cancel</button>
       </div>
     </div>
   );
