@@ -59,6 +59,12 @@ class _RelationDirectionField(serializers.DictField):
             "OWNS": []
         }
 
+    Value semantics (after deserialization):
+        None / field absent -> "do not touch this direction" (no-op)
+        {} (explicit empty dict) -> "delete ALL edges in this direction"
+        {"MEMBER_OF": [...]} -> "replace MEMBER_OF edges; others unchanged"
+        {"MEMBER_OF": []} -> "delete all MEMBER_OF edges; others unchanged"
+
     Keys are relationship type strings,
     values are lists of RelationItemSerializer.
     An empty list means "delete all edges of this type in this direction".
@@ -66,7 +72,19 @@ class _RelationDirectionField(serializers.DictField):
 #   because it depends on the entity type and we want one error format.
     '''
 
+    def __init__(self, **kwargs: object) -> None:
+        # allow_null=True so that an explicit JSON null means "no-op" (same as
+        # omitting the field).  The default=None lets us distinguish "user sent
+        # outgoing: {}" (empty dict -> delete all) from "user omitted outgoing"
+        # (None -> no-op).
+        kwargs.setdefault('allow_null', True)
+        kwargs.setdefault('default', None)
+        super().__init__(**kwargs)  # type: ignore
+
     def to_internal_value(self, data: dict) -> dict:
+        # if data is None:
+        #     return None  # type: ignore[return-value]
+
         if not isinstance(data, dict):
             raise serializers.ValidationError('Must be an object.')
 
@@ -103,8 +121,8 @@ class PageRelationsSerializer(serializers.Serializer):
     ({slug, type, name, imageUrl}) are replaced by plain {"slug": "..."} -
     the backend only needs the slug to identify the other node.
     '''
-    outgoing = _RelationDirectionField(required=False, default=dict)
-    incoming = _RelationDirectionField(required=False, default=dict)
+    outgoing = _RelationDirectionField(required=False)
+    incoming = _RelationDirectionField(required=False)
 
 
 class PageUpdateSerializer(serializers.Serializer):
