@@ -12,7 +12,7 @@ const ProfilePage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const { refetch, isLoading: refetchLoading } = useGetMe({
+  const { refetch } = useGetMe({
     query: { enabled: false }
   });
 
@@ -52,7 +52,7 @@ const ProfilePage: React.FC = () => {
       {/* Левая колонка – карточка профиля */}
       <div className="profile-card-left">
         <div className="profile-avatar">
-          <img src={user.avatarUrl || '/images/default-avatar.png'} alt="Avatar" />
+          <img src={user.avatar_url || '/images/default-avatar.png'} alt="Avatar" />
         </div>
         <div className="profile-username">{user.username}</div>
         <div className="profile-role">Role: {roleText}</div>

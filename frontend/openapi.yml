@@ -140,7 +140,7 @@ components:
         - username
         - email
         - role
-        - createdAt
+        - created_at
       properties:
         username:
           type: string
@@ -152,11 +152,11 @@ components:
           enum:
             - viewer
             - admin
-        avatarUrl:
+        avatar_url:
           type: string
           nullable: true
           format: uri
-        createdAt:
+        created_at:
           type: string
           format: date-time
     Tokens:
@@ -233,7 +233,7 @@ components:
         email:
           type: string
           format: email
-        avatarUrl:
+        avatar_url:
           type: string
           format: uri
         password:
@@ -256,7 +256,7 @@ components:
           description: Page type (character, race, location, ...)
         name:
           type: string
-        imageUrl:
+        image_url:
           type: string
           nullable: true
     Article:
@@ -264,13 +264,13 @@ components:
       properties:
         text:
           type: string
-        imageUrl:
+        image_url:
           type: string
           nullable: true
-        createdAt:
+        created_at:
           type: string
           format: date-time
-        updatedAt:
+        updated_at:
           type: string
           format: date-time
     CategorySummary:
@@ -296,7 +296,7 @@ components:
           type: string
         name:
           type: string
-        imageUrl:
+        image_url:
           type: string
           nullable: true
     RelationItem:
@@ -312,7 +312,7 @@ components:
           additionalProperties: true
           description: |
             Edge properties. See GET /meta/relation-types/ for allowed fields per relation type.
-            Example for MEMBER_OF: { "role": "string", "fromDate": "string", "toDate": "string" }
+            Example for MEMBER_OF: { "role": "string", "from_date": "string", "to_date": "string" }
     Relations:
       type: object
       properties:
@@ -352,10 +352,10 @@ components:
             - male
             - female
             - unknown
-        birthDate:
+        birth_date:
           type: string
           nullable: true
-        deathDate:
+        death_date:
           type: string
           nullable: true
         hair:
@@ -373,7 +373,7 @@ components:
         clothing:
           type: string
           nullable: true
-        notableFor:
+        notable_for:
           type: string
           nullable: true
       description: Character page-specific attributes.
@@ -383,7 +383,7 @@ components:
         lifespan:
           type: string
           nullable: true
-        avgHeight:
+        avg_height:
           type: string
           nullable: true
         hair:
@@ -408,51 +408,51 @@ components:
     LocationAttributes:
       type: object
       properties:
-        locationType:
+        entity_type:
           type: string
           nullable: true
         population:
           type: string
           nullable: true
-        creationDate:
+        creation_date:
           type: string
           nullable: true
-        destructionDate:
+        destruction_date:
           type: string
           nullable: true
-        notableFor:
+        notable_for:
           type: string
           nullable: true
       description: Location page-specific attributes.
     EventAttributes:
       type: object
       properties:
-        eventType:
+        entity_type:
           type: string
           nullable: true
-        startDate:
+        start_date:
           type: string
           nullable: true
-        endDate:
+        end_date:
           type: string
           nullable: true
         casualties:
           type: string
           nullable: true
-        notableFor:
+        notable_for:
           type: string
           nullable: true
       description: Event page-specific attributes.
     OrganizationAttributes:
       type: object
       properties:
-        organizationType:
+        entity_type:
           type: string
           nullable: true
-        foundedDate:
+        founded_date:
           type: string
           nullable: true
-        dissolvedDate:
+        dissolved_date:
           type: string
           nullable: true
         purpose:
@@ -464,7 +464,7 @@ components:
         clothing:
           type: string
           nullable: true
-        notableFor:
+        notable_for:
           type: string
           nullable: true
       description: Organization page-specific attributes.
@@ -473,23 +473,23 @@ components:
       properties:
         abbreviation:
           type: string
-        startDate:
+        start_date:
           type: string
           nullable: true
-        endDate:
+        end_date:
           type: string
           nullable: true
       description: Timeline page-specific attributes.
     ItemAttributes:
       type: object
       properties:
-        itemType:
+        entity_type:
           type: string
           nullable: true
         material:
           type: string
           nullable: true
-        notableFor:
+        notable_for:
           type: string
           nullable: true
       description: Item page-specific attributes.
@@ -513,9 +513,9 @@ components:
         - article
         - relations
         - categories
-        - likesCount
-        - commentsCount
-        - isLiked
+        - likes_count
+        - comments_count
+        - is_liked
       properties:
         slug:
           type: string
@@ -533,13 +533,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CategorySummary"
-        likesCount:
+        likes_count:
           type: integer
-        isLiked:
+        is_liked:
           type: boolean
           nullable: true
           description: null for unauthenticated users
-        commentsCount:
+        comments_count:
           type: integer
     CharacterPage:
       allOf:
@@ -682,7 +682,7 @@ components:
           properties:
             text:
               type: string
-            imageUrl:
+            image_url:
               type: string
         categories:
           type: array
@@ -742,12 +742,12 @@ components:
               type: string
               enum:
                 - character
-            notableFor:
+            notable_for:
               type: string
               nullable: true
             gender:
               type: string
-            birthDate:
+            birth_date:
               type: string
               nullable: true
             race:
@@ -768,7 +768,7 @@ components:
             lifespan:
               type: string
               nullable: true
-            avgHeight:
+            avg_height:
               type: string
               nullable: true
       description: Race catalog list item.
@@ -781,13 +781,13 @@ components:
               type: string
               enum:
                 - location
-            locationType:
+            entity_type:
               type: string
               nullable: true
-            notableFor:
+            notable_for:
               type: string
               nullable: true
-            creationDate:
+            creation_date:
               type: string
               nullable: true
       description: Location catalog list item.
@@ -800,13 +800,13 @@ components:
               type: string
               enum:
                 - event
-            eventType:
+            entity_type:
               type: string
               nullable: true
-            startDate:
+            start_date:
               type: string
               nullable: true
-            endDate:
+            end_date:
               type: string
               nullable: true
       description: Event catalog list item.
@@ -819,10 +819,10 @@ components:
               type: string
               enum:
                 - organization
-            organizationType:
+            entity_type:
               type: string
               nullable: true
-            foundedDate:
+            founded_date:
               type: string
               nullable: true
             purpose:
@@ -840,10 +840,10 @@ components:
                 - timeline
             abbreviation:
               type: string
-            startDate:
+            start_date:
               type: string
               nullable: true
-            endDate:
+            end_date:
               type: string
               nullable: true
       description: Timeline catalog list item.
@@ -856,13 +856,13 @@ components:
               type: string
               enum:
                 - item
-            itemType:
+            entity_type:
               type: string
               nullable: true
             material:
               type: string
               nullable: true
-            notableFor:
+            notable_for:
               type: string
               nullable: true
       description: Item catalog list item.
@@ -895,7 +895,7 @@ components:
         - id
         - text
         - author
-        - createdAt
+        - created_at
       properties:
         id:
           type: string
@@ -907,10 +907,10 @@ components:
           properties:
             username:
               type: string
-            avatarUrl:
+            avatar_url:
               type: string
               nullable: true
-        createdAt:
+        created_at:
           type: string
           format: date-time
     CommentRequest:
@@ -934,12 +934,12 @@ components:
         description:
           type: string
           nullable: true
-        parentSlug:
+        parent_slug:
           type: string
           nullable: true
-        childCount:
+        child_count:
           type: integer
-        pageCount:
+        page_count:
           type: integer
     CategoryDetail:
       allOf:
@@ -963,7 +963,7 @@ components:
                     type: string
                   name:
                     type: string
-                  pageCount:
+                  page_count:
                     type: integer
             pages:
               allOf:
@@ -989,7 +989,7 @@ components:
           type: string
         description:
           type: string
-        parentSlug:
+        parent_slug:
           type: string
     CategoryUpdateRequest:
       type: object
@@ -998,7 +998,7 @@ components:
           type: string
         description:
           type: string
-        parentSlug:
+        parent_slug:
           type: string
           nullable: true
     AdminUser:
@@ -1017,17 +1017,17 @@ components:
       type: object
       required:
         - username
-        - createdAt
+        - created_at
       properties:
         username:
           type: string
-        avatarUrl:
+        avatar_url:
           type: string
           nullable: true
-        createdAt:
+        created_at:
           type: string
           format: date-time
-        commentsCount:
+        comments_count:
           type: integer
         likedPages:
           type: array
@@ -1056,7 +1056,7 @@ components:
           type: string
         name:
           type: string
-        imageUrl:
+        image_url:
           type: string
           nullable: true
     GlobalStats:
@@ -1137,7 +1137,7 @@ components:
           type: string
         name:
           type: string
-        connectionsCount:
+        connections_count:
           type: integer
     NeighborsResponse:
       type: object
@@ -1162,13 +1162,13 @@ components:
         stats:
           type: object
           properties:
-            totalNeighbors:
+            total_neighbors:
               type: integer
-            byType:
+            by_type:
               type: object
               additionalProperties:
                 type: integer
-            byRelation:
+            by_relation:
               type: object
               additionalProperties:
                 type: integer
@@ -1191,7 +1191,7 @@ components:
             properties:
               node:
                 $ref: "#/components/schemas/PageSummary"
-              edgeToNext:
+              edge_to_next:
                 type: object
                 nullable: true
                 properties:
@@ -1202,11 +1202,11 @@ components:
     CustomAnalyticsData:
       type: object
       properties:
-        entityType:
+        entity_type:
           type: string
-        xAttr:
+        x_attr:
           type: string
-        yAttr:
+        y_attr:
           type: string
         agg:
           type: string
@@ -2024,12 +2024,12 @@ components:
     LikeStateResponse:
       type: object
       required:
-        - likesCount
-        - isLiked
+        - likes_count
+        - is_liked
       properties:
-        likesCount:
+        likes_count:
           type: integer
-        isLiked:
+        is_liked:
           type: boolean
     PageResponse:
       oneOf:
@@ -2059,14 +2059,14 @@ components:
       required:
         - slug
         - name
-        - pageCount
+        - page_count
         - children
       properties:
         slug:
           type: string
         name:
           type: string
-        pageCount:
+        page_count:
           type: integer
         children:
           type: array
@@ -2495,76 +2495,105 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
-          description: Substring match in names
+          description: |
+            Comma-separated list of values (OR). Substring match in any of the character's names.
+            Example: `?name=Frodo,Sam`
+        - name: titles
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list (OR). Substring match in any of the character's titles.
         - name: gender
           in: query
           schema:
             type: string
-            enum:
-              - male
-              - female
-              - unknown
-        - name: birth_date
-          in: query
-          schema:
-            type: string
-        - name: death_date
-          in: query
-          schema:
-            type: string
+          description: |
+            Comma-separated list (OR). Case-insensitive exact match.
+            Allowed values: `male`, `female`, `unknown`.
         - name: is_alive
           in: query
           schema:
             type: boolean
+          description: Single boolean. `true` for living characters (`deathDate` is null), `false` for deceased.
+        - name: birth_date
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list (OR). Substring match in `birthDate`.
+        - name: death_date
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list (OR). Substring match in `deathDate`.
         - name: hair
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `hair`.
         - name: eyes
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `eyes`.
         - name: height
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `height`.
         - name: weapon
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `weapon`.
         - name: clothing
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `clothing`.
         - name: notable_for
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `notableFor`.
         - name: race
           in: query
           schema:
             type: string
-            description: Race slug
+          description: |
+            Comma-separated list of race slugs (OR). Filters characters belonging to any of the given races
+            (via `OF_RACE` relationship).
         - name: organization
           in: query
           schema:
             type: string
-        - name: location
-          in: query
-          schema:
-            type: string
+          description: |
+            Comma-separated list of organization slugs (OR). Filters characters who are members of any of the given organizations
+            (via `MEMBER_OF`).
         - name: event
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of event slugs (OR). Filters characters who participated in any of the given events
+            (via `PARTICIPATED_IN`).
         - name: item
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of item slugs (OR). Filters characters connected to any of the given items
+            via `OWNS`, `WIELDS`, `BORE`, or `CRAFTED` relationships.
+        - name: location
+          in: query
+          schema:
+            type: string
+          description: |
+            Comma-separated list of location slugs (OR). Filters characters connected to any of the given locations
+            via `BORN_IN`, `DIED_IN`, or `DWELLED_IN`.
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -2593,60 +2622,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-                - gender
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                titles:
-                  type: array
-                  items:
-                    type: string
-                gender:
-                  type: string
-                  enum:
-                    - male
-                    - female
-                    - unknown
-                birthDate:
-                  type: string
-                deathDate:
-                  type: string
-                hair:
-                  type: string
-                eyes:
-                  type: string
-                height:
-                  type: string
-                weapon:
-                  type: string
-                clothing:
-                  type: string
-                notableFor:
-                  type: string
-                article:
-                  type: object
-                  properties:
-                    text:
-                      type: string
-                    imageUrl:
-                      type: string
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
-                  additionalProperties:
-                    type: array
-                    items:
-                      type: string
+              $ref: "#/components/schemas/CharacterPage"
       responses:
         "201":
           description: Character created
@@ -2667,42 +2643,58 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in any of the race's names.
         - name: lifespan
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `lifespan`.
         - name: avg_height
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `avgHeight`.
         - name: hair
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `hair`.
         - name: eyes
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `eyes`.
         - name: skin
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `skin`.
         - name: weaponry
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `weaponry`.
         - name: clothing
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `clothing`.
         - name: distinctions
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `distinctions`.
+        - name: location
+          in: query
+          schema:
+            type: string
+          description: |
+            Comma-separated list of location slugs (OR). Filters races that inhabit any of the given locations
+            (via `INHABITS` relationship).
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -2731,40 +2723,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                lifespan:
-                  type: string
-                avgHeight:
-                  type: string
-                hair:
-                  type: string
-                eyes:
-                  type: string
-                skin:
-                  type: string
-                weaponry:
-                  type: string
-                clothing:
-                  type: string
-                distinctions:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/RacePage"
       responses:
         "201":
           description: Race created
@@ -2781,46 +2740,62 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
-        - name: type
+          description: Comma-separated list (OR). Substring match in any of the location's names.
+        - name: entity_type
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `type` (e.g., region, valley, kingdom).
         - name: population
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `population`.
         - name: creation_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `creationDate`.
         - name: destruction_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `destructionDate`.
         - name: is_destroyed
           in: query
           schema:
             type: boolean
+          description: Single boolean. `true` for locations with `destructionDate` IS NOT NULL, `false` otherwise.
         - name: notable_for
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `notableFor`.
         - name: character
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of character slugs (OR). Filters locations connected to any of the given characters
+            via `BORN_IN`, `DIED_IN`, or `DWELLED_IN` (incoming).
         - name: event
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of event slugs (OR). Filters locations where any of the given events took place
+            (incoming `TOOK_PLACE_IN`).
         - name: organization
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of organization slugs (OR). Filters locations where any of the given organizations are based
+            (incoming `BASED_IN`).
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -2849,34 +2824,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                locationType:
-                  type: string
-                population:
-                  type: string
-                creationDate:
-                  type: string
-                destructionDate:
-                  type: string
-                notableFor:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/LocationPage"
       responses:
         "201":
           description: Location created
@@ -2897,42 +2845,50 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
-        - name: type
+          description: Comma-separated list (OR). Substring match in any of the event's names.
+        - name: entity_type
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `type` (e.g., war, battle, council).
         - name: start_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `startDate`.
         - name: end_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `endDate`.
         - name: casualties
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `casualties`.
         - name: notable_for
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `notableFor`.
         - name: character
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of character slugs (OR). Filters events in which any of the given characters participated
+            (incoming `PARTICIPATED_IN`).
         - name: location
           in: query
           schema:
             type: string
-        - name: organization
-          in: query
-          schema:
-            type: string
+          description: |
+            Comma-separated list of location slugs (OR). Filters events that took place in any of the given locations
+            (outgoing `TOOK_PLACE_IN`).
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -2961,34 +2917,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                eventType:
-                  type: string
-                startDate:
-                  type: string
-                endDate:
-                  type: string
-                casualties:
-                  type: string
-                notableFor:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/EventPage"
       responses:
         "201":
           description: Event created
@@ -3009,50 +2938,65 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
-        - name: type
+          description: Comma-separated list (OR). Substring match in any of the organization's names.
+        - name: entity_type
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `type`.
         - name: founded_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `foundedDate`.
         - name: dissolved_date
           in: query
           schema:
             type: string
-        - name: is_active
+          description: Comma-separated list (OR). Substring match in `dissolvedDate`.
+        - name: is_dissolved
           in: query
           schema:
             type: boolean
+          description: Single boolean. `true` for organizations with `dissolvedDate` IS NOT NULL, `false` otherwise.
         - name: clothing
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `clothing`.
         - name: weaponry
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `weaponry`.
         - name: purpose
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `purpose`.
         - name: notable_for
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `notableFor`.
         - name: character
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of character slugs (OR). Filters organizations that have any of the given characters as members
+            (incoming `MEMBER_OF`).
         - name: location
           in: query
           schema:
             type: string
+          description: |
+            Comma-separated list of location slugs (OR). Filters organizations based in any of the given locations
+            (outgoing `BASED_IN`).
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -3081,38 +3025,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                organizationType:
-                  type: string
-                foundedDate:
-                  type: string
-                dissolvedDate:
-                  type: string
-                clothing:
-                  type: string
-                weaponry:
-                  type: string
-                purpose:
-                  type: string
-                notableFor:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/OrganizationPage"
       responses:
         "201":
           description: Organization created
@@ -3137,18 +3050,22 @@ paths:
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in any of the timeline's names.
         - name: abbreviation
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `abbreviation`.
         - name: start_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `startDate`.
         - name: end_date
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `endDate`.
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -3177,31 +3094,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-                - abbreviation
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                abbreviation:
-                  type: string
-                startDate:
-                  type: string
-                endDate:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/TimelinePage"
       responses:
         "201":
           description: Timeline created
@@ -3222,30 +3115,33 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
-        - name: type
+          description: Comma-separated list (OR). Substring match in any of the item's names.
+        - name: entity_type
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `type` (ring, sword, etc.).
         - name: material
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `material`.
         - name: notable_for
           in: query
           schema:
             type: string
-        - name: owner
+          description: Comma-separated list (OR). Substring match in `notableFor`.
+        - name: character
           in: query
           schema:
             type: string
-        - name: location
-          in: query
-          schema:
-            type: string
+          description: |
+            Comma-separated list of character slugs (OR). Filters items connected to any of the given characters
+            via `OWNS`, `WIELDS`, `BORE`, or `CRAFTED` (incoming).
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -3274,30 +3170,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                itemType:
-                  type: string
-                material:
-                  type: string
-                notableFor:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/ItemPage"
       responses:
         "201":
           description: Item created
@@ -3318,14 +3191,16 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in any of the language's names.
         - name: family
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in `family`.
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -3354,26 +3229,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                family:
-                  type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/LanguagePage"
       responses:
         "201":
           description: Language created
@@ -3394,10 +3250,11 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
-        - name: names
+        - name: name
           in: query
           schema:
             type: string
+          description: Comma-separated list (OR). Substring match in any of the script's names.
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -3426,24 +3283,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - names
-              properties:
-                slug:
-                  type: string
-                names:
-                  type: array
-                  items:
-                    type: string
-                article:
-                  $ref: "#/components/schemas/Article"
-                categories:
-                  type: array
-                  items:
-                    type: string
-                relations:
-                  type: object
+              $ref: "#/components/schemas/ScriptPage"
       responses:
         "201":
           description: Script created

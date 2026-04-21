@@ -26,6 +26,8 @@ import CreatePage from './pages/CreatePage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import GlobalStatsPage from './pages/GlobalStatsPage';
 import CustomStatsPage from './pages/CustomStatsPage';
+import SearchBar from './components/SearchBar';
+
 
 // Компонент, который использует авторизацию
 const AppContent: React.FC = () => {
@@ -44,7 +46,7 @@ const AppContent: React.FC = () => {
         <Link to="/" className="logo-link">
           <img src="/logo.png" alt="LOTR Wiki" className="logo-img" />
         </Link>
-        <input type="text" className="search" placeholder="Поиск..." />
+        <SearchBar />
         <Link to="/categories" className="nav-btn">
           <div className="icon-with-text">
             <BiSolidCategory />

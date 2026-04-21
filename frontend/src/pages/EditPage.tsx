@@ -1,8 +1,9 @@
+// src/pages/EditPage.tsx
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetPage, useUpdatePage } from '../api/generated/pages/pages';
-import type { PageResponse, PageUpdateRequest } from '../api/generated/models';
+import type { PageUpdateRequest } from '../api/generated/models';
 import AddRelationForm from '../components/AddRelationForm';
 
 interface RelationItem {
@@ -10,15 +11,16 @@ interface RelationItem {
     slug: string;
     type: string;
     name: string;
-    imageUrl: string;
+    image_url: string;
   };
   from?: {
     slug: string;
     type: string;
     name: string;
-    imageUrl: string;
+    image_url: string;
   };
   properties: Record<string, any>;
+  propertiesString?: string; // добавлено для временного хранения строки JSON
 }
 
 interface RelationGroup {
@@ -31,52 +33,64 @@ const EditPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: page, isLoading, error } = useGetPage(slug!);
+  const pageData = page as any;
   const updateMutation = useUpdatePage();
   const [initialAttributes, setInitialAttributes] = useState<Record<string, any>>({});
 
-  const [names, setNames] = useState<string[]>([]);
+  const [_names, setNames] = useState<string[]>([]);
+  const [namesInput, setNamesInput] = useState('');
+  const [titlesInput, setTitlesInput] = useState('');
+  const [genderInput, setGenderInput] = useState('');
   const [articleText, setArticleText] = useState('');
-  const [articleImageUrl, setArticleImageUrl] = useState('');
+  const [articleImage_url, setArticleImage_url] = useState('');
   const [attributes, setAttributes] = useState<Record<string, any>>({});
   const [outgoingGroups, setOutgoingGroups] = useState<RelationGroup[]>([]);
   const [incomingGroups, setIncomingGroups] = useState<RelationGroup[]>([]);
   const [showAddOutgoingForm, setShowAddOutgoingForm] = useState(false);
   const [showAddIncomingForm, setShowAddIncomingForm] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    if (page) {
-      setNames(page.names || []);
-      setArticleText(page.article?.text || '');
-      setArticleImageUrl(page.article?.imageUrl || null);
-      setAttributes(page.attributes || {});
-      setInitialAttributes(page.attributes || {});
+    if (pageData) {
+      setNames(pageData.names || []);
+      setNamesInput((pageData.names || []).join(', '))
+      setArticleText(pageData.article?.text || '');
+      setArticleImage_url(pageData.article?.image_url || null);
+      setAttributes(pageData.attributes || {});
+      const genderValue = pageData.attributes?.gender;
+      setGenderInput(genderValue && typeof genderValue === 'string' ? genderValue : '');
+      const titlesAttr = pageData.attributes?.titles;
+      if (Array.isArray(titlesAttr)) {
+        setTitlesInput(titlesAttr.join(', '));
+      } else {
+        setTitlesInput('');
+      }
+      setInitialAttributes(pageData.attributes || {});
 
-      const outGroups = Object.entries(page.relations?.outgoing || {}).map(([relType, items]) => ({
+      const outGroups = Object.entries(pageData.relations?.outgoing || {}).map(([relType, items]) => ({
         relationType: relType,
         items: items as RelationItem[],
       }));
       setOutgoingGroups(outGroups);
 
-      const inGroups = Object.entries(page.relations?.incoming || {}).map(([relType, items]) => ({
+      const inGroups = Object.entries(pageData.relations?.incoming || {}).map(([relType, items]) => ({
         relationType: relType,
-        items: items.map(item => ({
+        items: (items as any[]).map((item: any) => ({
           from: item.from,
           properties: item.properties,
         })) as RelationItem[],
       }));
       setIncomingGroups(inGroups);
     }
-  }, [page]);
+  }, [pageData]);
 
-  // Обработчики для групп связей
+  // Обработчики для групп связей (модифицированы для propertiesString)
   const updateOutgoingGroupType = (groupIndex: number, newType: string) => {
     setOutgoingGroups(prev => prev.map((g, i) => i === groupIndex ? { ...g, relationType: newType } : g));
   };
   const addOutgoingItem = (groupIndex: number) => {
     setOutgoingGroups(prev => prev.map((g, i) => i === groupIndex ? {
       ...g,
-      items: [...g.items, { target: { slug: '', type: '', name: '', imageUrl: '' }, properties: {} }]
+      items: [...g.items, { target: { slug: '', type: '', name: '', image_url: '' }, properties: {} }]
     } : g));
   };
   const removeOutgoingItem = (groupIndex: number, itemIndex: number) => {
@@ -91,11 +105,14 @@ const EditPage: React.FC = () => {
       const newItems = [...g.items];
       if (field.startsWith('target.')) {
         const targetField = field.split('.')[1];
-        newItems[itemIndex].target![targetField] = value;
+        (newItems[itemIndex].target as any)[targetField] = value;
       } else if (field === 'properties') {
+        // Сохраняем строку во временное поле
+        newItems[itemIndex].propertiesString = value;
+        // Пытаемся распарсить, чтобы обновить properties (опционально)
         try {
           newItems[itemIndex].properties = JSON.parse(value);
-        } catch (e) {}
+        } catch (e) { /* невалидный JSON – оставляем старые properties */ }
       }
       return { ...g, items: newItems };
     }));
@@ -110,7 +127,7 @@ const EditPage: React.FC = () => {
   const addIncomingItem = (groupIndex: number) => {
     setIncomingGroups(prev => prev.map((g, i) => i === groupIndex ? {
       ...g,
-      items: [...g.items, { from: { slug: '', type: '', name: '', imageUrl: '' }, properties: {} }]
+      items: [...g.items, { from: { slug: '', type: '', name: '', image_url: '' }, properties: {} }]
     } : g));
   };
   const removeIncomingItem = (groupIndex: number, itemIndex: number) => {
@@ -125,8 +142,9 @@ const EditPage: React.FC = () => {
       const newItems = [...g.items];
       if (field.startsWith('from.')) {
         const fromField = field.split('.')[1];
-        newItems[itemIndex].from![fromField] = value;
+        (newItems[itemIndex].from as any)[fromField] = value;
       } else if (field === 'properties') {
+        newItems[itemIndex].propertiesString = value;
         try {
           newItems[itemIndex].properties = JSON.parse(value);
         } catch (e) {}
@@ -163,30 +181,33 @@ const EditPage: React.FC = () => {
     setShowAddIncomingForm(false);
   };
 
-  const addAttribute = () => {
-    const newKey = prompt('Введите название атрибута');
-    if (newKey && !attributes[newKey]) {
-      setAttributes(prev => ({ ...prev, [newKey]: '' }));
-    }
-  };
-  const removeAttribute = (key: string) => {
-    const newAttributes = { ...attributes };
-    delete newAttributes[key];
-    setAttributes(newAttributes);
-  };
-  const updateAttributeKey = (oldKey: string, newKey: string) => {
-    if (newKey === oldKey || !newKey) return;
-    const newAttributes = { ...attributes };
-    newAttributes[newKey] = newAttributes[oldKey];
-    delete newAttributes[oldKey];
-    setAttributes(newAttributes);
+  const clearAttributeValue = (key: string) => {
+    setAttributes(prev => ({ ...prev, [key]: null }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage('');
+
+    const parsedNames = namesInput.split(',').map(s => s.trim()).filter(s => s !== '');
+    if (parsedNames.length === 0) {
+      alert('Необходимо указать хотя бы одно имя.');
+      return;
+    }
 
     const finalAttributes = { ...attributes };
+    if (currentEntityType === 'character') {
+      if (!genderInput) {
+        finalAttributes.gender = null;
+      } else {
+        finalAttributes.gender = genderInput;
+      }
+      if (titlesInput.trim() === '') {
+        finalAttributes.titles = null;
+      } else {
+        const titlesArray = titlesInput.split(',').map(s => s.trim()).filter(s => s !== '');
+        finalAttributes.titles = titlesArray;
+      }
+    }
     Object.keys(initialAttributes).forEach(key => {
       if (!(key in attributes)) {
         finalAttributes[key] = null;
@@ -196,31 +217,54 @@ const EditPage: React.FC = () => {
       Object.entries(finalAttributes).filter(([_, v]) => v !== undefined)
     );
 
+    // Формируем исходящие связи, парся propertiesString при наличии
     const outgoingObj: Record<string, any[]> = {};
     outgoingGroups.forEach(group => {
       if (group.relationType && group.items.length) {
-        outgoingObj[group.relationType] = group.items.map(item => ({
-          slug: item.target?.slug || '',
-          properties: item.properties || {},
-        }));
+        outgoingObj[group.relationType] = group.items.map(item => {
+          let props = item.properties;
+          if (item.propertiesString !== undefined) {
+            try {
+              props = JSON.parse(item.propertiesString);
+            } catch (e) {
+              console.warn('Invalid JSON for outgoing relation properties, using empty object');
+              props = {};
+            }
+          }
+          return {
+            slug: item.target?.slug || '',
+            properties: props,
+          };
+        });
       }
     });
 
+    // Формируем входящие связи
     const incomingObj: Record<string, any[]> = {};
     incomingGroups.forEach(group => {
       if (group.relationType && group.items.length) {
-        incomingObj[group.relationType] = group.items.map(item => ({
-          slug: item.from?.slug || '',
-          properties: item.properties || {},
-        }));
+        incomingObj[group.relationType] = group.items.map(item => {
+          let props = item.properties;
+          if (item.propertiesString !== undefined) {
+            try {
+              props = JSON.parse(item.propertiesString);
+            } catch (e) {
+              props = {};
+            }
+          }
+          return {
+            slug: item.from?.slug || '',
+            properties: props,
+          };
+        });
       }
     });
 
     const updateData: PageUpdateRequest = {
-      names,
+      names: parsedNames,
       article: {
         text: articleText,
-        imageUrl: articleImageUrl,
+        image_url: articleImage_url,
       },
       attributes: cleanedAttributes,
       relations: {
@@ -236,7 +280,15 @@ const EditPage: React.FC = () => {
     } catch (err: any) {
       const serverError = err.response?.data;
       console.error('Update failed:', serverError || err.message);
-      setErrorMessage(serverError?.error?.message || 'Ошибка сохранения. Проверьте данные.');
+      let errorMsg = 'Ошибка сохранения.';
+      if (serverError?.error?.message) {
+        errorMsg = serverError.error.message;
+      } else if (serverError?.message) {
+        errorMsg = serverError.message;
+      } else if (typeof serverError === 'string') {
+        errorMsg = serverError;
+      }
+      alert(errorMsg);
     }
   };
 
@@ -246,41 +298,79 @@ const EditPage: React.FC = () => {
 
   return (
     <div className="edit-page">
-      <h1>Редактирование: {page.names[0]}</h1>
-      {errorMessage && <div className="error-message">{errorMessage}</div>}
+      <h1>Редактирование: {pageData.names[0]}</h1>
       <form onSubmit={handleSubmit}>
-        {/* Основная информация */}
         <section className="basic-info">
           <h2>Основная информация</h2>
-          <label>Название (первое имя)</label>
-          <input value={names[0] || ''} onChange={e => setNames([e.target.value, ...names.slice(1)])} />
+          <label>Имена (через запятую)</label>
+          <input value={namesInput || ''} onChange={e => setNamesInput(e.target.value)} />
           <label>Изображение (URL)</label>
-          <input value={articleImageUrl ?? ''} onChange={e => setArticleImageUrl(e.target.value)} />
+          <input value={articleImage_url ?? ''} onChange={e => setArticleImage_url(e.target.value)} />
           <label>Описание</label>
           <textarea rows={10} value={articleText ?? ''} onChange={e => setArticleText(e.target.value)} />
         </section>
 
-        {/* Атрибуты */}
         <section>
           <h2>Атрибуты</h2>
-          {Object.entries(attributes).map(([key, value]) => (
-            <div key={key} className="attribute-row">
+          {currentEntityType === 'character' && (
+            <div className="attribute-row">
+              <label>Титулы (через запятую)</label>
               <input
-                value={key}
-                onChange={e => updateAttributeKey(key, e.target.value)}
-                placeholder="Название атрибута"
+                type="text"
+                value={titlesInput}
+                onChange={e => setTitlesInput(e.target.value)}
+                placeholder="King, Hero, Lord of the Rings"
               />
-              <input
-                value={value === null ? '' : value}
-                onChange={e => {
-                  const newValue = e.target.value === '' ? null : e.target.value;
-                  setAttributes(prev => ({ ...prev, [key]: newValue }));
+              <button
+                type="button"
+                onClick={() => {
+                  setTitlesInput('');
+                  setAttributes(prev => {
+                    const newAttrs = { ...prev };
+                    delete newAttrs.titles;
+                    return newAttrs;
+                  });
                 }}
-                placeholder="Значение"
-              />
-              <button type="button" onClick={() => removeAttribute(key)}>Удалить</button>
+              >
+                Очистить
+              </button>
             </div>
-          ))}
+          )}
+          {currentEntityType === 'character' && (
+            <div className="attribute-row">
+              <label>Пол</label>
+              <select
+                value={genderInput}
+                onChange={e => setGenderInput(e.target.value)}
+              >
+                <option value="unknown">unknown</option>
+                <option value="male">male</option>
+                <option value="female">female</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => setGenderInput('')}
+              >
+                Очистить
+              </button>
+            </div>
+          )}
+          {Object.entries(attributes)
+            .filter(([key]) => key !== 'titles' && key !== 'gender')
+            .map(([key, value]) => (
+              <div key={key} className="attribute-row">
+                <span className="attribute-key">{key}</span>
+                <input
+                  value={value === null ? '' : value}
+                  onChange={e => {
+                    const newValue = e.target.value === '' ? null : e.target.value;
+                    setAttributes(prev => ({ ...prev, [key]: newValue }));
+                  }}
+                  placeholder="Значение"
+                />
+                <button type="button" onClick={() => clearAttributeValue(key)}>Очистить</button>
+              </div>
+            ))}
         </section>
 
         {/* Исходящие связи */}
@@ -324,10 +414,10 @@ const EditPage: React.FC = () => {
                     />
                   </div>
                   <div className="relation-field">
-                    <label>imageUrl цели:</label>
+                    <label>image_url цели:</label>
                     <input
-                      value={item.target?.imageUrl ?? ''}
-                      onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.imageUrl', e.target.value)}
+                      value={item.target?.image_url ?? ''}
+                      onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.image_url', e.target.value)}
                       placeholder="URL изображения"
                     />
                   </div>
@@ -335,7 +425,7 @@ const EditPage: React.FC = () => {
                     <label>Свойства (JSON):</label>
                     <textarea
                       rows={2}
-                      value={JSON.stringify(item.properties, null, 2)}
+                      value={item.propertiesString !== undefined ? item.propertiesString : JSON.stringify(item.properties, null, 2)}
                       onChange={e => updateOutgoingItem(gIdx, iIdx, 'properties', e.target.value)}
                       placeholder='{"ключ": "значение"}'
                     />
@@ -350,7 +440,7 @@ const EditPage: React.FC = () => {
           {showAddOutgoingForm && (
             <AddRelationForm
               direction="outgoing"
-              onAdd={handleAddOutgoingRelation}
+              onAdd={(relationType, relation) => handleAddOutgoingRelation(relationType, relation)}
               currentEntityType={currentEntityType!}
               onCancel={() => setShowAddOutgoingForm(false)}
             />
@@ -398,10 +488,10 @@ const EditPage: React.FC = () => {
                     />
                   </div>
                   <div className="relation-field">
-                    <label>imageUrl источника:</label>
+                    <label>image_url источника:</label>
                     <input
-                      value={item.from?.imageUrl ?? ''}
-                      onChange={e => updateIncomingItem(gIdx, iIdx, 'from.imageUrl', e.target.value)}
+                      value={item.from?.image_url ?? ''}
+                      onChange={e => updateIncomingItem(gIdx, iIdx, 'from.image_url', e.target.value)}
                       placeholder="URL изображения"
                     />
                   </div>
@@ -409,7 +499,7 @@ const EditPage: React.FC = () => {
                     <label>Свойства (JSON):</label>
                     <textarea
                       rows={2}
-                      value={JSON.stringify(item.properties, null, 2)}
+                      value={item.propertiesString !== undefined ? item.propertiesString : JSON.stringify(item.properties, null, 2)}
                       onChange={e => updateIncomingItem(gIdx, iIdx, 'properties', e.target.value)}
                       placeholder='{"роль": "участник"}'
                     />
@@ -424,7 +514,7 @@ const EditPage: React.FC = () => {
           {showAddIncomingForm && (
             <AddRelationForm
               direction="incoming"
-              onAdd={handleAddIncomingRelation}
+              onAdd={(relationType, relation) => handleAddIncomingRelation(relationType, relation)}
               currentEntityType={currentEntityType!}
               onCancel={() => setShowAddIncomingForm(false)}
             />

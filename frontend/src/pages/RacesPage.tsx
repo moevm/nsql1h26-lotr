@@ -36,19 +36,23 @@ const RacesPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingCreation, setPendingCreation] = useState(false);
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const page_size = 20;
   useEffect(() => {
     return () => {
       queryClient.removeQueries({ queryKey: ['/races'] });
     };
   }, []);
 
-  const { data, isLoading, error } = useListRaces({ page: 1, page_size: 20 });
+  const { data, isLoading, error } = useListRaces({ 
+    page: 1, 
+    page_size: page_size 
+  });
 
-  if (isLoading) return <div className="loader">Загрузка...</div>;
-  if (error) return <div className="error">Ошибка загрузки</div>;
-
-  const adaptedData = data?.results?.map(race => {
+  const response = data as any;
+  const adaptedData = response?.results?.map((race: any) => {
     const previewItems: string[] = [];
     if (race.lifespan && race.lifespan.trim() !== '') {
       previewItems.push(`Lifespan: ${race.lifespan}`);
@@ -68,13 +72,43 @@ const RacesPage: React.FC = () => {
     };
   }) || [];
 
+  const totalCount = response?.count || 0;
+  const hasPrev = response?.previous !== null;
+  const hasNext = response?.next !== null;
+
+  const handlePrevPage = () => {
+    if (hasPrev) setPage(p => p - 1);
+  };
+  const handleNextPage = () => {
+    if (hasNext) setPage(p => p + 1);
+  };
+
   const handleAddClick = () => {
-    if (user) {
+    if (!user) {
+      setShowAuthModal(true);
+      setPendingCreation(true);
+      return;
+    }
+    if (user.role === 'admin') {
       navigate('/create/race');
     } else {
-      setShowAuthModal(true);
+      alert('Только администраторы могут создавать новые сущности.');
     }
   };
+
+  useEffect(() => {
+    if (pendingCreation && user) {
+      if (user.role === 'admin') {
+        navigate('/create/race');
+      } else {
+        alert('Только администраторы могут создавать новые сущности.');
+      }
+      setPendingCreation(false);
+    }
+  }, [user, pendingCreation, navigate]);
+
+  if (isLoading) return <div className="loader">Загрузка...</div>;
+  if (error) return <div className="error">Ошибка загрузки</div>;
 
   return (
     <>
@@ -90,12 +124,35 @@ const RacesPage: React.FC = () => {
       >
         <RacesFilters />
       </GenericCatalogPage>
+
+      <div className="pagination-container">
+        <button
+          className="pagination-btn"
+          onClick={handlePrevPage}
+          disabled={!hasPrev || isLoading}
+        >
+          ← Previous
+        </button>
+        <span className="pagination-info">
+          Page {page} (total: {Math.ceil(totalCount / page_size)})
+        </span>
+        <button
+          className="pagination-btn"
+          onClick={handleNextPage}
+          disabled={!hasNext || isLoading}
+        >
+          Next →
+        </button>
+      </div>
+
       {showAuthModal && (
         <AuthModal
-          onClose={() => setShowAuthModal(false)}
+          onClose={() => {
+            setShowAuthModal(false);
+            setPendingCreation(false);
+          }}
           onSuccess={() => {
             setShowAuthModal(false);
-            navigate('/create/race');
           }}
         />
       )}

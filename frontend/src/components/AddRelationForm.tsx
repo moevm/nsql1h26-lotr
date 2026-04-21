@@ -3,7 +3,7 @@ import { useDebounce } from '../hooks/useDebounce';
 
 interface AddRelationFormProps {
   direction: 'outgoing' | 'incoming';
-  onAdd: (relation: any) => void;
+  onAdd: (relationType: string, relation: any) => void;
   currentEntityType: string; // тип редактируемой сущности
   onCancel: () => void;
 }
@@ -52,7 +52,7 @@ const AddRelationForm: React.FC<AddRelationFormProps> = ({ direction, onAdd, cur
         slug: selectedTarget.slug,
         type: selectedTarget.type,
         name: selectedTarget.name,
-        imageUrl: selectedTarget.imageUrl || '',
+        image_url: selectedTarget.image_url || '',
       },
       properties: {},
     };
@@ -101,7 +101,7 @@ const AddRelationForm: React.FC<AddRelationFormProps> = ({ direction, onAdd, cur
         </div>
       )}
       <div className="form-actions">
-        <button type="button" onClick={handleSubmit} disabled={!selectedTarget}>Добавить</button>
+        <button type="button" onClick={handleSubmit} disabled={!selectedTarget || selectedTargetType != selectedTarget.type}>Добавить</button>
         <button type="button" onClick={onCancel}>Отмена</button>
       </div>
     </div>

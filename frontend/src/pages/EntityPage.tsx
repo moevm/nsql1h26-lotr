@@ -4,6 +4,7 @@ import { FaHeart, FaRegHeart, FaEdit } from 'react-icons/fa';
 import { MdOutlineFileDownload, MdOutlineFileUpload } from 'react-icons/md';
 import { SiRelay } from 'react-icons/si';
 import { useGetPage, useLikePage, useUnlikePage } from '../api/generated/pages/pages';
+import type { LikeStateResponse } from '../api/generated/models';
 import { useAuth } from '../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import AuthModal from '../components/AuthModal';
@@ -14,23 +15,25 @@ const EntityPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useGetPage(slug!);
+  const pageData = data as any;
   const likeMutation = useLikePage();
   const unlikeMutation = useUnlikePage();
 
   const [liked, setLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(0);
+  const [likes_count, setlikes_count] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showAuthModalForEdit, setShowAuthModalForEdit] = useState(false);
+  const [pendingEdit, setPendingEdit] = useState(false);
+  const [pendingLike, setPendingLike] = useState(false);
 
   // При загрузке данных устанавливаем начальные значения лайков
   useEffect(() => {
     if (data) {
-      setLiked(data.isLiked || false);
-      setLikesCount(data.likesCount || 0);
+      setLiked(pageData?.is_liked || false);
+      setlikes_count(pageData?.likes_count || 0);
     }
   }, [data]);
 
-  // Очистка кэша при размонтировании (опционально)
+  // Очистка кэша при размонтировании
   useEffect(() => {
     return () => {
       queryClient.removeQueries({ queryKey: [`/pages/${slug}`] });
@@ -40,19 +43,23 @@ const EntityPage: React.FC = () => {
   const handleLike = async () => {
     if (!user) {
       setShowAuthModal(true);
+      setPendingLike(true);
       return;
     }
     if (!data) return;
 
     try {
+      let result: LikeStateResponse;
       if (liked) {
-        const result = await unlikeMutation.mutateAsync({ slug: slug! });
-        setLiked(result.isLiked);
-        setLikesCount(result.likesCount);
+        const response = await unlikeMutation.mutateAsync({ slug: slug! });
+        result = response as unknown as LikeStateResponse;
+        setLiked(result.is_liked);
+        setlikes_count(result.likes_count);
       } else {
-        const result = await likeMutation.mutateAsync({ slug: slug! });
-        setLiked(result.isLiked);
-        setLikesCount(result.likesCount);
+        const response = await likeMutation.mutateAsync({ slug: slug! });
+        result = response as unknown as LikeStateResponse;
+        setLiked(result.is_liked);
+        setlikes_count(result.likes_count);
       }
       // Обновляем данные пользователя в контексте
       await refreshUser();
@@ -63,12 +70,58 @@ const EntityPage: React.FC = () => {
     }
   };
 
+  // Обработчик редактирования
+  const handleEditClick = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      setPendingEdit(true);
+      return;
+    }
+    if (user.role === 'admin') {
+      navigate(`/edit/${type}/${slug}`);
+    } else {
+      alert('Только администраторы могут редактировать страницы.');
+    }
+  };
+
+  // Следим за изменением user после открытия модалки
+  useEffect(() => {
+    if (pendingEdit && user) {
+      if (user.role === 'admin') {
+        navigate(`/edit/${type}/${slug}`);
+      } else {
+        alert('Только администраторы могут редактировать страницы.');
+      }
+      setPendingEdit(false);
+    }
+  }, [user, pendingEdit, navigate, type, slug]);
+
+  // Аналогично для лайка
+  useEffect(() => {
+    if (pendingLike && user) {
+      handleLike(); // повторно вызываем лайк
+      setPendingLike(false);
+    }
+  }, [user, pendingLike]);
+
   if (isLoading) return <div className="loader">Загрузка...</div>;
-  if (error) return <div className="error">Ошибка загрузки страницы</div>;
+  if (error) {
+    // Извлекаем статус и сообщение из ошибки Axios
+    const axiosError = error as any;
+    let errorMessage = 'Ошибка загрузки страницы';
+    if (axiosError.response?.status === 404) {
+      errorMessage = 'Страница не найдена';
+    } else if (axiosError.response?.data?.error?.message) {
+      errorMessage = axiosError.response.data.error.message;
+    } else if (axiosError.message) {
+      errorMessage = axiosError.message;
+    }
+    alert(errorMessage);
+  }
   if (!data) return <div className="error">Страница не найдена</div>;
 
-  const mainName = data.names?.[0] || 'Без имени';
-  const article = data.article || { text: '', imageUrl: '', createdAt: null, updatedAt: null };
+  const mainName = pageData?.names?.[0] || 'Без имени';
+  const article = pageData?.article || { text: '', image_url: '', created_at: null, updated_at: null };
 
   const formatDate = (isoString: string | null) => {
     if (!isoString) return 'Дата неизвестна';
@@ -79,8 +132,8 @@ const EntityPage: React.FC = () => {
     });
   };
 
-  const createdAt = formatDate(article.createdAt);
-  const updatedAt = formatDate(article.updatedAt);
+  const created_at = formatDate(article.created_at);
+  const updated_at = formatDate(article.updated_at);
 
   const renderRelationList = (
     relations: Record<string, any[]> | undefined,
@@ -118,8 +171,8 @@ const EntityPage: React.FC = () => {
     );
   };
 
-  const outgoingRelations = data.relations?.outgoing || {};
-  const incomingRelations = data.relations?.incoming || {};
+  const outgoingRelations = pageData?.relations?.outgoing || {};
+  const incomingRelations = pageData?.relations?.incoming || {};
 
   return (
     <div className="entity-page">
@@ -136,7 +189,7 @@ const EntityPage: React.FC = () => {
                 <MdOutlineFileUpload />
               </button>
               <span className="entity-dates">
-                Создана: {createdAt} | Обновлена: {updatedAt}
+                Создана: {created_at} | Обновлена: {updated_at}
               </span>
             </div>
           </div>
@@ -174,17 +227,10 @@ const EntityPage: React.FC = () => {
               className={`like-btn ${liked ? 'liked' : ''}`}
               onClick={handleLike}
             >
-              {liked ? <FaHeart /> : <FaRegHeart />} {likesCount}
+              {liked ? <FaHeart /> : <FaRegHeart />} {likes_count}
             </button>
             <button
-              className="icon-btn"
-              onClick={() => {
-                if (user) {
-                  navigate(`/edit/${type}/${slug}`);
-                } else {
-                  setShowAuthModalForEdit(true);
-                }
-              }}
+              className="icon-btn" onClick={handleEditClick}
             >
               <FaEdit />
             </button>
@@ -195,7 +241,7 @@ const EntityPage: React.FC = () => {
 
           <div className="entity-card">
             <img
-              src={article.imageUrl || '/images/default-avatar.png'}
+              src={article.image_url || '/images/default-avatar.png'}
               alt={mainName}
               className="entity-image"
             />
@@ -203,7 +249,14 @@ const EntityPage: React.FC = () => {
               <h3>{mainName}</h3>
               <table className="attr-table">
                 <tbody>
-                  {Object.entries(data.attributes || {})
+                  {/* Строка для всех имён */}
+                  {pageData.names && pageData.names.length > 0 && (
+                    <tr>
+                      <td className="attr-key">Names</td>
+                      <td className="attr-value">{pageData.names.join(', ')}</td>
+                    </tr>
+                  )}
+                  {Object.entries(pageData.attributes || {})
                     .filter(([_, value]) => {
                       if (value == null) return false;
                       if (value === '') return false;
@@ -213,7 +266,9 @@ const EntityPage: React.FC = () => {
                     .map(([key, value]) => (
                       <tr key={key}>
                         <td className="attr-key">{key.replace(/_/g, ' ')}</td>
-                        <td className="attr-value">{value as string}</td>
+                        <td className="attr-value">
+                          {Array.isArray(value) ? value.join(', ') : value as string}
+                        </td>
                       </tr>
                     ))}
                 </tbody>
@@ -225,16 +280,13 @@ const EntityPage: React.FC = () => {
 
       {showAuthModal && (
         <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={() => setShowAuthModal(false)}
-        />
-      )}
-      {showAuthModalForEdit && (
-        <AuthModal
-          onClose={() => setShowAuthModalForEdit(false)}
+          onClose={() => {
+            setShowAuthModal(false);
+            setPendingEdit(false);
+            setPendingLike(false);
+          }}
           onSuccess={() => {
-            setShowAuthModalForEdit(false);
-            navigate(`/edit/${type}/${slug}`);
+            setShowAuthModal(false);
           }}
         />
       )}

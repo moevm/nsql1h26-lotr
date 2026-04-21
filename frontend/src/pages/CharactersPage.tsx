@@ -48,8 +48,9 @@ const CharactersPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingCreation, setPendingCreation] = useState(false);
   const [page, setPage] = useState(1);
-  const pageSize = 20;
+  const page_size = 20;
   const queryClient = useQueryClient();
   useEffect(() => {
     return () => {
@@ -59,11 +60,12 @@ const CharactersPage: React.FC = () => {
 
   const { data, isLoading, error } = useListCharacters({
     page,
-    page_size: pageSize,
+    page_size: page_size,
   });
 
   // Адаптируем данные
-  const adaptedData = data?.results?.map(character => {
+  const response = data as any;
+  const adaptedData = response?.results?.map((character: any) => {
     const previewItems: string[] = [];
     if (character.notable_for && character.notable_for.trim() !== '') {
       previewItems.push(`Notable for: ${character.notable_for}`);
@@ -82,9 +84,9 @@ const CharactersPage: React.FC = () => {
     };
   }) || [];
 
-  const totalCount = data?.count || 0;
-  const hasPrev = data?.previous !== null;
-  const hasNext = data?.next !== null;
+  const totalCount = response?.count || 0;
+  const hasPrev = response?.previous !== null;
+  const hasNext = response?.next !== null;
 
   const handlePrevPage = () => {
     if (hasPrev) setPage(p => p - 1);
@@ -94,12 +96,28 @@ const CharactersPage: React.FC = () => {
   };
 
   const handleAddClick = () => {
-    if (user) {
+    if (!user) {
+      setShowAuthModal(true);
+      setPendingCreation(true);
+      return;
+    }
+    if (user.role === 'admin') {
       navigate('/create/character');
     } else {
-      setShowAuthModal(true);
+      alert('Только администраторы могут создавать новые сущности.');
     }
   };
+
+  useEffect(() => {
+    if (pendingCreation && user) {
+      if (user.role === 'admin') {
+        navigate('/create/character');
+      } else {
+        alert('Только администраторы могут создавать новые сущности.');
+      }
+      setPendingCreation(false);
+    }
+  }, [user, pendingCreation, navigate]);
 
   if (isLoading) return <div className="loader">Загрузка...</div>;
   if (error) return <div className="error">Ошибка загрузки</div>;
@@ -125,26 +143,28 @@ const CharactersPage: React.FC = () => {
           onClick={handlePrevPage}
           disabled={!hasPrev || isLoading}
         >
-          ← Назад
+          ← Previous
         </button>
         <span className="pagination-info">
-          Страница {page} (всего: {Math.ceil(totalCount / pageSize)})
+          Page {page} (total: {Math.ceil(totalCount / page_size)})
         </span>
         <button
           className="pagination-btn"
           onClick={handleNextPage}
           disabled={!hasNext || isLoading}
         >
-          Вперёд →
+          Next →
         </button>
       </div>
 
       {showAuthModal && (
         <AuthModal
-          onClose={() => setShowAuthModal(false)}
+          onClose={() => {
+            setShowAuthModal(false);
+            setPendingCreation(false);
+          }}
           onSuccess={() => {
             setShowAuthModal(false);
-            navigate('/create/character');
           }}
         />
       )}

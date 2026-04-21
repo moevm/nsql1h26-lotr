@@ -9,20 +9,20 @@ interface AuthModalProps {
 
 const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   const { login, register } = useAuth();
-  const [isLoginMode, setIsLoginMode] = useState(true); // true = логин, false = регистрация
+  const [isLoginMode, setIsLoginMode] = useState(true);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!username || !password) {
       setError('Заполните все поля');
       return;
     }
-    const success = login(username, password);
+    const success = await login(username, password);
     if (success) {
       onClose();
       onSuccess?.();
@@ -31,7 +31,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
     }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!username || !email || !password || !confirmPassword) {
       setError('Заполните все поля');
@@ -41,7 +41,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       setError('Пароли не совпадают');
       return;
     }
-    const success = register(username, email, password);
+    const success = await register(username, email, password);
     if (success) {
       onClose();
       onSuccess?.();
@@ -106,11 +106,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="register-btn" onClick={() => { setIsLoginMode(false); setError(''); }}>
-              Register
+            <button
+              type="button"
+              className="save-btn"
+              onClick={() => {
+                setIsLoginMode(!isLoginMode);
+                setError('');
+              }}
+            >
+              {isLoginMode ? 'Register' : 'Back to login'}
             </button>
-            <button type="submit" className="save-btn">
-              Log in
+            <button type="submit" className="register-btn">
+              {isLoginMode ? 'Log in' : 'Register'}
             </button>
           </div>
         </form>

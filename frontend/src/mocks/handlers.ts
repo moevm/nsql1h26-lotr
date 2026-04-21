@@ -78,25 +78,6 @@ export const handlers = [
     return HttpResponse.json(page);
   }),
 
-  http.get('/api/v1/search/', ({ request }) => {
-    const url = new URL(request.url);
-    const q = url.searchParams.get('q') || '';
-    const types = url.searchParams.get('types')?.split(',') || [];
-    const limit = parseInt(url.searchParams.get('limit') || '5');
-
-    const allEntities = [
-      ...(mockCharacters.results || []).map(e => ({ ...e, type: 'character' })),
-      ...(mockLocations.results || []).map(e => ({ ...e, type: 'location' })),
-      ...(mockOrganizations.results || []).map(e => ({ ...e, type: 'organization' })),
-      ...(mockLanguages.results || []).map(e => ({ ...e, type: 'language' })),
-    ];
-    const filtered = allEntities.filter(e =>
-      e.name.toLowerCase().includes(q.toLowerCase()) &&
-      (types.length === 0 || types.includes(e.type))
-    ).slice(0, limit);
-    return HttpResponse.json(filtered);
-  }),
-
   http.get('/api/v1/auth/me', ({ request }) => {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) return new HttpResponse(null, { status: 401 });
