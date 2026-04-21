@@ -431,12 +431,6 @@ class LocationFilter:
         conditions: list[str] = []
         params: dict[str, Any] = {}
 
-        if self.name:
-            conditions.append(
-                'ANY(n in l.names WHERE toLower(n) CONTAINS toLower($name))'
-            )
-            params['name'] = self.name
-
         _add(
             conditions,
             params,
