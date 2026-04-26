@@ -14,7 +14,6 @@ Notes on relationship coverage
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-
 # Maximum number of OR values per multi-value filter param.
 # Prevents accidental abuse / oversized queries.
 _MAX_MULTI: int = 20
@@ -383,7 +382,7 @@ class RaceFilter:
         ]:
             _add(
                 conditions,
-                params, 
+                params,
                 _text_multi('r', field, param_key, _parse_multi(value))
             )
 

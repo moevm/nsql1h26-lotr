@@ -6,8 +6,8 @@ from rest_framework.exceptions import ValidationError
 
 from .queries import (
     SEARCH_QUERY,
-    VALID_TYPES,
     TYPE_TO_LABEL,
+    VALID_TYPES,
     build_lucene_query,
     labels_to_type,
 )
@@ -79,7 +79,7 @@ def search(
             raise APIException(
                 detail="Search index is not available.",
                 code="SEARCH_INDEX_UNAVAILABLE",
-            )
+            ) from exc
         raise
 
     return [_row_to_result(dict(zip(meta, row))) for row in results]

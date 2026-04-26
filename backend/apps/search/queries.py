@@ -19,7 +19,6 @@ import re
 
 from apps.pages.queries import LABEL_TO_TYPE, labels_to_type
 
-
 __all__ = [
     'FULLTEXT_INDEX_NAME',
     'ENSURE_FULLTEXT_INDEX_QUERY',

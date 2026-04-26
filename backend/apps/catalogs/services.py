@@ -1,63 +1,49 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlencode
 
 from neomodel import db  # type: ignore[attr-defined]
 
+from .constants import MAX_PAGE_SIZE
 from .filters import _HasCypherWhere
-
 from .queries import (
-    CHARACTER_LIST_QUERY,
     CHARACTER_COUNT_QUERY,
-    CHARACTER_SORT_FIELDS,
     CHARACTER_DEFAULT_SORT,
-
-    RACE_LIST_QUERY,
-    RACE_COUNT_QUERY,
-    RACE_SORT_FIELDS,
-    RACE_DEFAULT_SORT,
-
-    LOCATION_LIST_QUERY,
-    LOCATION_COUNT_QUERY,
-    LOCATION_SORT_FIELDS,
-    LOCATION_DEFAULT_SORT,
-
-    EVENT_LIST_QUERY,
+    CHARACTER_LIST_QUERY,
+    CHARACTER_SORT_FIELDS,
     EVENT_COUNT_QUERY,
-    EVENT_SORT_FIELDS,
     EVENT_DEFAULT_SORT,
-
-    ORGANIZATION_LIST_QUERY,
-    ORGANIZATION_COUNT_QUERY,
-    ORGANIZATION_SORT_FIELDS,
-    ORGANIZATION_DEFAULT_SORT,
-
-    TIMELINE_LIST_QUERY,
-    TIMELINE_COUNT_QUERY,
-    TIMELINE_SORT_FIELDS,
-    TIMELINE_DEFAULT_SORT,
-
-    ITEM_LIST_QUERY,
+    EVENT_LIST_QUERY,
+    EVENT_SORT_FIELDS,
     ITEM_COUNT_QUERY,
-    ITEM_SORT_FIELDS,
     ITEM_DEFAULT_SORT,
-
-    LANGUAGE_LIST_QUERY,
+    ITEM_LIST_QUERY,
+    ITEM_SORT_FIELDS,
     LANGUAGE_COUNT_QUERY,
-    LANGUAGE_SORT_FIELDS,
     LANGUAGE_DEFAULT_SORT,
-
-    SCRIPT_LIST_QUERY,
+    LANGUAGE_LIST_QUERY,
+    LANGUAGE_SORT_FIELDS,
+    LOCATION_COUNT_QUERY,
+    LOCATION_DEFAULT_SORT,
+    LOCATION_LIST_QUERY,
+    LOCATION_SORT_FIELDS,
+    ORGANIZATION_COUNT_QUERY,
+    ORGANIZATION_DEFAULT_SORT,
+    ORGANIZATION_LIST_QUERY,
+    ORGANIZATION_SORT_FIELDS,
+    RACE_COUNT_QUERY,
+    RACE_DEFAULT_SORT,
+    RACE_LIST_QUERY,
+    RACE_SORT_FIELDS,
     SCRIPT_COUNT_QUERY,
-    SCRIPT_SORT_FIELDS,
     SCRIPT_DEFAULT_SORT,
-
-    CREATE_NODE_TEMPLATE,
+    SCRIPT_LIST_QUERY,
+    SCRIPT_SORT_FIELDS,
+    TIMELINE_COUNT_QUERY,
+    TIMELINE_DEFAULT_SORT,
+    TIMELINE_LIST_QUERY,
+    TIMELINE_SORT_FIELDS,
 )
-
-
-_MAX_PAGE_SIZE: int = 100
-_DEFAULT_PAGE_SIZE: int = 20
 
 
 # Entity config - everything the service needs to work with the type
@@ -175,7 +161,7 @@ def _build_order_by(
     Safely build ORDER BY from whitelist.
     Never puts user input into query string without processing.
     '''
-    direction = 'DESC' if (order or '').lower() == 'desc' else 'ASC'
+    direction: Literal['DESC', 'ASC'] = 'DESC' if (order or '').lower() == 'desc' else 'ASC'
     cypher_field = sort_fields.get(sort or '')
 
     if not cypher_field:
@@ -229,7 +215,7 @@ def list_catalog(
     assert _has_cypher_where(filters), 'filters must implement to_cypher_where'
 
     page = max(1, page)
-    page_size = min(_MAX_PAGE_SIZE, max(1, page_size))
+    page_size = min(MAX_PAGE_SIZE, max(1, page_size))
 
     where, params = filters.to_cypher_where()
     order_by = _build_order_by(
@@ -260,35 +246,35 @@ def list_catalog(
     )
 
 
-def create_node(
-        node_labels: str,
-        slug: str,
-        names: list[str],
-        attrs: dict[str, Any]
-) -> None:
-    '''
-    Create a new :Page subtype node in Neo4j.
+# def create_node(
+#         node_labels: str,
+#         slug: str,
+#         names: list[str],
+#         attrs: dict[str, Any]
+# ) -> None:
+#     '''
+#     Create a new :Page subtype node in Neo4j.
 
-    `node_labels` is sourced exclusively from EntityConfig.node_labels - a
-    hardcoded string, never from user input - so f-string interpolation here
-    is safe against Cypher injection.
+#     `node_labels` is sourced exclusively from EntityConfig.node_labels - a
+#     hardcoded string, never from user input - so f-string interpolation here
+#     is safe against Cypher injection.
 
-    `attrs` must already be normalised (camelCase Neo4j property names) via
-    normalize_patch_attributes before calling this function.
+#     `attrs` must already be normalised (camelCase Neo4j property names) via
+#     normalize_patch_attributes before calling this function.
 
-    Raises neo4j.exceptions.ConstraintError if slug is not unique
-    '''
-    query = (
-        CREATE_NODE_TEMPLATE.format(node_labels=node_labels)
-    )
-    db.cypher_query(
-        query,
-        {
-            'slug': slug,
-            'names': names,
-            'attrs': attrs
-        }
-    )
+#     Raises neo4j.exceptions.ConstraintError if slug is not unique
+#     '''
+#     query = (
+#         CREATE_NODE_TEMPLATE.format(node_labels=node_labels)
+#     )
+#     db.cypher_query(
+#         query,
+#         {
+#             'slug': slug,
+#             'names': names,
+#             'attrs': attrs
+#         }
+#     )
 
 
 def slug_exists(slug: str) -> bool:
