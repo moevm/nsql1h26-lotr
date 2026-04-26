@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 from neomodel import db  # type: ignore[attr-defined]
 
 from .constants import MAX_PAGE_SIZE
-from .filters import _HasCypherWhere
+from .filters import CypherWhereFilter
 from .queries import (
     CHARACTER_COUNT_QUERY,
     CHARACTER_DEFAULT_SORT,
@@ -199,7 +199,7 @@ def _has_cypher_where(f: Any) -> bool:
 
 def list_catalog(
         config: EntityConfig,
-        filters: _HasCypherWhere,
+        filters: CypherWhereFilter,
         page: int,
         page_size: int,
         sort: str | None,
@@ -244,37 +244,6 @@ def list_catalog(
         previous=prev_url,
         results=items
     )
-
-
-# def create_node(
-#         node_labels: str,
-#         slug: str,
-#         names: list[str],
-#         attrs: dict[str, Any]
-# ) -> None:
-#     '''
-#     Create a new :Page subtype node in Neo4j.
-
-#     `node_labels` is sourced exclusively from EntityConfig.node_labels - a
-#     hardcoded string, never from user input - so f-string interpolation here
-#     is safe against Cypher injection.
-
-#     `attrs` must already be normalised (camelCase Neo4j property names) via
-#     normalize_patch_attributes before calling this function.
-
-#     Raises neo4j.exceptions.ConstraintError if slug is not unique
-#     '''
-#     query = (
-#         CREATE_NODE_TEMPLATE.format(node_labels=node_labels)
-#     )
-#     db.cypher_query(
-#         query,
-#         {
-#             'slug': slug,
-#             'names': names,
-#             'attrs': attrs
-#         }
-#     )
 
 
 def slug_exists(slug: str) -> bool:

@@ -423,7 +423,11 @@ def _apply_outgoing_relations(slug: str, outgoing: dict) -> None:
         return
 
     for rel_type, targets in outgoing.items():
-        assert rel_type in ALLOWED_REL_TYPES, f'rel_type leaked: {rel_type}'
+        if rel_type not in ALLOWED_REL_TYPES:
+            raise RuntimeError(
+                f"rel_type '{rel_type}' not in ALLOWED_REL_TYPES. "
+                "Validation must run before calling write helpers."
+            )
 
         db.cypher_query(
             PAGE_RELS_OUTGOING_DELETE_TEMPLATE.format(rel_type=rel_type),
@@ -465,7 +469,11 @@ def _apply_incoming_relations(slug: str, incoming: dict) -> None:
         return
 
     for rel_type, sources in incoming.items():
-        assert rel_type in ALLOWED_REL_TYPES, f'rel_type leaked: {rel_type}'
+        if rel_type not in ALLOWED_REL_TYPES:
+            raise RuntimeError(
+                f"rel_type '{rel_type}' not in ALLOWED_REL_TYPES. "
+                "Validation must run before calling write helpers."
+            )
 
         db.cypher_query(
             PAGE_RELS_INCOMING_DELETE_TEMPLATE.format(rel_type=rel_type),

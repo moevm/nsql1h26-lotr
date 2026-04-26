@@ -83,8 +83,8 @@ def build_lucene_query(raw: str) -> str:
         return '""'
 
     # Boost main name
-    clauses = []
-    for token in tokens:
-        clauses.append(f'(names[0]:{token}*)^2 OR names:{token}*')
+    # clauses = []
+    # for token in tokens:
+    #     clauses.append(f'(names[0]:{token}*)^2 OR names:{token}*')
 
     return " AND ".join(f'{token}*' for token in tokens)

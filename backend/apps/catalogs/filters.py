@@ -19,7 +19,7 @@ from typing import Any, Protocol
 _MAX_MULTI: int = 20
 
 
-class _HasCypherWhere(Protocol):
+class CypherWhereFilter(Protocol):
     '''Filter protocol - only for type hints, not for inheritance'''
     def to_cypher_where(self) -> tuple[str, dict[str, Any]]:
         raise NotImplementedError

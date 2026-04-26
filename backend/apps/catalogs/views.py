@@ -24,7 +24,7 @@ from .filters import (
     RaceFilter,
     ScriptFilter,
     TimelineFilter,
-    _HasCypherWhere,
+    CypherWhereFilter,
 )
 from .serializers import (
     CharacterOutputSerializer,
@@ -155,7 +155,7 @@ class CatalogView(APIView):
 
         return [AllowAny()]
 
-    def build_filter(self, request: Request) -> _HasCypherWhere:
+    def build_filter(self, request: Request) -> CypherWhereFilter:
         raise NotImplementedError
 
     # GET /{catalog}/
