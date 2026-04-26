@@ -11,12 +11,27 @@ page representation (same as GET /pages/{slug}/).
 from rest_framework import serializers
 
 
-class CharacterOutputSerializer(serializers.Serializer):
-    '''Output of one character in a catalog list'''
+class BaseCatalogSerializer(serializers.Serializer):
+    '''
+    Shared base for all catalog list output serializers.
+
+    Provides: slug, names, name ( = names[0]).
+    Subclasses add type-specific fields.
+    '''
+
     slug = serializers.CharField()
-    names = serializers.ListField(
-        child=serializers.CharField(), allow_null=True
-    )
+    names = serializers.ListField(child=serializers.CharField(), allow_null=True)
+    name = serializers.SerializerMethodField()
+
+    def get_name(self, obj: dict) -> str | None:
+        names: list[str] = obj.get('names') or []
+        return names[0] if names else None
+
+
+
+class CharacterOutputSerializer(BaseCatalogSerializer):
+    '''Output of one character in a catalog list'''
+
     name = serializers.SerializerMethodField()
     titles = serializers.ListField(
         child=serializers.CharField(), allow_null=True
@@ -31,17 +46,8 @@ class CharacterOutputSerializer(serializers.Serializer):
     clothing = serializers.CharField(allow_null=True)
     notable_for = serializers.CharField(allow_null=True)
 
-    def get_name(self, obj: dict) -> str | None:
-        names = obj.get('names') or []
-        return names[0] if names else None
 
-
-class RaceOutputSerializer(serializers.Serializer):
-    slug = serializers.CharField()
-    names = serializers.ListField(
-        child=serializers.CharField(), allow_null=True
-    )
-    name = serializers.SerializerMethodField()
+class RaceOutputSerializer(BaseCatalogSerializer):
     lifespan = serializers.CharField(allow_null=True)
     avg_height = serializers.CharField(allow_null=True)
     hair = serializers.CharField(allow_null=True)
@@ -51,51 +57,24 @@ class RaceOutputSerializer(serializers.Serializer):
     clothing = serializers.CharField(allow_null=True)
     distinctions = serializers.CharField(allow_null=True)
 
-    def get_name(self, obj: dict) -> str | None:
-        names = obj.get('names') or []
-        return names[0] if names else None
 
-
-class LocationOutputSerializer(serializers.Serializer):
-    slug = serializers.CharField()
-    names = serializers.ListField(
-        child=serializers.CharField(), allow_null=True
-    )
-    name = serializers.SerializerMethodField()
+class LocationOutputSerializer(BaseCatalogSerializer):
     entity_type = serializers.CharField(allow_null=True)
     population = serializers.CharField(allow_null=True)
     creation_date = serializers.CharField(allow_null=True)
     destruction_date = serializers.CharField(allow_null=True)
     notable_for = serializers.CharField(allow_null=True)
 
-    def get_name(self, obj: dict) -> str | None:
-        names = obj.get('names') or []
-        return names[0] if names else None
 
-
-class EventOutputSerializer(serializers.Serializer):
-    slug = serializers.CharField()
-    names = serializers.ListField(
-        child=serializers.CharField(), allow_null=True
-    )
-    name = serializers.SerializerMethodField()
+class EventOutputSerializer(BaseCatalogSerializer):
     entity_type = serializers.CharField(allow_null=True)
     start_date = serializers.CharField(allow_null=True)
     end_date = serializers.CharField(allow_null=True)
     casualties = serializers.CharField(allow_null=True)
     notable_for = serializers.CharField(allow_null=True)
 
-    def get_name(self, obj: dict) -> str | None:
-        names = obj.get('names') or []
-        return names[0] if names else None
 
-
-class OrganizationOutputSerializer(serializers.Serializer):
-    slug = serializers.CharField()
-    names = serializers.ListField(
-        child=serializers.CharField(), allow_null=True
-    )
-    name = serializers.SerializerMethodField()
+class OrganizationOutputSerializer(BaseCatalogSerializer):
     entity_type = serializers.CharField(allow_null=True)
     founded_date = serializers.CharField(allow_null=True)
     dissolved_date = serializers.CharField(allow_null=True)
@@ -104,64 +83,24 @@ class OrganizationOutputSerializer(serializers.Serializer):
     purpose = serializers.CharField(allow_null=True)
     notable_for = serializers.CharField(allow_null=True)
 
-    def get_name(self, obj: dict) -> str | None:
-        names = obj.get('names') or []
-        return names[0] if names else None
 
-
-class TimelineOutputSerializer(serializers.Serializer):
-    slug = serializers.CharField()
-    names = serializers.ListField(
-        child=serializers.CharField(), allow_null=True
-    )
-    name = serializers.SerializerMethodField()
+class TimelineOutputSerializer(BaseCatalogSerializer):
     start_date = serializers.CharField(allow_null=True)
     end_date = serializers.CharField(allow_null=True)
     abbreviation = serializers.CharField(allow_null=True)
 
-    def get_name(self, obj: dict) -> str | None:
-        names = obj.get('names') or []
-        return names[0] if names else None
 
-
-class ItemOutputSerializer(serializers.Serializer):
-    slug = serializers.CharField()
-    names = serializers.ListField(
-        child=serializers.CharField(), allow_null=True
-    )
-    name = serializers.SerializerMethodField()
+class ItemOutputSerializer(BaseCatalogSerializer):
     entity_type = serializers.CharField(allow_null=True)
     material = serializers.CharField(allow_null=True)
     notable_for = serializers.CharField(allow_null=True)
 
-    def get_name(self, obj: dict) -> str | None:
-        names = obj.get('names') or []
-        return names[0] if names else None
-
-
-class LanguageOutputSerializer(serializers.Serializer):
-    slug = serializers.CharField()
-    names = serializers.ListField(
-        child=serializers.CharField(), allow_null=True
-    )
-    name = serializers.SerializerMethodField()
+class LanguageOutputSerializer(BaseCatalogSerializer):
     family = serializers.CharField(allow_null=True)
 
-    def get_name(self, obj: dict) -> str | None:
-        names = obj.get('names') or []
-        return names[0] if names else None
 
-
-class ScriptOutputSerializer(serializers.Serializer):
-    slug = serializers.CharField()
-    names = serializers.ListField(
-        child=serializers.CharField(), allow_null=True
-    )
-    name = serializers.SerializerMethodField()
-
-    def get_name(self, obj: dict) -> str | None:
-        names = obj.get('names') or []
-        return names[0] if names else None
+class ScriptOutputSerializer(BaseCatalogSerializer):
+    pass
 
 
 # Pagination envelope - used in @extend_schema
