@@ -84,6 +84,93 @@ components:
           - asc
           - desc
         default: asc
+    BirthDateFromParam:
+      name: birth_date_from
+      in: query
+      schema:
+        type: string
+      description: Inclusive lower bound for birth date (string comparison). e.g., "TA2968", "TA"
+    BirthDateToParam:
+      name: birth_date_to
+      in: query
+      schema:
+        type: string
+      description: Inclusive upper bound for birth date.
+    DeathDateFromParam:
+      name: death_date_from
+      in: query
+      schema:
+        type: string
+      description: Inclusive lower bound for death date.
+    DeathDateToParam:
+      name: death_date_to
+      in: query
+      schema:
+        type: string
+    StartDateFromParam:
+      name: start_date_from
+      in: query
+      schema:
+        type: string
+    StartDateToParam:
+      name: start_date_to
+      in: query
+      schema:
+        type: string
+    EndDateFromParam:
+      name: end_date_from
+      in: query
+      schema:
+        type: string
+    EndDateToParam:
+      name: end_date_to
+      in: query
+      schema:
+        type: string
+    FoundedDateFromParam:
+      name: founded_date_from
+      in: query
+      schema:
+        type: string
+    FoundedDateToParam:
+      name: founded_date_to
+      in: query
+      schema:
+        type: string
+    DissolvedDateFromParam:
+      name: dissolved_date_from
+      in: query
+      schema:
+        type: string
+    DissolvedDateToParam:
+      name: dissolved_date_to
+      in: query
+      schema:
+        type: string
+    CreationDateFromParam:
+      name: creation_date_from
+      in: query
+      schema:
+        type: string
+      description: Inclusive lower bound for creation date (string comparison). Used with locations.
+    CreationDateToParam:
+      name: creation_date_to
+      in: query
+      schema:
+        type: string
+      description: Inclusive upper bound for creation date.
+    DestructionDateFromParam:
+      name: destruction_date_from
+      in: query
+      schema:
+        type: string
+      description: Inclusive lower bound for destruction date (string comparison). Used with locations.
+    DestructionDateToParam:
+      name: destruction_date_to
+      in: query
+      schema:
+        type: string
+      description: Inclusive upper bound for destruction date.
   schemas:
     ErrorResponse:
       type: object
@@ -217,14 +304,6 @@ components:
     MeResponse:
       allOf:
         - $ref: "#/components/schemas/User"
-        - type: object
-          properties:
-            likedPages:
-              type: array
-              items:
-                $ref: "#/components/schemas/PageSummary"
-          required:
-            - likedPages
     UpdateMeRequest:
       type: object
       properties:
@@ -1029,7 +1108,7 @@ components:
           format: date-time
         comments_count:
           type: integer
-        likedPages:
+        liked_pages:
           type: array
           items:
             $ref: "#/components/schemas/PageSummary"
@@ -1070,49 +1149,59 @@ components:
         counts:
           type: object
           properties:
-            total:
-              type: integer
-            characters:
-              type: integer
-            races:
-              type: integer
-            locations:
-              type: integer
-            events:
-              type: integer
-            organizations:
-              type: integer
-            timelines:
-              type: integer
-            items:
-              type: integer
-            languages:
-              type: integer
-            scripts:
-              type: integer
-            articles:
-              type: integer
-        charactersByRace:
+            total: { type: integer }
+            characters: { type: integer }
+            races: { type: integer }
+            locations: { type: integer }
+            events: { type: integer }
+            organizations: { type: integer }
+            timelines: { type: integer }
+            items: { type: integer }
+            languages: { type: integer }
+            scripts: { type: integer }
+        characters_by_race:
           type: array
           items:
             type: object
             properties:
-              slug:
-                type: string
-              name:
-                type: string
-              count:
-                type: integer
-        charactersBySide:
+              slug: { type: string }
+              name: { type: string }
+              count: { type: integer }
+        characters_by_gender:
           type: array
           items:
             type: object
             properties:
-              side:
-                type: string
-              count:
-                type: integer
-        topConnected:
+              gender: { type: string }
+              count: { type: integer }
+        is_alive_stats:
+          type: object
+          properties:
+            alive: { type: integer }
+            deceased: { type: integer }
+        events_by_timeline:
+          type: array
+          items:
+            type: object
+            properties:
+              timelineSlug: { type: string }
+              name: { type: string }
+              count: { type: integer }
+        locations_by_type:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string }
+              count: { type: integer }
+        items_by_type:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string }
+              count: { type: integer }
+        top_connected:
           type: object
           properties:
             characters:
@@ -1135,15 +1224,30 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/TopConnectedItem"
+        most_liked:
+          type: array
+          items:
+            type: object
+            properties:
+              slug: { type: string }
+              name: { type: string }
+              type: { type: string }
+              count: { type: integer }
+        most_commented:
+          type: array
+          items:
+            type: object
+            properties:
+              slug: { type: string }
+              name: { type: string }
+              type: { type: string }
+              count: { type: integer }
     TopConnectedItem:
       type: object
       properties:
-        slug:
-          type: string
-        name:
-          type: string
-        connections_count:
-          type: integer
+        slug: { type: string }
+        name: { type: string }
+        connections_count: { type: integer } 
     NeighborsResponse:
       type: object
       properties:
@@ -1158,17 +1262,16 @@ components:
           items:
             type: object
             properties:
-              from:
-                type: string
-              to:
-                type: string
-              type:
-                type: string
+              from: { type: string }
+              to: { type: string }
+              type: { type: string }
+              properties:
+                type: object
+                additionalProperties: true
         stats:
           type: object
           properties:
-            total_neighbors:
-              type: integer
+            total_neighbors: { type: integer }
             by_type:
               type: object
               additionalProperties:
@@ -1180,15 +1283,10 @@ components:
     ShortestPathResponse:
       type: object
       properties:
-        found:
-          type: boolean
-        length:
-          type: integer
-          nullable: true
-        from:
-          $ref: "#/components/schemas/PageSummary"
-        to:
-          $ref: "#/components/schemas/PageSummary"
+        found: { type: boolean }
+        length: { type: integer, nullable: true }
+        from: { $ref: "#/components/schemas/PageSummary" }
+        to:   { $ref: "#/components/schemas/PageSummary" }
         path:
           type: array
           items:
@@ -1200,35 +1298,93 @@ components:
                 type: object
                 nullable: true
                 properties:
-                  type:
-                    type: string
-                  label:
-                    type: string
-    CustomAnalyticsData:
+                  type: { type: string }
+                  properties:
+                    type: object
+                    additionalProperties: true
+    GenealogyResponse:
       type: object
       properties:
-        entity_type:
-          type: string
-        x_attr:
-          type: string
-        y_attr:
-          type: string
-        agg:
-          type: string
-          enum:
-            - count
-          description: Aggregation function. Current contract supports count only.
+        root:
+          type: object
+          properties:
+            slug: { type: string }
+            type: { type: string }
+            name: { type: string }
+            race_slug: { type: string }
+            race_name: { type: string }
+            imageUrl: { type: string, nullable: true, format: uri }
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              slug: { type: string }
+              type: { type: string }
+              name: { type: string }
+              gender: { type: string }
+              imageUrl: { type: string, nullable: true, format: uri }
+              role: { type: string, enum: [ancestor, descendant, spouse, sibling] }
+              race_slug: { type: string }
+              race_name: { type: string }
+              generation: { type: integer }
+        edges:
+          type: array
+          items:
+            type: object
+            properties:
+              from: { type: string }
+              to: { type: string }
+              type: { type: string, enum: [CHILD_OF, MARRIED_TO, SIBLING_OF] }
+        stats:
+          type: object
+          properties:
+            ancestors: { type: integer }
+            descendants: { type: integer }
+            spouses: { type: integer }
+    CustomAnalyticsSimpleResponse:
+      type: object
+      required: [entity_type, attr, group_by, data]
+      properties:
+        entity_type: { type: string }
+        attr: { type: string }
+        group_by: { type: string, nullable: true, enum: [null] }
         data:
           type: array
           items:
             type: object
             properties:
-              x:
-                type: string
-              y:
-                type: string
-              value:
-                type: integer
+              x: { type: string }
+              value: { type: integer }
+    CustomAnalyticsGroupedResponse:
+      type: object
+      required: [entity_type, attr, group_by, groups, data]
+      properties:
+        entity_type: { type: string }
+        attr: { type: string }
+        group_by: { type: string }
+        groups:
+          type: array
+          items:
+            type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              x: { type: string }
+            additionalProperties:
+              type: integer
+
+    CustomAnalyticsResponse:
+      oneOf:
+        - $ref: "#/components/schemas/CustomAnalyticsSimpleResponse"
+        - $ref: "#/components/schemas/CustomAnalyticsGroupedResponse"
+      discriminator:
+        propertyName: group_by
+        mapping:
+          null: "#/components/schemas/CustomAnalyticsSimpleResponse"
+          "*":  "#/components/schemas/CustomAnalyticsGroupedResponse"
     BulkImportResponse:
       type: object
       properties:
@@ -2214,6 +2370,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /auth/me/liked:
+    get:
+      tags:
+        - auth
+      summary: List of pages liked by the current user
+      operationId: getLikedPages
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+      responses:
+        "200":
+          description: Paginated list of liked pages
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/PageSummary"
   /pages/{slug}:
     get:
       tags:
@@ -2422,12 +2603,11 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Comment not found
-  /pages/{slug}/export:
-    get:
+    patch:
       tags:
         - pages
-      summary: Export data for a single page (admin)
-      operationId: exportPage
+      summary: Update a comment text (author only)
+      operationId: updateComment
       security:
         - BearerAuth: []
       parameters:
@@ -2436,57 +2616,33 @@ paths:
           required: true
           schema:
             type: string
-      responses:
-        "200":
-          description: Export file (JSON)
-          content:
-            application/json:
-              schema:
-                type: object
-            text/csv:
-              schema:
-                type: string
-                format: binary
-          headers:
-            Content-Disposition:
-              schema:
-                type: string
-                example: attachment; filename="frodo-baggins.json"
-  /pages/{slug}/import:
-    post:
-      tags:
-        - pages
-      summary: Import data for a single page from a file (admin)
-      operationId: importPage
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: slug
+        - name: id
           in: path
           required: true
           schema:
             type: string
+            description: Neo4j element ID of the comment
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
-              type: object
-              required:
-                - file
-              properties:
-                file:
-                  type: string
-                  format: binary
+              $ref: "#/components/schemas/CommentRequest"
       responses:
         "200":
-          description: Page updated
+          description: Comment updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PageResponse"
-        "400":
-          description: Invalid file format
+                $ref: "#/components/schemas/Comment"
+        "403":
+          description: No permission to edit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Comment not found
           content:
             application/json:
               schema:
@@ -2524,16 +2680,10 @@ paths:
           schema:
             type: boolean
           description: Single boolean. `true` for living characters (`deathDate` is null), `false` for deceased.
-        - name: birth_date
-          in: query
-          schema:
-            type: string
-          description: Comma-separated list (OR). Substring match in `birthDate`.
-        - name: death_date
-          in: query
-          schema:
-            type: string
-          description: Comma-separated list (OR). Substring match in `deathDate`.
+        - $ref: "#/components/parameters/BirthDateFromParam"
+        - $ref: "#/components/parameters/BirthDateToParam"
+        - $ref: "#/components/parameters/DeathDateFromParam"
+        - $ref: "#/components/parameters/DeathDateToParam"
         - name: hair
           in: query
           schema:
@@ -2760,16 +2910,10 @@ paths:
           schema:
             type: string
           description: Comma-separated list (OR). Substring match in `population`.
-        - name: creation_date
-          in: query
-          schema:
-            type: string
-          description: Comma-separated list (OR). Substring match in `creationDate`.
-        - name: destruction_date
-          in: query
-          schema:
-            type: string
-          description: Comma-separated list (OR). Substring match in `destructionDate`.
+        - $ref: "#/components/parameters/CreationDateFromParam"
+        - $ref: "#/components/parameters/CreationDateToParam"
+        - $ref: "#/components/parameters/DestructionDateFromParam"
+        - $ref: "#/components/parameters/DestructionDateToParam"
         - name: is_destroyed
           in: query
           schema:
@@ -2860,16 +3004,10 @@ paths:
           schema:
             type: string
           description: Comma-separated list (OR). Substring match in `type` (e.g., war, battle, council).
-        - name: start_date
-          in: query
-          schema:
-            type: string
-          description: Comma-separated list (OR). Substring match in `startDate`.
-        - name: end_date
-          in: query
-          schema:
-            type: string
-          description: Comma-separated list (OR). Substring match in `endDate`.
+        - $ref: "#/components/parameters/StartDateFromParam"
+        - $ref: "#/components/parameters/StartDateToParam"
+        - $ref: "#/components/parameters/EndDateFromParam"
+        - $ref: "#/components/parameters/EndDateToParam"
         - name: casualties
           in: query
           schema:
@@ -2953,16 +3091,10 @@ paths:
           schema:
             type: string
           description: Comma-separated list (OR). Substring match in `type`.
-        - name: founded_date
-          in: query
-          schema:
-            type: string
-          description: Comma-separated list (OR). Substring match in `foundedDate`.
-        - name: dissolved_date
-          in: query
-          schema:
-            type: string
-          description: Comma-separated list (OR). Substring match in `dissolvedDate`.
+        - $ref: "#/components/parameters/FoundedDateFromParam"
+        - $ref: "#/components/parameters/FoundedDateToParam"
+        - $ref: "#/components/parameters/DissolvedDateFromParam"
+        - $ref: "#/components/parameters/DissolvedDateToParam"
         - name: is_dissolved
           in: query
           schema:
@@ -3579,6 +3711,41 @@ paths:
           description: User deleted
         "403":
           description: You cannot delete your own account
+  /users/{username}/liked:
+    get:
+      tags:
+        - users
+      summary: Public list of pages liked by this user
+      operationId: getUserLikedPages
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Username
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+      responses:
+        "200":
+          description: Paginated list of liked pages
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/PageSummary"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /search:
     get:
       tags:
@@ -3617,45 +3784,53 @@ paths:
           description: Query is too short
   /analytics/global:
     get:
-      tags:
-        - analytics
+      tags: [analytics]
       summary: Global statistics
       operationId: globalStats
       responses:
         "200":
-          description: Statistics
+          description: Aggregated stats
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/GlobalStats"
+
   /analytics/neighbors:
     get:
-      tags:
-        - analytics
+      tags: [analytics]
       summary: Node neighbors graph
       operationId: neighbors
       parameters:
-        - name: entity
+        - name: slug
           in: query
           required: true
           schema:
             type: string
-        - name: node_types
+        - name: through_nodes
           in: query
+          required: false
           schema:
             type: string
-        - name: rel_types
+          description: Comma-separated node types to include (all if empty)
+        - name: through_rels
           in: query
+          required: false
           schema:
             type: string
+          description: Comma-separated relationship types (all if empty)
         - name: depth
           in: query
           schema:
             type: integer
-            enum:
-              - 1
-              - 2
+            enum: [1, 2]
             default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 100
+            maximum: 1000
       responses:
         "200":
           description: Neighbors graph
@@ -3664,14 +3839,18 @@ paths:
               schema:
                 $ref: "#/components/schemas/NeighborsResponse"
         "400":
-          description: entity is not specified
+          description: slug not provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Node not found
+
   /analytics/shortest-path:
     get:
-      tags:
-        - analytics
-      summary: Shortest path between nodes
+      tags: [analytics]
+      summary: Shortest path between two nodes
       operationId: shortestPath
       parameters:
         - name: from
@@ -3684,30 +3863,77 @@ paths:
           required: true
           schema:
             type: string
-        - name: through-nodes
+        - name: through_nodes
           in: query
-          required: true
+          required: false
           schema:
             type: string
-        - name: through-rels
+        - name: through_rels
           in: query
-          required: true
+          required: false
           schema:
             type: string
+        - name: max_depth
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            maximum: 15
       responses:
         "200":
-          description: Path (or absence information)
+          description: Path found or not
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ShortestPathResponse"
         "400":
-          description: Invalid parameters
+          description: Invalid parameters (e.g., from == to)
+
+  /analytics/genealogy:
+    get:
+      tags: [analytics]
+      summary: Genealogy tree around a character
+      operationId: genealogy
+      parameters:
+        - name: slug
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: depth
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+            default: 3
+        - name: include_spouses
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: include_siblings
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Genealogy graph
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenealogyResponse"
+        "400":
+          description: slug not provided
+        "404":
+          description: Character not found
+
   /analytics/custom:
     get:
-      tags:
-        - analytics
-      summary: Custom analytics
+      tags: [analytics]
+      summary: Custom histogram chart
       operationId: customAnalytics
       parameters:
         - name: entity_type
@@ -3715,30 +3941,113 @@ paths:
           required: true
           schema:
             type: string
-        - name: x_attr
+            enum: [character, location, event, organization, item]
+        - name: attr
           in: query
           required: true
           schema:
             type: string
-        - name: y_attr
+          description: Attribute for X axis (see docs for allowed values per entity_type)
+        - name: group_by
           in: query
-          required: true
+          required: false
           schema:
             type: string
-        - name: agg
+          description: Optional secondary grouping attribute
+
+        # Фильтры для персонажей (entity_type = character)
+        - name: name
           in: query
           schema:
             type: string
-            default: count
+          description: (character) Substring match in any of the names.
+        - name: gender
+          in: query
+          schema:
+            type: string
+          description: (character) Comma-separated list of exact values (male, female, unknown).
+        - name: race
+          in: query
+          schema:
+            type: string
+          description: (character) Comma-separated race slugs.
+        - name: born_in
+          in: query
+          schema:
+            type: string
+          description: (character) Comma-separated location slugs (born in).
+        - name: organization
+          in: query
+          schema:
+            type: string
+          description: (character) Comma-separated organization slugs (member of).
+        - name: timeline
+          in: query
+          schema:
+            type: string
+          description: (character) Comma-separated timeline slugs (lived during).
+        - name: is_alive
+          in: query
+          schema:
+            type: boolean
+          description: (character) true for alive, false for deceased.
+        # При необходимости добавьте текстовые фильтры: hair, eyes, height и т.д.
+
+        # Фильтры для событий (entity_type = event)
+        - name: entity_type
+          in: query
+          schema:
+            type: string
+          description: (event) Filter by event type (substring).
+        - name: location
+          in: query
+          schema:
+            type: string
+          description: (event) Comma-separated location slugs (took place in).
+        # timeline уже заявлен выше для character, здесь он тоже применим для events
+        - name: start_date
+          in: query
+          schema:
+            type: string
+          description: (event) Substring match in startDate.
+        - name: end_date
+          in: query
+          schema:
+            type: string
+          description: (event) Substring match in endDate.
+
+        # Фильтры для локаций (entity_type = location)
+        # entity_type (тип локации) уже перечислен, повторно указывать не нужно
+        - name: parent_region
+          in: query
+          schema:
+            type: string
+          description: (location) Slug of parent region (via REGION_OF).
+
+        # Фильтры для организаций (entity_type = organization)
+        # entity_type (тип организации) уже есть
+        - name: based_in
+          in: query
+          schema:
+            type: string
+          description: (organization) Slug of location (based in).
+
+        # Фильтры для предметов (entity_type = item)
+        - name: material
+          in: query
+          schema:
+            type: string
+          description: (item) Substring match in material.
+
       responses:
         "200":
           description: Chart data
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CustomAnalyticsData"
+                $ref: "#/components/schemas/CustomAnalyticsResponse"
         "400":
-          description: entity_type is not specified
+          description: Missing entity_type or attr
   /bulk/export:
     get:
       tags:
