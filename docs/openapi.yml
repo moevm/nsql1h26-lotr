@@ -392,6 +392,18 @@ components:
           description: |
             Edge properties. See GET /meta/relation-types/ for allowed fields per relation type.
             Example for MEMBER_OF: { "role": "string", "from_date": "string", "to_date": "string" }
+    IncomingRelationItem:
+      type: object
+      required:
+        - from
+        - properties
+      properties:
+        from:
+          $ref: "#/components/schemas/RelationTarget"
+        properties:
+          type: object
+          additionalProperties: true
+          description: Edge properties for incoming relations.
     Relations:
       type: object
       properties:
@@ -407,16 +419,7 @@ components:
           additionalProperties:
             type: array
             items:
-              type: object
-              required:
-                - from
-                - properties
-              properties:
-                from:
-                  $ref: "#/components/schemas/RelationTarget"
-                properties:
-                  type: object
-                  additionalProperties: true
+              $ref: "#/components/schemas/IncomingRelationItem"
           description: Incoming relations grouped by relation type
     CharacterAttributes:
       type: object
@@ -1184,7 +1187,7 @@ components:
           items:
             type: object
             properties:
-              timelineSlug: { type: string }
+              timeline_slug: { type: string }
               name: { type: string }
               count: { type: integer }
         locations_by_type:
@@ -1313,7 +1316,7 @@ components:
             name: { type: string }
             race_slug: { type: string }
             race_name: { type: string }
-            imageUrl: { type: string, nullable: true, format: uri }
+            image_url: { type: string, nullable: true, format: uri }
         nodes:
           type: array
           items:
@@ -1323,7 +1326,7 @@ components:
               type: { type: string }
               name: { type: string }
               gender: { type: string }
-              imageUrl: { type: string, nullable: true, format: uri }
+              image_url: { type: string, nullable: true, format: uri }
               role: { type: string, enum: [ancestor, descendant, spouse, sibling] }
               race_slug: { type: string }
               race_name: { type: string }
@@ -1483,6 +1486,8 @@ components:
             type: { type: string, enum: [comment] }
             label: { type: string, enum: [Comment] }
             pluralLabel: { type: string, enum: [Comments] }
+      discriminator:
+        propertyName: type
     RelationType:
       oneOf:
         - type: object
@@ -1490,688 +1495,250 @@ components:
           properties:
             type: { type: string, enum: [CHILD_OF] }
             label: { type: string, enum: [Child of] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [MARRIED_TO] }
             label: { type: string, enum: [Married to] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [SIBLING_OF] }
             label: { type: string, enum: [Sibling of] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [OF_RACE] }
             label: { type: string, enum: [Of race] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [race] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [race] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [BORN_IN] }
             label: { type: string, enum: [Born in] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [location] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [location] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [DIED_IN] }
             label: { type: string, enum: [Died in] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [location] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [location] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [DWELLED_IN] }
             label: { type: string, enum: [Dwelled in] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [location] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [location] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [SPEAKS] }
             label: { type: string, enum: [Speaks] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [language] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [language] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [MEMBER_OF] }
             label: { type: string, enum: [Member of] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [organization] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [organization] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [PARTICIPATED_IN] }
             label: { type: string, enum: [Participated in] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [event] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [event] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [LIVED_DURING] }
             label: { type: string, enum: [Lived during] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [timeline] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [timeline] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [RULED] }
             label: { type: string, enum: [Ruled] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [location, race] },
-                minItems: 2,
-                maxItems: 2,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [location, race] }, minItems: 2, maxItems: 2 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [WIELDS] }
             label: { type: string, enum: [Wields] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [item] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [item] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [OWNS] }
             label: { type: string, enum: [Owns] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [item] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [item] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [BORE] }
             label: { type: string, enum: [Bore] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [item] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [item] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [CRAFTED] }
             label: { type: string, enum: [Crafted] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [character] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [item] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [character] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [item] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [SUBRACE_OF] }
             label: { type: string, enum: [Subrace of] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [race] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [race] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [race] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [race] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [INHABITS] }
             label: { type: string, enum: [Inhabits] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [race] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [location] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [race] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [location] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [REGION_OF] }
             label: { type: string, enum: [Region of] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [location] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [location] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [location] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [location] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [TOOK_PLACE_IN] }
             label: { type: string, enum: [Took place in] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [event] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [location] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [event] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [location] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [PART_OF] }
             label: { type: string, enum: [Part of] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [event] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [event] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [event] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [event] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [OCCURRED_DURING] }
             label: { type: string, enum: [Occurred during] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [event] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [timeline] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [event] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [timeline] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [BASED_IN] }
             label: { type: string, enum: [Based in] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [organization] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [location] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [organization] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [location] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [IS_SPOKEN_BY] }
             label: { type: string, enum: [Is spoken by] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [race] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [language] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [race] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [language] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [SPOKEN_IN] }
             label: { type: string, enum: [Spoken in] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [language] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [location] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [language] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [location] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [WRITTEN_IN] }
             label: { type: string, enum: [Written in] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [language] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [script] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [language] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [script] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [HAS_ARTICLE] }
             label: { type: string, enum: [Has article] }
             from:
-              {
-                type: array,
-                items:
-                  {
-                    type: string,
-                    enum:
-                      [
-                        character,
-                        race,
-                        location,
-                        event,
-                        organization,
-                        timeline,
-                        item,
-                        language,
-                        script,
-                      ],
-                  },
-                minItems: 9,
-                maxItems: 9,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [article] },
-                minItems: 1,
-                maxItems: 1,
-              }
+              type: array
+              items: { type: string, enum: [character, race, location, event, organization, timeline, item, language, script] }
+              minItems: 9
+              maxItems: 9
+            to: { type: array, items: { type: string, enum: [article] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [IN_CATEGORY] }
             label: { type: string, enum: [In category] }
             from:
-              {
-                type: array,
-                items:
-                  {
-                    type: string,
-                    enum:
-                      [
-                        character,
-                        race,
-                        location,
-                        event,
-                        organization,
-                        timeline,
-                        item,
-                        language,
-                        script,
-                      ],
-                  },
-                minItems: 9,
-                maxItems: 9,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [category] },
-                minItems: 1,
-                maxItems: 1,
-              }
+              type: array
+              items: { type: string, enum: [character, race, location, event, organization, timeline, item, language, script] }
+              minItems: 9
+              maxItems: 9
+            to: { type: array, items: { type: string, enum: [category] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [SUBCATEGORY_OF] }
             label: { type: string, enum: [Subcategory of] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [category] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [category] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [category] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [category] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [WROTE] }
             label: { type: string, enum: [Wrote] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [user] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [comment] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [user] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [comment] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [ON] }
             label: { type: string, enum: [On] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [comment] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [comment] }, minItems: 1, maxItems: 1 }
             to:
-              {
-                type: array,
-                items:
-                  {
-                    type: string,
-                    enum:
-                      [
-                        character,
-                        race,
-                        location,
-                        event,
-                        organization,
-                        timeline,
-                        item,
-                        language,
-                        script,
-                      ],
-                  },
-                minItems: 9,
-                maxItems: 9,
-              }
+              type: array
+              items: { type: string, enum: [character, race, location, event, organization, timeline, item, language, script] }
+              minItems: 9
+              maxItems: 9
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [REPLY_TO] }
             label: { type: string, enum: [Reply to] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [comment] },
-                minItems: 1,
-                maxItems: 1,
-              }
-            to:
-              {
-                type: array,
-                items: { type: string, enum: [comment] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [comment] }, minItems: 1, maxItems: 1 }
+            to:   { type: array, items: { type: string, enum: [comment] }, minItems: 1, maxItems: 1 }
         - type: object
           required: [type, label, from, to]
           properties:
             type: { type: string, enum: [LIKED] }
             label: { type: string, enum: [Liked] }
-            from:
-              {
-                type: array,
-                items: { type: string, enum: [user] },
-                minItems: 1,
-                maxItems: 1,
-              }
+            from: { type: array, items: { type: string, enum: [user] }, minItems: 1, maxItems: 1 }
             to:
-              {
-                type: array,
-                items:
-                  {
-                    type: string,
-                    enum:
-                      [
-                        character,
-                        race,
-                        location,
-                        event,
-                        organization,
-                        timeline,
-                        item,
-                        language,
-                        script,
-                      ],
-                  },
-                minItems: 9,
-                maxItems: 9,
-              }
+              type: array
+              items: { type: string, enum: [character, race, location, event, organization, timeline, item, language, script] }
+              minItems: 9
+              maxItems: 9
+      discriminator:
+        propertyName: type
     AuthResponse:
       type: object
       required:
@@ -2679,7 +2246,7 @@ paths:
           in: query
           schema:
             type: boolean
-          description: Single boolean. `true` for living characters (`deathDate` is null), `false` for deceased.
+          description: Single boolean. `true` for living characters (`death_date` is null), `false` for deceased.
         - $ref: "#/components/parameters/BirthDateFromParam"
         - $ref: "#/components/parameters/BirthDateToParam"
         - $ref: "#/components/parameters/DeathDateFromParam"
@@ -2713,7 +2280,7 @@ paths:
           in: query
           schema:
             type: string
-          description: Comma-separated list (OR). Substring match in `notableFor`.
+          description: Comma-separated list (OR). Substring match in `notable_for`.
         - name: race
           in: query
           schema:
@@ -2812,7 +2379,7 @@ paths:
           in: query
           schema:
             type: string
-          description: Comma-separated list (OR). Substring match in `avgHeight`.
+          description: Comma-separated list (OR). Substring match in `avg_height`.
         - name: hair
           in: query
           schema:
@@ -2918,12 +2485,12 @@ paths:
           in: query
           schema:
             type: boolean
-          description: Single boolean. `true` for locations with `destructionDate` IS NOT NULL, `false` otherwise.
+          description: Single boolean. `true` for locations with `destruction_date` IS NOT NULL, `false` otherwise.
         - name: notable_for
           in: query
           schema:
             type: string
-          description: Comma-separated list (OR). Substring match in `notableFor`.
+          description: Comma-separated list (OR). Substring match in `notable_for`.
         - name: character
           in: query
           schema:
@@ -3017,7 +2584,7 @@ paths:
           in: query
           schema:
             type: string
-          description: Comma-separated list (OR). Substring match in `notableFor`.
+          description: Comma-separated list (OR). Substring match in `notable_for`.
         - name: character
           in: query
           schema:
@@ -3099,7 +2666,7 @@ paths:
           in: query
           schema:
             type: boolean
-          description: Single boolean. `true` for organizations with `dissolvedDate` IS NOT NULL, `false` otherwise.
+          description: Single boolean. `true` for organizations with `dissolved_date` IS NOT NULL, `false` otherwise.
         - name: clothing
           in: query
           schema:
@@ -3119,7 +2686,7 @@ paths:
           in: query
           schema:
             type: string
-          description: Comma-separated list (OR). Substring match in `notableFor`.
+          description: Comma-separated list (OR). Substring match in `notable_for`.
         - name: character
           in: query
           schema:
@@ -3197,12 +2764,12 @@ paths:
           in: query
           schema:
             type: string
-          description: Comma-separated list (OR). Substring match in `startDate`.
+          description: Comma-separated list (OR). Substring match in `start_date`.
         - name: end_date
           in: query
           schema:
             type: string
-          description: Comma-separated list (OR). Substring match in `endDate`.
+          description: Comma-separated list (OR). Substring match in `end_date`.
         - $ref: "#/components/parameters/SortParam"
         - $ref: "#/components/parameters/OrderParam"
       responses:
@@ -3271,7 +2838,7 @@ paths:
           in: query
           schema:
             type: string
-          description: Comma-separated list (OR). Substring match in `notableFor`.
+          description: Comma-separated list (OR). Substring match in `notable_for`.
         - name: character
           in: query
           schema:
@@ -3941,7 +3508,9 @@ paths:
           required: true
           schema:
             type: string
-            enum: [character, location, event, organization, item]
+            enum: [character, race, location, event, organization, timeline, item, language, script]
+          description: |
+            Entity type to query. Determines which filters are applicable.
         - name: attr
           in: query
           required: true
@@ -3955,89 +3524,198 @@ paths:
             type: string
           description: Optional secondary grouping attribute
 
-        # Фильтры для персонажей (entity_type = character)
+        # --- Common filters ---
         - name: name
           in: query
           schema:
             type: string
-          description: (character) Substring match in any of the names.
+          description: "[character, race, location, event, organization, timeline, item, language, script] Substring match in any of the names."
+        - name: notable_for
+          in: query
+          schema:
+            type: string
+          description: "[character, location, event, organization, item] Comma-separated list (OR). Substring match in `notable_for`."
+
+        # --- Character filters ---
+        - name: titles
+          in: query
+          schema:
+            type: string
+          description: "[character] Comma-separated list (OR). Substring match in any of the character's titles."
         - name: gender
           in: query
           schema:
             type: string
-          description: (character) Comma-separated list of exact values (male, female, unknown).
-        - name: race
-          in: query
-          schema:
-            type: string
-          description: (character) Comma-separated race slugs.
-        - name: born_in
-          in: query
-          schema:
-            type: string
-          description: (character) Comma-separated location slugs (born in).
-        - name: organization
-          in: query
-          schema:
-            type: string
-          description: (character) Comma-separated organization slugs (member of).
-        - name: timeline
-          in: query
-          schema:
-            type: string
-          description: (character) Comma-separated timeline slugs (lived during).
+          description: "[character] Comma-separated list (OR). Case-insensitive exact match. Allowed values: `male`, `female`, `unknown`."
         - name: is_alive
           in: query
           schema:
             type: boolean
-          description: (character) true for alive, false for deceased.
-        # При необходимости добавьте текстовые фильтры: hair, eyes, height и т.д.
-
-        # Фильтры для событий (entity_type = event)
-        - name: entity_type
+          description: "[character] true for alive, false for deceased."
+        - $ref: "#/components/parameters/BirthDateFromParam"
+        - $ref: "#/components/parameters/BirthDateToParam"
+        - $ref: "#/components/parameters/DeathDateFromParam"
+        - $ref: "#/components/parameters/DeathDateToParam"
+        - name: hair
           in: query
           schema:
             type: string
-          description: (event) Filter by event type (substring).
+          description: "[character, race] Comma-separated list (OR). Substring match in `hair`."
+        - name: eyes
+          in: query
+          schema:
+            type: string
+          description: "[character, race] Comma-separated list (OR). Substring match in `eyes`."
+        - name: height
+          in: query
+          schema:
+            type: string
+          description: "[character] Comma-separated list (OR). Substring match in `height`."
+        - name: weapon
+          in: query
+          schema:
+            type: string
+          description: "[character] Comma-separated list (OR). Substring match in `weapon`."
+        - name: clothing
+          in: query
+          schema:
+            type: string
+          description: "[character, race, organization] Comma-separated list (OR). Substring match in `clothing`."
+        - name: race
+          in: query
+          schema:
+            type: string
+          description: "[character] Comma-separated list of race slugs (OR). Filters characters belonging to any of the given races."
+        - name: organization
+          in: query
+          schema:
+            type: string
+          description: "[character, location, event] Comma-separated list of organization slugs (OR)."
+        - name: event
+          in: query
+          schema:
+            type: string
+          description: "[character, location] Comma-separated list of event slugs (OR)."
+        - name: item
+          in: query
+          schema:
+            type: string
+          description: "[character] Comma-separated list of item slugs (OR). Filters characters connected via `OWNS`, `WIELDS`, `BORE`, or `CRAFTED`."
         - name: location
           in: query
           schema:
             type: string
-          description: (event) Comma-separated location slugs (took place in).
-        # timeline уже заявлен выше для character, здесь он тоже применим для events
+          description: "[character, event, organization] Comma-separated list of location slugs (OR)."
+
+        # --- Race filters ---
+        - name: lifespan
+          in: query
+          schema:
+            type: string
+          description: "[race] Comma-separated list (OR). Substring match in `lifespan`."
+        - name: avg_height
+          in: query
+          schema:
+            type: string
+          description: "[race] Comma-separated list (OR). Substring match in `avg_height`."
+        - name: skin
+          in: query
+          schema:
+            type: string
+          description: "[race] Comma-separated list (OR). Substring match in `skin`."
+        - name: weaponry
+          in: query
+          schema:
+            type: string
+          description: "[race, organization] Comma-separated list (OR). Substring match in `weaponry`."
+        - name: distinctions
+          in: query
+          schema:
+            type: string
+          description: "[race] Comma-separated list (OR). Substring match in `distinctions`."
+
+        # --- Location filters ---
+        - name: population
+          in: query
+          schema:
+            type: string
+          description: "[location] Comma-separated list (OR). Substring match in `population`."
+        - $ref: "#/components/parameters/CreationDateFromParam"
+        - $ref: "#/components/parameters/CreationDateToParam"
+        - $ref: "#/components/parameters/DestructionDateFromParam"
+        - $ref: "#/components/parameters/DestructionDateToParam"
+        - name: is_destroyed
+          in: query
+          schema:
+            type: boolean
+          description: "[location] `true` for locations with `destruction_date` IS NOT NULL, `false` otherwise."
+        - name: character
+          in: query
+          schema:
+            type: string
+          description: "[location, event, organization, item] Comma-separated list of character slugs (OR)."
+
+        # --- Event filters ---
+        - $ref: "#/components/parameters/StartDateFromParam"
+        - $ref: "#/components/parameters/StartDateToParam"
+        - $ref: "#/components/parameters/EndDateFromParam"
+        - $ref: "#/components/parameters/EndDateToParam"
+        - name: casualties
+          in: query
+          schema:
+            type: string
+          description: "[event] Comma-separated list (OR). Substring match in `casualties`."
+
+        # --- Organization filters ---
+        - $ref: "#/components/parameters/FoundedDateFromParam"
+        - $ref: "#/components/parameters/FoundedDateToParam"
+        - $ref: "#/components/parameters/DissolvedDateFromParam"
+        - $ref: "#/components/parameters/DissolvedDateToParam"
+        - name: is_dissolved
+          in: query
+          schema:
+            type: boolean
+          description: "[organization] `true` for organizations with `dissolved_date` IS NOT NULL, `false` otherwise."
+        - name: purpose
+          in: query
+          schema:
+            type: string
+          description: "[organization] Comma-separated list (OR). Substring match in `purpose`."
+
+        # --- Timeline filters ---
+        - name: abbreviation
+          in: query
+          schema:
+            type: string
+          description: "[timeline] Comma-separated list (OR). Substring match in `abbreviation`."
         - name: start_date
           in: query
           schema:
             type: string
-          description: (event) Substring match in startDate.
+          description: "[timeline] Comma-separated list (OR). Substring match in `start_date`."
         - name: end_date
           in: query
           schema:
             type: string
-          description: (event) Substring match in endDate.
+          description: "[timeline] Comma-separated list (OR). Substring match in `end_date`."
 
-        # Фильтры для локаций (entity_type = location)
-        # entity_type (тип локации) уже перечислен, повторно указывать не нужно
-        - name: parent_region
-          in: query
-          schema:
-            type: string
-          description: (location) Slug of parent region (via REGION_OF).
-
-        # Фильтры для организаций (entity_type = organization)
-        # entity_type (тип организации) уже есть
-        - name: based_in
-          in: query
-          schema:
-            type: string
-          description: (organization) Slug of location (based in).
-
-        # Фильтры для предметов (entity_type = item)
+        # --- Item filters ---
         - name: material
           in: query
           schema:
             type: string
-          description: (item) Substring match in material.
+          description: "[item] Comma-separated list (OR). Substring match in `material`."
+
+        # --- Language filters ---
+        - name: family
+          in: query
+          schema:
+            type: string
+          description: "[language] Comma-separated list (OR). Substring match in `family`."
+
+        # --- Sorting ---
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/OrderParam"
 
       responses:
         "200":
