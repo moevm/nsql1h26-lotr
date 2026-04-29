@@ -18,23 +18,24 @@ Security note - relationship type interpolation:
 
 from rest_framework.exceptions import ValidationError
 
+from .enums import EntityType, Gender, RelType
 
 # Maps Neo4j node label to API entity-type string
-LABEL_TO_TYPE: dict[str, str] = {
-    'Character': 'character',
-    'Race': 'race',
-    'Location': 'location',
-    'Event': 'event',
-    'Organization': 'organization',
-    'Timeline': 'timeline',
-    'Item': 'item',
-    'Language': 'language',
-    'Script': 'script',
+LABEL_TO_TYPE: dict[str, EntityType] = {
+    'Character': EntityType.CHARACTER,
+    'Race': EntityType.RACE,
+    'Location': EntityType.LOCATION,
+    'Event': EntityType.EVENT,
+    'Organization': EntityType.ORGANIZATION,
+    'Timeline': EntityType.TIMELINE,
+    'Item': EntityType.ITEM,
+    'Language': EntityType.LANGUAGE,
+    'Script': EntityType.SCRIPT,
 }
 
 
-def labels_to_type(labels: list[str]) -> str | None:
-    '''Returns the entity-type string for a list of Neo4j node labels'''
+def labels_to_type(labels: list[str]) -> EntityType | None:
+    '''Returns the EntityType for a list of Neo4j node labels'''
 
     for label in labels:
         if label in LABEL_TO_TYPE:
@@ -48,72 +49,72 @@ def labels_to_type(labels: list[str]) -> str | None:
 # Per entity-type: tuple of Neo4j property names that forms the
 # 'attributes' dict in the API response.
 # 'slug' and 'names' are alway top-level, never inside attributes
-_TYPE_ATTR_KEYS: dict[str, tuple[str, ...]] = {
-    'character': (
+_TYPE_ATTR_KEYS: dict[EntityType, tuple[str, ...]] = {
+    EntityType.CHARACTER: (
         'titles', 'gender', 'birthDate', 'deathDate', 'hair', 'eyes', 'height',
         'weapon', 'clothing', 'notableFor',
     ),
-    'race': (
+    EntityType.RACE: (
         'lifespan', 'avgHeight', 'hair', 'eyes', 'skin', 'weaponry',
         'clothing', 'distinctions',
     ),
-    'location': (
+    EntityType.LOCATION: (
         'type', 'population', 'creationDate', 'destructionDate', 'notableFor',
     ),
-    'event': (
+    EntityType.EVENT: (
         'type', 'startDate', 'endDate', 'casualties', 'notableFor',
     ),
-    'organization': (
+    EntityType.ORGANIZATION: (
         'type', 'foundedDate', 'dissolvedDate', 'clothing', 'weaponry',
         'purpose', 'notableFor',
     ),
-    'timeline': (
+    EntityType.TIMELINE: (
         'startDate', 'endDate', 'abbreviation',
     ),
-    'item': (
+    EntityType.ITEM: (
         'type', 'material', 'notableFor',
     ),
-    'language': (
+    EntityType.LANGUAGE: (
         'family',
     ),
-    'script': (),
+    EntityType.SCRIPT: (),
 }
 
 
 # Location / Event / organization / Item all use the bare 'type' property
 # in Neo4j. Rename it to a descriptive API key in the GET response.
-_TYPE_PROP_RENAME: dict[str, dict[str, str]] = {
-    'character': {
+_TYPE_PROP_RENAME: dict[EntityType, dict[str, str]] = {
+    EntityType.CHARACTER: {
         'birthDate': 'birth_date',
         'deathDate': 'death_date',
         'notableFor': 'notable_for',
     },
-    'race': {
+    EntityType.RACE: {
         'avgHeight': 'avg_height',
     },
-    'location': {
+    EntityType.LOCATION: {
         'type': 'entity_type',
         'creationDate': 'creation_date',
         'destructionDate': 'destruction_date',
         'notableFor': 'notable_for',
     },
-    'event': {
+    EntityType.EVENT: {
         'type': 'entity_type',
         'startDate': 'start_date',
         'endDate': 'end_date',
         'notableFor': 'notable_for',
     },
-    'organization': {
+    EntityType.ORGANIZATION: {
         'type': 'entity_type',
         'foundedDate': 'founded_date',
         'dissolvedDate': 'dissolved_date',
         'notableFor': 'notable_for',
     },
-    'timeline': {
+    EntityType.TIMELINE: {
         'startDate': 'start_date',
         'endDate': 'end_date',
     },
-    'item': {
+    EntityType.ITEM: {
         'type': 'entity_type',
         'notableFor': 'notable_for',
     },
@@ -122,53 +123,21 @@ _TYPE_PROP_RENAME: dict[str, dict[str, str]] = {
 
 # Reverse mappings: API attribute name to Neo4j property name.
 # Used in PATCH to convert the incoming JSON to DB column names.
-_ATTR_API_TO_DB: dict[str, dict[str, str]] = {
-    'character': {
-        'birth_date': 'birthDate',
-        'death_date': 'deathDate',
-        'notable_for': 'notableFor',
-    },
-    'race': {
-        'avg_height': 'avgHeight',
-    },
-    'location': {
-        'entity_type': 'type',
-        'creation_date': 'creationDate',
-        'destruction_date': 'destructionDate',
-        'notable_for': 'notableFor',
-    },
-    'event': {
-        'entity_type': 'type',
-        'start_date': 'startDate',
-        'end_date': 'endDate',
-        'notable_for': 'notableFor',
-    },
-    'organization': {
-        'entity_type': 'type',
-        'founded_date': 'foundedDate',
-        'dissolved_date': 'dissolvedDate',
-        'notable_for': 'notableFor',
-    },
-    'timeline': {
-        'start_date': 'startDate',
-        'end_date': 'endDate',
-    },
-    'item': {
-        'entity_type': 'type',
-        'notable_for': 'notableFor',
-    },
+_ATTR_API_TO_DB: dict[EntityType, dict[str, str]] = {
+    entity_type: {api_name: db_name for db_name, api_name in mapping.items()}
+    for entity_type, mapping in _TYPE_PROP_RENAME.items()
 }
 
 
 # Whitelist for enum fields
-_FIELD_CHOICES: dict[str, dict[str, frozenset[str]]] = {
-    'character': {
-        'gender': frozenset({'male', 'female', 'unknown'}),
+_FIELD_CHOICES: dict[EntityType, dict[str, frozenset[str]]] = {
+    EntityType.CHARACTER: {
+        'gender': frozenset(Gender),
     },
 }
 
 
-def build_attributes_for_response(props: dict, entity_type: str) -> dict:
+def build_attributes_for_response(props: dict, entity_type: EntityType) -> dict:
     '''
     Extract and rename entity-specific attributes
     from raw Neo4j node properties from the GET response.
@@ -183,7 +152,7 @@ def build_attributes_for_response(props: dict, entity_type: str) -> dict:
     return {rename.get(key, key): props.get(key) for key in keys}
 
 
-def normalize_patch_attributes(raw_attrs: dict, entity_type: str) -> dict:
+def normalize_patch_attributes(raw_attrs: dict, entity_type: EntityType) -> dict:
     '''
     Convert API attribute names to Neo4j property names for SET p += $attrs.
 
@@ -230,69 +199,112 @@ def normalize_patch_attributes(raw_attrs: dict, entity_type: str) -> dict:
 # Whitelist of allowed relationship types for PATCH /pages/{slug}/.
 # Relationship-type names are interpolated into Cypher strings.
 # Only whitelisted names may be used. This prevents Cypher injections.
-ALLOWED_REL_TYPES: frozenset[str] = frozenset({
-    # Character
-    'OF_RACE',
-    'BORN_IN',
-    'DIED_IN',
-    'DWELLED_IN',
-    'SPEAKS',
-    'CHILD_OF',
-    'MARRIED_TO',
-    'SIBLING_OF',
-    'PARTICIPATED_IN',
-    'LIVED_DURING',
-    'RULED',
-    'MEMBER_OF',
-    'WIELDS',
-    'OWNS',
-    'BORE',
-    'CRAFTED',
-    # Race
-    'SUBRACE_OF',
-    'INHABITS',
-    # Location
-    'REGION_OF',
-    # Event
-    'TOOK_PLACE_IN',
-    'PART_OF',
-    'OCCURRED_DURING',
-    # Organization
-    'BASED_IN',
-    # Language
-    'SPOKEN_BY',
-    'SPOKEN_IN',
-    'WRITTEN_IN',
-})
+ALLOWED_REL_TYPES: frozenset[str] = frozenset(RelType)
 
-REL_DIRECTION_ALLOWED_TYPES: dict[str, dict[str, set[str]]] = {
-    'OF_RACE': {'from': {'character'}, 'to': {'race'}},
-    'MEMBER_OF': {'from': {'character'}, 'to': {'organization'}},
-    'PARTICIPATED_IN': {'from': {'character'}, 'to': {'event'}},
-    'BORN_IN': {'from': {'character'}, 'to': {'location'}},
-    'DIED_IN': {'from': {'character'}, 'to': {'location'}},
-    'DWELLED_IN': {'from': {'character'}, 'to': {'location'}},
-    'SPEAKS': {'from': {'character'}, 'to': {'language'}},
-    'CHILD_OF': {'from': {'character'}, 'to': {'character'}},
-    'MARRIED_TO': {'from': {'character'}, 'to': {'character'}},
-    'SIBLING_OF': {'from': {'character'}, 'to': {'character'}},
-    'LIVED_DURING': {'from': {'character'}, 'to': {'timeline'}},
-    'RULED': {'from': {'character'}, 'to': {'location', 'race'}},
-    'WIELDS': {'from': {'character'}, 'to': {'item'}},
-    'OWNS': {'from': {'character'}, 'to': {'item'}},
-    'BORE': {'from': {'character'}, 'to': {'item'}},
-    'CRAFTED': {'from': {'character'}, 'to': {'item'}},
-    'SUBRACE_OF': {'from': {'race'}, 'to': {'race'}},
-    'INHABITS': {'from': {'race'}, 'to': {'location'}},
-    'REGION_OF': {'from': {'location'}, 'to': {'location'}},
-    'TOOK_PLACE_IN': {'from': {'event'}, 'to': {'location'}},
-    'PART_OF': {'from': {'event'}, 'to': {'event'}},
-    'OCCURRED_DURING': {'from': {'event'}, 'to': {'timeline'}},
-    'BASED_IN': {'from': {'organization'}, 'to': {'location'}},
-    'SPOKEN_BY': {'from': {'language'}, 'to': {'race'}},  # IS_SPOKEN_BY  ??
-    'SPOKEN_IN': {'from': {'language'}, 'to': {'location'}},
-    'WRITTEN_IN': {'from': {'language'}, 'to': {'script'}},
+REL_DIRECTION_ALLOWED_TYPES: dict[str, dict[str, set[EntityType]]] = {
+    RelType.OF_RACE: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.RACE}},
+    RelType.MEMBER_OF: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.ORGANIZATION}},
+    RelType.PARTICIPATED_IN: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.EVENT}},
+    RelType.BORN_IN: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.LOCATION}},
+    RelType.DIED_IN: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.LOCATION}},
+    RelType.DWELLED_IN: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.LOCATION}},
+    RelType.SPEAKS: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.LANGUAGE}},
+    RelType.CHILD_OF: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.CHARACTER}},
+    RelType.MARRIED_TO: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.CHARACTER}},
+    RelType.SIBLING_OF: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.CHARACTER}},
+    RelType.LIVED_DURING: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.TIMELINE}},
+    RelType.RULED: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.LOCATION, EntityType.RACE}},
+    RelType.WIELDS: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.ITEM}},
+    RelType.OWNS: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.ITEM}},
+    RelType.BORE: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.ITEM}},
+    RelType.CRAFTED: {
+        'from': {EntityType.CHARACTER},
+        'to': {EntityType.ITEM}},
+    RelType.SUBRACE_OF: {
+        'from': {EntityType.RACE},
+        'to': {EntityType.RACE}},
+    RelType.INHABITS: {
+        'from': {EntityType.RACE},
+        'to': {EntityType.LOCATION}},
+    RelType.REGION_OF: {
+        'from': {EntityType.LOCATION},
+        'to': {EntityType.LOCATION}},
+    RelType.TOOK_PLACE_IN: {
+        'from': {EntityType.EVENT},
+        'to': {EntityType.LOCATION}},
+    RelType.PART_OF: {
+        'from': {EntityType.EVENT},
+        'to': {EntityType.EVENT}},
+    RelType.OCCURRED_DURING: {
+        'from': {EntityType.EVENT},
+        'to': {EntityType.TIMELINE}},
+    RelType.BASED_IN: {
+        'from': {EntityType.ORGANIZATION},
+        'to': {EntityType.LOCATION}},
+    RelType.SPOKEN_BY: {
+        'from': {EntityType.LANGUAGE},
+        'to': {EntityType.RACE}},
+    RelType.SPOKEN_IN: {
+        'from': {EntityType.LANGUAGE},
+        'to': {EntityType.LOCATION}},
+    RelType.WRITTEN_IN: {
+        'from': {EntityType.LANGUAGE},
+        'to': {EntityType.SCRIPT}},
 }
+
+# Relationship property whitelists.
+REL_ALLOWED_PROPERTIES: dict[str, frozenset[str]] = {
+    RelType.CHILD_OF: frozenset({'type'}),
+    RelType.MARRIED_TO: frozenset({'fromDate', 'toDate'}),
+    RelType.MEMBER_OF: frozenset({'role', 'fromDate', 'toDate'}),
+    RelType.PARTICIPATED_IN: frozenset({'role'}),
+    RelType.RULED: frozenset({'fromDate', 'toDate'}),
+}
+
+
+def sanitize_rel_properties(rel_type: str, props: dict) -> dict:
+    '''
+    Filter relationship properties against the per-type whitelist.
+
+    Unknown keys are silently dropped, preventing clients from injecting
+    arbitrary properties onto relationship nodes.
+
+    Called in services._apply_outgoing_relations and
+    services._apply_incoming_relations before every Cypher SET.
+    '''
+    allowed = REL_ALLOWED_PROPERTIES.get(rel_type, frozenset())
+
+    return {k: v for k, v in props.items() if k in allowed}
 
 
 # Read query

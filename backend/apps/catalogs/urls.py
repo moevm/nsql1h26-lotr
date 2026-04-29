@@ -2,16 +2,15 @@ from django.urls import path
 
 from .views import (
     CharacterListView,
-    RaceListView,
-    LocationListView,
     EventListView,
-    OrganizationListView,
-    TimelineListView,
     ItemListView,
     LanguageListView,
+    LocationListView,
+    OrganizationListView,
+    RaceListView,
     ScriptListView,
+    TimelineListView,
 )
-
 
 app_name = 'catalogs'
 

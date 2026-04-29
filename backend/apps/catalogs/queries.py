@@ -1,11 +1,21 @@
+'''
+Cypher query constants for catalog list endpoints.
+
+Security note:
+    {where} and {order_by} are formatted via Python str.format() in services.py.
+    - where comes from filter dataclasses that build parameterised Cypher;
+        no user input is ever interpolated directly.
+    - order_by is built by _build_order_by() which only accepts keys from the
+        per-entity SORT_FIELDS whitelist; unknown keys fall back to the
+        hardcoded DEFAULT_SORT.
+'''
+
+
 # Character
 # Uses OPTIONAL_MATCH for JOIN-filters and for output.
 
-CHARACTER_LIST_QUERY = """\
+CHARACTER_LIST_QUERY = '''\
 MATCH (c:Character)
-    OPTIONAL MATCH (c)-[:OF_RACE]->(race:Race)
-    OPTIONAL MATCH (c)-[:BORN_IN]->(born_loc:Location)
-WITH c, race, born_loc
 {where}
 ORDER BY {order_by}
 SKIP $skip
@@ -23,16 +33,13 @@ RETURN
     c.weapon AS weapon,
     c.clothing AS clothing,
     c.notableFor AS notable_for
-"""
+'''
 
-CHARACTER_COUNT_QUERY = """\
+CHARACTER_COUNT_QUERY = '''\
 MATCH (c:Character)
-    OPTIONAL MATCH (c)-[:OF_RACE]->(race:Race)
-    OPTIONAL MATCH (c)-[:BORN_IN]->(born_loc:Location)
-WITH c, race, born_loc
 {where}
 RETURN count(c) AS total
-"""
+'''
 
 # Whitelist for sort field: API param -> Cypher expression
 CHARACTER_SORT_FIELDS: dict[str, str] = {
@@ -45,7 +52,7 @@ CHARACTER_DEFAULT_SORT = "c.names[0] ASC"
 
 # Race
 
-RACE_LIST_QUERY = """\
+RACE_LIST_QUERY = '''\
 MATCH (r:Race)
 {where}
 ORDER BY {order_by}
@@ -62,13 +69,13 @@ RETURN
     r.weaponry AS weaponry,
     r.clothing AS clothing,
     r.distinctions AS distinctions
-"""
+'''
 
-RACE_COUNT_QUERY = """\
+RACE_COUNT_QUERY = '''\
 MATCH (r:Race)
 {where}
 RETURN count(r) AS total
-"""
+'''
 
 RACE_SORT_FIELDS: dict[str, str] = {
     "name": "r.names[0]",
@@ -78,7 +85,7 @@ RACE_DEFAULT_SORT = "r.names[0] ASC"
 
 # Location
 
-LOCATION_LIST_QUERY = """\
+LOCATION_LIST_QUERY = '''\
 MATCH (l:Location)
 {where}
 ORDER BY {order_by}
@@ -92,13 +99,13 @@ RETURN
     l.creationDate AS creation_date,
     l.destructionDate AS destruction_date,
     l.notableFor AS notable_for
-"""
+'''
 
-LOCATION_COUNT_QUERY = """\
+LOCATION_COUNT_QUERY = '''\
 MATCH (l:Location)
 {where}
 RETURN count(l) AS total
-"""
+'''
 
 LOCATION_SORT_FIELDS: dict[str, str] = {
     "name": "l.names[0]",
@@ -109,7 +116,7 @@ LOCATION_DEFAULT_SORT = "l.names[0] ASC"
 
 # Event
 
-EVENT_LIST_QUERY = """\
+EVENT_LIST_QUERY = '''\
 MATCH (e:Event)
 {where}
 ORDER BY {order_by}
@@ -123,13 +130,13 @@ RETURN
     e.endDate AS end_date,
     e.casualties AS casualties,
     e.notableFor AS notable_for
-"""
+'''
 
-EVENT_COUNT_QUERY = """\
+EVENT_COUNT_QUERY = '''\
 MATCH (e:Event)
 {where}
 RETURN count(e) AS total
-"""
+'''
 
 EVENT_SORT_FIELDS: dict[str, str] = {
     "name": "e.names[0]",
@@ -141,7 +148,7 @@ EVENT_DEFAULT_SORT = "e.names[0] ASC"
 
 # Organization
 
-ORGANIZATION_LIST_QUERY = """\
+ORGANIZATION_LIST_QUERY = '''\
 MATCH (o:Organization)
 {where}
 ORDER BY {order_by}
@@ -157,13 +164,13 @@ RETURN
     o.weaponry AS weaponry,
     o.purpose AS purpose,
     o.notableFor AS notable_for
-"""
+'''
 
-ORGANIZATION_COUNT_QUERY = """\
+ORGANIZATION_COUNT_QUERY = '''\
 MATCH (o:Organization)
 {where}
 RETURN count(o) AS total
-"""
+'''
 
 ORGANIZATION_SORT_FIELDS: dict[str, str] = {
     "name": "o.names[0]",
@@ -174,7 +181,7 @@ ORGANIZATION_DEFAULT_SORT = "o.names[0] ASC"
 
 # Timeline
 
-TIMELINE_LIST_QUERY = """\
+TIMELINE_LIST_QUERY = '''\
 MATCH (t:Timeline)
 {where}
 ORDER BY {order_by}
@@ -186,13 +193,13 @@ RETURN
     t.startDate AS start_date,
     t.endDate AS end_date,
     t.abbreviation AS abbreviation
-"""
+'''
 
-TIMELINE_COUNT_QUERY = """\
+TIMELINE_COUNT_QUERY = '''\
 MATCH (t:Timeline)
 {where}
 RETURN count(t) AS total
-"""
+'''
 
 TIMELINE_SORT_FIELDS: dict[str, str] = {
     "name": "t.names[0]",
@@ -203,7 +210,7 @@ TIMELINE_DEFAULT_SORT = "t.names[0] ASC"
 
 # Item
 
-ITEM_LIST_QUERY = """\
+ITEM_LIST_QUERY = '''\
 MATCH (i:Item)
 {where}
 ORDER BY {order_by}
@@ -215,13 +222,13 @@ RETURN
     i.type AS entity_type,
     i.material AS material,
     i.notableFor AS notable_for
-"""
+'''
 
-ITEM_COUNT_QUERY = """\
+ITEM_COUNT_QUERY = '''\
 MATCH (i:Item)
 {where}
 RETURN count(i) AS total
-"""
+'''
 
 ITEM_SORT_FIELDS: dict[str, str] = {
     "name": "i.names[0]",
@@ -232,7 +239,7 @@ ITEM_DEFAULT_SORT = "i.names[0] ASC"
 
 # Language
 
-LANGUAGE_LIST_QUERY = """\
+LANGUAGE_LIST_QUERY = '''\
 MATCH (lang:Language)
 {where}
 ORDER BY {order_by}
@@ -242,13 +249,13 @@ RETURN
     lang.slug AS slug,
     lang.names AS names,
     lang.family AS family
-"""
+'''
 
-LANGUAGE_COUNT_QUERY = """\
+LANGUAGE_COUNT_QUERY = '''\
 MATCH (lang:Language)
 {where}
 RETURN count(lang) AS total
-"""
+'''
 
 LANGUAGE_SORT_FIELDS: dict[str, str] = {
     "name": "lang.names[0]",
@@ -258,7 +265,7 @@ LANGUAGE_DEFAULT_SORT = "lang.names[0] ASC"
 
 # Script
 
-SCRIPT_LIST_QUERY = """\
+SCRIPT_LIST_QUERY = '''\
 MATCH (s:Script)
 {where}
 ORDER BY {order_by}
@@ -267,13 +274,13 @@ LIMIT $limit
 RETURN
     s.slug AS slug,
     s.names AS names
-"""
+'''
 
-SCRIPT_COUNT_QUERY = """\
+SCRIPT_COUNT_QUERY = '''\
 MATCH (s:Script)
 {where}
 RETURN count(s) AS total
-"""
+'''
 
 SCRIPT_SORT_FIELDS: dict[str, str] = {
     "name": "s.names[0]",

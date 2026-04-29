@@ -60,7 +60,7 @@ REL_ATTRIBUTES: dict[str, str | None] = {
     "PART_OF": "part_of",
     "OCCURRED_DURING": "occurred_during",
     "BASED_IN": "based_in",
-    "IS_SPOKEN_BY": "spoken_by",
+    "SPOKEN_BY": "spoken_by",
     "SPOKEN_IN": "spoken_in",
     "WRITTEN_IN": "written_in",
     "HAS_ARTICLE": "article",

@@ -4,10 +4,12 @@ from neo4j.exceptions import ClientError
 from neomodel import db  # type: ignore[attr-defined]
 from rest_framework.exceptions import ValidationError
 
+from apps.pages.enums import EntityType
+
 from .queries import (
     SEARCH_QUERY,
-    VALID_TYPES,
     TYPE_TO_LABEL,
+    VALID_TYPES,
     build_lucene_query,
     labels_to_type,
 )
@@ -46,7 +48,7 @@ def _row_to_result(row: dict[str, Any]) -> dict[str, Any]:
 
     return {
         'slug': row['slug'],
-        'type': labels_to_type(row.get('node_labels') or []) or 'unknown',
+        'type': labels_to_type(row.get('node_labels') or []) or EntityType.CHARACTER,
         'name': names[0] if names else None,
         'names': names,
         'image_url': row.get('image_url')
@@ -79,7 +81,7 @@ def search(
             raise APIException(
                 detail="Search index is not available.",
                 code="SEARCH_INDEX_UNAVAILABLE",
-            )
+            ) from exc
         raise
 
     return [_row_to_result(dict(zip(meta, row))) for row in results]

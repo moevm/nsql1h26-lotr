@@ -7,56 +7,51 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.users.permissions import IsAdminRole
-
+from apps.pages.enums import EntityType
 from apps.pages.queries import normalize_patch_attributes
 from apps.pages.serializers import PageCreateSerializer
-from apps.pages.services import get_page, update_page
+from apps.pages.services import create_page
+from apps.users.permissions import IsAdminRole
 
+from .constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from .filters import (
-    _HasCypherWhere,
     CharacterFilter,
-    RaceFilter,
-    LocationFilter,
     EventFilter,
-    OrganizationFilter,
-    TimelineFilter,
     ItemFilter,
     LanguageFilter,
+    LocationFilter,
+    OrganizationFilter,
+    RaceFilter,
     ScriptFilter,
+    TimelineFilter,
+    CypherWhereFilter,
 )
-
 from .serializers import (
     CharacterOutputSerializer,
-    RaceOutputSerializer,
-    LocationOutputSerializer,
     EventOutputSerializer,
-    OrganizationOutputSerializer,
-    TimelineOutputSerializer,
     ItemOutputSerializer,
     LanguageOutputSerializer,
+    LocationOutputSerializer,
+    OrganizationOutputSerializer,
+    RaceOutputSerializer,
     ScriptOutputSerializer,
+    TimelineOutputSerializer,
 )
-
 from .services import (
-    PaginatedResult,
-    list_catalog,
-    create_node,
-    slug_exists,
-    EntityConfig,
     CHARACTER_CONFIG,
-    RACE_CONFIG,
-    LOCATION_CONFIG,
     EVENT_CONFIG,
-    ORGANIZATION_CONFIG,
-    TIMELINE_CONFIG,
     ITEM_CONFIG,
     LANGUAGE_CONFIG,
+    LOCATION_CONFIG,
+    ORGANIZATION_CONFIG,
+    RACE_CONFIG,
     SCRIPT_CONFIG,
-    _DEFAULT_PAGE_SIZE,
-    _MAX_PAGE_SIZE,
+    TIMELINE_CONFIG,
+    EntityConfig,
+    PaginatedResult,
+    list_catalog,
+    slug_exists,
 )
-
 
 # Parsing helper functions
 
@@ -86,13 +81,8 @@ def _parse_int(value: str | None, default: int) -> int:
 def _get_pagination_params(request: Request) -> tuple[int, int]:
     page = max(1, _parse_int(request.query_params.get('page'), 1))
     page_size = min(
-        _MAX_PAGE_SIZE,
-        max(
-            1,
-            _parse_int(
-                request.query_params.get('page_size'), _DEFAULT_PAGE_SIZE
-            )
-        )
+        MAX_PAGE_SIZE,
+        max(1,_parse_int(request.query_params.get('page_size'), DEFAULT_PAGE_SIZE))
     )
 
     return page, page_size
@@ -165,7 +155,7 @@ class CatalogView(APIView):
 
         return [AllowAny()]
 
-    def build_filter(self, request: Request) -> _HasCypherWhere:
+    def build_filter(self, request: Request) -> CypherWhereFilter:
         raise NotImplementedError
 
     # GET /{catalog}/
@@ -214,32 +204,23 @@ class CatalogView(APIView):
         # Translate snake_case attribute keys → Neo4j camelCase property names.
         # normalize_patch_attributes also validates enum values (e.g. gender).
         attrs = normalize_patch_attributes(
-            data.get('attributes') or {}, self.config.entity_type
+            data.get('attributes') or {}, EntityType(self.config.entity_type)
         )
 
         try:
-            create_node(
-                self.config.node_labels, slug, data['names'], attrs
+            page = create_page(
+                node_labels=self.config.node_labels,
+                slug=slug,
+                names=data['names'],
+                attrs=attrs,
+                article=data.get('article'),
+                categories=data.get('categories'),
+                relations=data.get('relations'),
+                entity_type=EntityType(self.config.entity_type),
+                user_id=None,
             )
         except ConstraintError:
             return _conflict_response(slug)
-
-        # Apply optional post-creation data (article / categories / relations)
-        # by reusing the existing PATCH service.
-        # update_page handles its own validation and atomicity, and
-        # returns the canonical page dict.
-        patch_data: dict[str, Any] = {}
-        if data.get('article') is not None:
-            patch_data['article'] = data['article']
-        if 'categories' in data:
-            patch_data['categories'] = data['categories']
-        if 'relations' in data:
-            patch_data['relations'] = data['relations']
-
-        if patch_data:
-            page = update_page(slug, patch_data, user_id=None)
-        else:
-            page = get_page(slug, user_id=None)
 
         return Response(page, status=status.HTTP_201_CREATED)
 

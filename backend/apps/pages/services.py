@@ -20,32 +20,38 @@ from typing import Any, Literal
 from neomodel import db  # type: ignore[attr-defined]
 from rest_framework.exceptions import NotFound, ValidationError
 
+from .enums import EntityType
 from .queries import (
     ALLOWED_REL_TYPES,
-    REL_DIRECTION_ALLOWED_TYPES,
     CATEGORY_SLUGS_EXISTS_QUERY,
     PAGE_ARTICLE_UPSERT_QUERY,
     PAGE_ATTRS_UPDATE_QUERY,
+    PAGE_CATEGORIES_CLEAR_QUERY,
     PAGE_CATEGORIES_REPLACE_QUERY,
+    PAGE_DELETE_ALL_INCOMING_RELS_QUERY,
+    PAGE_DELETE_ALL_OUTGOING_RELS_QUERY,
     PAGE_DELETE_QUERY,
     PAGE_DETAIL_QUERY,
-    PAGE_NAMES_UPDATE_QUERY,
-    PAGE_RELS_OUTGOING_CREATE_TEMPLATE,
-    PAGE_RELS_INCOMING_CREATE_TEMPLATE,
-    PAGE_RELS_OUTGOING_DELETE_TEMPLATE,
-    PAGE_RELS_INCOMING_DELETE_TEMPLATE,
-    PAGE_SLUGS_EXIST_QUERY,
-    PAGE_CATEGORIES_CLEAR_QUERY,
+    PAGE_FETCH_LABELS_QUERY,
     PAGE_LIKE_ADD_QUERY,
     PAGE_LIKE_REMOVE_QUERY,
-    PAGE_FETCH_LABELS_QUERY,
-    PAGE_DELETE_ALL_OUTGOING_RELS_QUERY,
-    PAGE_DELETE_ALL_INCOMING_RELS_QUERY,
+    PAGE_NAMES_UPDATE_QUERY,
+    PAGE_RELS_INCOMING_CREATE_TEMPLATE,
+    PAGE_RELS_INCOMING_DELETE_TEMPLATE,
+    PAGE_RELS_OUTGOING_CREATE_TEMPLATE,
+    PAGE_RELS_OUTGOING_DELETE_TEMPLATE,
     PAGE_SLUGS_WITH_LABELS_QUERY,
+    REL_DIRECTION_ALLOWED_TYPES,
     build_attributes_for_response,
     labels_to_type,
     normalize_patch_attributes,
+    sanitize_rel_properties,
 )
+
+_CREATE_NODE_TEMPLATE = """\
+CREATE (n:{node_labels} {{slug: $slug, names: $names}})
+SET n += $attrs
+"""
 
 
 # Response assembly helpers
@@ -121,7 +127,7 @@ def _row_to_page_dict(row: dict[str, Any]) -> dict[str, Any]:
     node_labels: list[str] = row['node_labels'] or []
     article_props: dict | None = row['article_props']
 
-    entity_type = labels_to_type(node_labels) or 'unknown'
+    entity_type = labels_to_type(node_labels) or EntityType.CHARACTER
     names: list[str] = props.get('names') or []
 
     article: dict | None = None
@@ -166,7 +172,7 @@ def _row_to_page_dict(row: dict[str, Any]) -> dict[str, Any]:
 def _fetch_and_validate_page_types(
         slugs: list[str],
         field: str = 'relations',
-) -> dict[str, str]:
+) -> dict[str, EntityType]:
     '''
     Batch-check that all slugs exist as :Page nodes AND return their entity
     types.  One DB round-trip replaces the old two-step pattern of
@@ -178,8 +184,8 @@ def _fetch_and_validate_page_types(
     results, _ = db.cypher_query(
         PAGE_SLUGS_WITH_LABELS_QUERY, {'slugs': list(set(slugs))}
     )
-    slug_to_type: dict[str, str] = {
-        row[0]: labels_to_type(row[1] or []) or 'unknown'
+    slug_to_type = {
+        row[0]: labels_to_type(row[1] or []) or EntityType.CHARACTER
         for row in results
     }
 
@@ -229,7 +235,7 @@ def _validate_rel_types(
 
 
 def _validate_rel_types_for_entity(
-        entity_type: str,
+        entity_type: EntityType,
         outgoing: dict,
         incoming: dict,
 ) -> None:
@@ -310,13 +316,61 @@ def _validate_rel_endpoint_types(
         raise ValidationError(errors)
 
 
+def _preflight_relations(
+    entity_type: EntityType,
+    outgoing: dict | None,
+    incoming: dict | None,
+) -> dict[str, Any]:
+    '''
+    Run all relation pre-flight checks.  Returns slug_to_type mapping.
+    Called both from update_page() and create_full_page().
+    '''
+    if outgoing:
+        _validate_rel_types(outgoing, 'outgoing')
+    if incoming:
+        _validate_rel_types(incoming, 'incoming')
+
+    if outgoing is not None or incoming is not None:
+        _validate_rel_types_for_entity(
+            entity_type,
+            outgoing or {},
+            incoming or {},
+        )
+
+    outgoing_slugs: list[str] = [
+        t['slug'] for targets in (outgoing or {}).values() for t in targets
+    ]
+    incoming_slugs: list[str] = [
+        s["slug"] for sources in (incoming or {}).values() for s in sources
+    ]
+
+    slug_to_type: dict[str, Any] = {}
+    if outgoing_slugs:
+        slug_to_type.update(
+            _fetch_and_validate_page_types(outgoing_slugs, 'relations.outgoing')
+        )
+    if incoming_slugs:
+        slug_to_type.update(
+            _fetch_and_validate_page_types(incoming_slugs, "relations.incoming")
+        )
+
+    if outgoing_slugs or incoming_slugs:
+        _validate_rel_endpoint_types(
+            outgoing or {},
+            incoming or {},
+            slug_to_type,
+        )
+
+    return slug_to_type
+
+
 # Write helpers (called inside db.transaction)
 
 def _apply_names(slug: str, names: list[str]) -> None:
     db.cypher_query(PAGE_NAMES_UPDATE_QUERY, {'slug': slug, 'names': names})
 
 
-def _apply_attrs(slug: str, raw_attrs: dict, entity_type: str) -> None:
+def _apply_attrs(slug: str, raw_attrs: dict, entity_type: EntityType) -> None:
     db_attrs = normalize_patch_attributes(raw_attrs, entity_type)
     if db_attrs:
         db.cypher_query(
@@ -369,7 +423,11 @@ def _apply_outgoing_relations(slug: str, outgoing: dict) -> None:
         return
 
     for rel_type, targets in outgoing.items():
-        assert rel_type in ALLOWED_REL_TYPES, f'rel_type leaked: {rel_type}'
+        if rel_type not in ALLOWED_REL_TYPES:
+            raise RuntimeError(
+                f"rel_type '{rel_type}' not in ALLOWED_REL_TYPES. "
+                "Validation must run before calling write helpers."
+            )
 
         db.cypher_query(
             PAGE_RELS_OUTGOING_DELETE_TEMPLATE.format(rel_type=rel_type),
@@ -384,7 +442,10 @@ def _apply_outgoing_relations(slug: str, outgoing: dict) -> None:
                     'targets': [
                         {
                             'slug': t['slug'],
-                            'properties': t.get('properties') or {}
+                            'properties': sanitize_rel_properties(
+                                rel_type,
+                                t.get('properties') or {}
+                            )
                         }
                         for t in targets
                     ],
@@ -408,7 +469,11 @@ def _apply_incoming_relations(slug: str, incoming: dict) -> None:
         return
 
     for rel_type, sources in incoming.items():
-        assert rel_type in ALLOWED_REL_TYPES, f'rel_type leaked: {rel_type}'
+        if rel_type not in ALLOWED_REL_TYPES:
+            raise RuntimeError(
+                f"rel_type '{rel_type}' not in ALLOWED_REL_TYPES. "
+                "Validation must run before calling write helpers."
+            )
 
         db.cypher_query(
             PAGE_RELS_INCOMING_DELETE_TEMPLATE.format(rel_type=rel_type),
@@ -422,7 +487,10 @@ def _apply_incoming_relations(slug: str, incoming: dict) -> None:
                     'sources': [
                         {
                             'slug': s['slug'],
-                            'properties': s.get('properties') or {}
+                            'properties': sanitize_rel_properties(
+                                rel_type,
+                                s.get('properties') or {}
+                            )
                         }
                         for s in sources
                     ],
@@ -451,7 +519,7 @@ def get_page(slug: str, user_id: int | None = None) -> dict[str, Any]:
             code='NOT_FOUND'
         )
 
-    row = dict(zip(meta, results[0]))
+    row = dict(zip(meta, results[0], strict=True))
     return _row_to_page_dict(row)
 
 
@@ -478,59 +546,15 @@ def update_page(
             code='NOT_FOUND',
         )
 
-    entity_type = labels_to_type(results[0][0]) or 'unknown'
+    entity_type = labels_to_type(results[0][0]) or EntityType.CHARACTER
 
     # Extract relation sub-dicts
     raw_relations: dict = validated_data.get('relations') or {}
     outgoing: dict | None = raw_relations.get('outgoing')  # None if absent
     incoming: dict | None = raw_relations.get('incoming')  # None if absent
-
     categories: list | None = validated_data.get('categories')
 
-    # Whitelist validation
-    if outgoing:
-        _validate_rel_types(outgoing, 'outgoing')
-    if incoming:
-        _validate_rel_types(incoming, 'incoming')
-
-    # Validate rel-type vs current entity type
-    if outgoing is not None or incoming is not None:
-        _validate_rel_types_for_entity(
-            entity_type,
-            outgoing or {},
-            incoming or {},
-        )
-
-    # Target / source slug existence + type lookup
-    # Collect slugs from non-empty target/source lists only
-    outgoing_slugs: list[str] = [
-        t['slug']
-        for targets in (outgoing or {}).values()
-        for t in targets
-    ]
-    incoming_slugs: list[str] = [
-        s['slug']
-        for sources in (incoming or {}).values()
-        for s in sources
-    ]
-
-    slug_to_type: dict[str, str] = {}
-    if outgoing_slugs:
-        slug_to_type.update(
-            _fetch_and_validate_page_types(outgoing_slugs, 'relations.outgoing')
-        )
-    if incoming_slugs:
-        slug_to_type.update(
-            _fetch_and_validate_page_types(incoming_slugs, 'relations.incoming')
-        )
-
-    # Validate endpoint type compatibility
-    if outgoing_slugs or incoming_slugs:
-        _validate_rel_endpoint_types(
-            outgoing or {},
-            incoming or {},
-            slug_to_type,
-        )
+    _preflight_relations(entity_type, outgoing, incoming)
 
     # Category existense
     if categories:
@@ -559,6 +583,63 @@ def update_page(
             _apply_incoming_relations(slug, incoming)
 
     # Re-fetch after commit to return the canonical representation
+    return get_page(slug, user_id=user_id)
+
+
+def create_page(
+    node_labels: str,
+    slug: str,
+    names: list[str],
+    attrs: dict,
+    article: dict | None = None,
+    categories: list[str] | None = None,
+    relations: dict | None = None,
+    entity_type: EntityType = EntityType.CHARACTER,
+    user_id: int | None = None,
+) -> dict[str, Any]:
+    '''
+    Atomically create a new page node with optional article, categories,
+    and relations in a single transaction.
+
+    All pre-flight validation happens BEFORE the transaction is opened so
+    that bad input surfaces as a 4xx without any partial write.
+
+    `node_labels` must come from EntityConfig.node_labels (hardcoded string,
+    never from user input).
+    `attrs` must already be normalised via normalize_patch_attributes before
+    calling this function.
+    '''
+    raw_relations = relations or {}
+    outgoing: dict | None = raw_relations.get('outgoing')
+    incoming: dict | None = raw_relations.get('incoming')
+
+    _preflight_relations(entity_type, outgoing, incoming)
+
+    if categories:
+        _validate_category_slugs_exist(categories)
+
+    with db.transaction:
+        db.cypher_query(
+            _CREATE_NODE_TEMPLATE.format(node_labels=node_labels),
+            {
+                'slug': slug,
+                'names': names,
+                'attrs': attrs,
+            }
+        )
+
+        if article is not None:
+            _apply_article(slug, article)
+
+        if categories is not None:
+            _apply_categories(slug, categories)
+
+        if outgoing is not None:
+            _apply_outgoing_relations(slug, outgoing)
+        if incoming is not None:
+            _apply_incoming_relations(slug, incoming)
+
+    # Re-fetch after commit
     return get_page(slug, user_id=user_id)
 
 

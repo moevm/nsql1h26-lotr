@@ -16,9 +16,11 @@
 
 * Для разработки демо будут debug-пользователи, по одному на каждую роль. Будут создаваться какой-нибудь seed-командой при первом запуске.
 
-* Query параметры для фильтров максимально не устоявшиеся ни по составу, ни по виду.
+* Query параметры для фильтров максимально не устоявшиеся ни по составу, ни по виду. Актуальные - в схеме.
 
 * Некоторые рёбра из модели могут поменятся, например `:PARENT_OF`  точно по итогу будет `:CHILD_OF`. Это будет видно в схеме, просто имейте в виду и не пугайтесь.
+
+* Если где-то будет camelCase или created_at без updated_at - пинайте.
 
 ### Общее по всем эндпоинтам
 
@@ -217,10 +219,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
   "role": "viewer",
   "avatarUrl": "https://cdn.example.com/avatars/bilbo.jpg",
   "createdAt": "2022-02-02T00:00:00Z",
-  "likedPages": [
-    { "slug": "frodo-baggins", "name": "Frodo Baggins", "type": "character" },
-    { "slug": "the-shire",     "name": "The Shire",     "type": "location"  }
-  ]
+  "updated_at": "2022-02-02T00:00:00Z"
 }
 ```
 
@@ -238,6 +237,7 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
   "password_current": "MyPrecious1!"
 }
 ```
+
 
 Ответ 200:
 
@@ -257,19 +257,37 @@ Authorization: Bearer <access_token>    # для защищённых эндпо
 }
 ```
 
+#### `GET /api/v1/auth/me/liked`
+
+Требует авторизации. Выдаёт пагинированный список лайкнутых страниц.
+
+Ответ 200:
+```json
+{
+  "count": 20,
+  "next":  "/api/v1/liked/?page=2?page_size=2",
+  "previous": null,
+  "results": [
+    { "slug": "frodo-baggins", "name": "Frodo Baggins", "type": "character" },
+    { "slug": "the-shire",     "name": "The Shire",     "type": "location"  }
+  ]
+}
+```
+
+
 ### Pages
 
-Все сущности чита.тся и редактируются через единый `/pages/{slug}`. Создание - через типизированные каталоги (дальше будет)
+Все сущности читаются и редактируются через единый `/pages/{slug}`. Создание - через типизированные каталоги (дальше будет)
 ```
 GET    /api/v1/pages/{slug}/
 PATCH  /api/v1/pages/{slug}/
 DELETE /api/v1/pages/{slug}/
-PUT   /api/v1/pages/{slug}/like/
+PUT    /api/v1/pages/{slug}/like/
 DELETE /api/v1/pages/{slug}/like/
 GET    /api/v1/pages/{slug}/comments/
 POST   /api/v1/pages/{slug}/comments/
-GET    /api/v1/pages/{slug}/export/
-POST   /api/v1/pages/{slug}/import/
+DELETE /api/v1/pages/{slug}/comments/
+PATCH  /api/v1/pages/{slug}/comments/
 ```
 
 #### `GET /api/v1/pages/{slug}/` 
@@ -593,9 +611,10 @@ POST   /api/v1/pages/{slug}/import/
   "text": "Amazing character arc.",
   "author": {
     "username":  "bilbo_baggins",
-    "avatarUrl": null
+    "avatar_url": null
   },
-  "createdAt": "2024-03-16T09:00:00Z"
+  "created_at": "2024-03-16T09:00:00Z",
+  "updated_at": "2024-03-16T09:00:00Z"
 }
 ```
 
@@ -614,6 +633,7 @@ POST   /api/v1/pages/{slug}/import/
 #### `DELETE /api/v1/pages/{slug}/comments/{id}/`
 
 Требует авторизации. `viewer` может удалить только свой комментарий, `admin` - любой.
+ID - UUID, строковый, не внутренний из Neo4j.
 
 Ответ 204: пустой
 
@@ -639,40 +659,29 @@ POST   /api/v1/pages/{slug}/import/
 }
 ```
 
-#### `GET /api/v1/pages/{slug}/export/`
+#### `PATCH /api/v1/pages/{slug}/comments/{id}/`
 
-Требует роль `admin`. Скачивает JSON или CSV с данными одной страницы. Если JSON, то формат как у `GET /pages/{slug}`
-
-Ответ 200:
-```json
-Content-Disposition: attachment; filename="frodo-baggins.json"
-Content-Type: application/json
-```
-
-#### `POST /api/v1/pages/{slug}/import/`
-
-Требует роль `admin`. Обновляет данные страницы из JSON или CSV. Семантически эквивалентен PATCH, но принимает файл.
+Требует авторизации, менять можно только текст своего комментария.
 
 Запрос:
 ```json
-Content-Type: multipart/form-data
-file: <frodo-baggins.json>
+{ "text": "Amazing character arc." }
 ```
 
-Ответ 200:
-
-Полный объкет страницы после обновления.
-
-Ответ 400:
+Ответ 201:
 ```json
 {
-  "error": {
-    "code":    "INVALID_FORMAT",
-    "message": "File must be a valid JSON page export.",
-    "fields":  null
-  }
+  "id":   "9d8c7b6a-...",
+  "text": "Amazing character arc.",
+  "author": {
+    "username":  "bilbo_baggins",
+    "avatar_url": null
+  },
+  "created_at": "2024-03-16T09:00:00Z",
+  "updated_at": "2024-03-16T09:00:00Z"
 }
 ```
+
 
 ### Каталоги - списки и создание
 
@@ -1253,6 +1262,7 @@ Query parameters для списка сущностей:
 ```
 GET    /api/v1/users/                    [admin]
 GET    /api/v1/users/{username}/
+GET    /api/v1/users/{username}/liked
 PATCH  /api/v1/users/{username}/         [admin]
 DELETE /api/v1/users/{username}/         [admin]
 ```
@@ -1297,10 +1307,6 @@ DELETE /api/v1/users/{username}/         [admin]
   "avatarUrl":    "https://cdn.example.com/avatars/bilbo.jpg",
   "createdAt":    "2024-01-01T00:00:00Z",
   "commentsCount": 12,
-  "likedPages": [
-    { "slug": "frodo-baggins", "name": "Frodo Baggins", "type": "character" },
-    { "slug": "the-shire",     "name": "The Shire",     "type": "location"  }
-  ]
 }
 ```
 
@@ -1312,6 +1318,22 @@ DELETE /api/v1/users/{username}/         [admin]
     "message": "User 'bilbo_bagginss' does not exist.",
     "fields":  null
   }
+}
+```
+
+#### `GET /api/v1/users/{username}/liked`
+
+Пагинированный список с лайками пользователя.
+
+```json
+{
+  "count": 42,
+  "next":  "/api/v1/users/{username}/liked/?page=2&page_size=2",
+  "previous": null,
+  "results": [
+    { "slug": "frodo-baggins", "name": "Frodo Baggins", "type": "character" },
+    { "slug": "the-shire",     "name": "The Shire",     "type": "location"  }
+  ]
 }
 ```
 
@@ -1415,6 +1437,7 @@ Query parameters:
 #### `GET /api/v1/analytics/global/`
 
 Публичный. Агрегированная статистика по всей вселенной.
+У всех списки - топы, ограниченной длины (напр. топ 10). Нужно ли мочь задавать размер топов для каждого из списков - хз, пока не будем. Запрос жирнющий - обход всего графа (если без денормализации) - жестоко кэшируется.
 
 Ответ 200:
 ```json
@@ -1430,18 +1453,41 @@ Query parameters:
     "items":          70,
     "languages":      25,
     "scripts":        10,
-    "articles":       480
   },
-  "charactersByRace": [
+  "characters_by_race": [
     { "slug": "elves",   "name": "Elves",   "count": 47 },
     { "slug": "hobbits", "name": "Hobbits", "count": 32 }
   ],
-  "charactersBySide": [
-    { "side": "good",    "count": 89 },
-    { "side": "evil",    "count": 45 },
-    { "side": "neutral", "count": 16 }
+  "characters_by_gender": [
+    { "gender": "male",   "count": 110 },
+    { "gender": "female", "count": 30 },
+    { "gender": "unknown","count": 10 }
   ],
-  "topConnected": {
+  "is_alive_stats": {
+    "alive": 40,
+    "deceased": 110
+  },
+  "events_by_timeline": [
+    { "timelineSlug": "third-age",  "name": "Third Age",  "count": 45 },
+    { "timelineSlug": "first-age",  "name": "First Age",  "count": 10 },
+    { "timelineSlug": "second-age", "name": "Second Age", "count": 5 }
+  ],
+  "locations_by_type": [
+    { "type": "region",   "count": 30 },
+    { "type": "city",     "count": 15 },
+    { "type": "river",    "count": 12 },
+    { "type": "mountain", "count": 10 },
+    { "type": "forest",   "count": 8 },
+    { "type": "other",    "count": 5 }
+  ],
+  "items_by_type": [
+    { "type": "sword", "count": 25 },
+    { "type": "ring",  "count": 10 },
+    { "type": "jewel", "count": 8 },
+    { "type": "staff", "count": 3 },
+    { "type": "other", "count": 24 }
+  ],
+  "top_connected": {
     "characters": [
       { "slug": "gandalf", "name": "Gandalf", "connectionsCount": 47 },
       { "slug": "aragorn", "name": "Aragorn", "connectionsCount": 38 }
@@ -1458,7 +1504,21 @@ Query parameters:
     "items": [
       { "slug": "the-one-ring", "name": "The One Ring", "connectionsCount": 18 }
     ]
-  }
+  },
+  "most_liked": [
+    { "slug": "frodo-baggins",   "name": "Frodo Baggins",   "type": "character",  "count": 142 },
+    { "slug": "gandalf",         "name": "Gandalf",         "type": "character",  "count": 130 },
+    { "slug": "aragorn",         "name": "Aragorn",         "type": "character",  "count": 121 },
+    { "slug": "the-shire",       "name": "The Shire",       "type": "location",   "count": 98 },
+    { "slug": "rivendell",       "name": "Rivendell",       "type": "location",   "count": 87 },
+  ],
+  "most_commented": [
+    { "slug": "frodo-baggins",   "name": "Frodo Baggins",   "type": "character",  "count": 88 },
+    { "slug": "gandalf",         "name": "Gandalf",         "type": "character",  "count": 76 },
+    { "slug": "aragorn",         "name": "Aragorn",         "type": "character",  "count": 71 },
+    { "slug": "war-of-the-ring", "name": "War of the Ring", "type": "event",      "count": 63 },
+    { "slug": "the-one-ring",    "name": "The One Ring",    "type": "item",       "count": 58 },
+  ]
 }
 ```
 
@@ -1470,10 +1530,11 @@ Query parameters:
 
 | Параметр | Тип | Описание |
 |----------|-----|----------|
-| `entity` | string | slug узла, обязательно |
-| `node_types` | string | типы через запятую; default - все |
-| `rel_types` | string | типы рёбер через запятую; default - все |
+| `slug` | string | slug узла, обязательно |
+| `through_nodes` | string | типы через запятую; default - все |
+| `through_rels` | string | типы рёбер через запятую; default - все |
 | `depth` | int | глубина обхода: `1` или `2`; default `1` |
+| `limit` | int | Макс. количество показываемых сущностей/связей, по дефолту 100, макс 1000 |
 
 Ответ 200:
 ```json
@@ -1491,17 +1552,17 @@ Query parameters:
     { "slug": "samwise-gamgee","type": "character", "name": "Samwise Gamgee","imageUrl": "..." }
   ],
   "edges": [
-    { "from": "frodo-baggins", "to": "the-shire",     "type": "BORN_IN"  },
-    { "from": "frodo-baggins", "to": "bag-end",       "type": "LIVED_IN" },
-    { "from": "frodo-baggins", "to": "samwise-gamgee","type": "KNOWS"    }
+    { "from": "frodo-baggins", "to": "the-shire",     "type": "BORN_IN",  "properties": {} },
+    { "from": "frodo-baggins", "to": "bag-end",       "type": "LIVED_IN", "properties": {} },
+    { "from": "frodo-baggins", "to": "samwise-gamgee","type": "KNOWS",    "properties": {} } 
   ],
   "stats": {
-    "totalNeighbors": 3,
-    "byType": {
+    "total_neighbors": 3,
+    "by_type": {
       "character": 1,
       "location":  2
     },
-    "byRelation": {
+    "by_relation": {
       "BORN_IN":  1,
       "LIVED_IN": 1,
       "KNOWS":    1
@@ -1516,7 +1577,7 @@ Query parameters:
 
 #### `GET /api/v1/analytics/shortest-path/`
 
-Публичный. `through` обязателен: без него граф слишком большой для обхода и запрос семантически некорректен.
+Публичный. `through` обязателен: без него граф слишком большой для обхода и запрос семантически некорректен. Если Света захочет, можем тут и в других местах, где надо отображать названия связей в человечном формате, отдавать их сразу в ответе / засунуть это в meta. Формат ответа немного другой, т.к. выдаётся не граф/дерево, а прям список. Но если свете будет впадлу делать обработку, то можем возвращать как везде.
 
 Query parameters:
 
@@ -1524,10 +1585,10 @@ Query parameters:
 |----------|-----|----------|
 | `from` | string | slug начального узла, обязательно |
 | `to` | string | slug конечного узла, обязательно |
-| `through-nodes` | string | типы промежуточных узлов через запятую, обязательно |
-| `through-rels` | string | типы связей между промежуточными узлами через запятую, обязательно |
+| `through_nodes` | string | типы промежуточных узлов через запятую, необязательно |
+| `through_rels` | string | типы связей между промежуточными узлами через запятую, необязательно |
+| `max_depth` | int | глубина обхода графа, default 10, max 15 |
 
-Тут параметры точно поменяются, нужно придумать что-то покрасивее, мне пока лень :).
 
 Ответ 200:
 ```json
@@ -1540,15 +1601,15 @@ Query parameters:
   "path": [
     {
       "node":        { "slug": "frodo-baggins",          "type": "character",    "name": "Frodo Baggins",          "imageUrl": "..." },
-      "edgeToNext":  { "type": "MEMBER_OF", "label": "member of" }
+      "edge_to_next":  { "type": "MEMBER_OF", "properties": {} }
     },
     {
       "node":        { "slug": "fellowship-of-the-ring", "type": "organization", "name": "Fellowship of the Ring", "imageUrl": "..." },
-      "edgeToNext":  { "type": "MEMBER_OF", "label": "member of" }
+      "edge_to_next":  { "type": "MEMBER_OF", "properties": {} }
     },
     {
       "node":        { "slug": "aragorn", "type": "character", "name": "Aragorn", "imageUrl": "..." },
-      "edgeToNext":  null
+      "edge_to_next":  null
     }
   ]
 }
@@ -1589,6 +1650,78 @@ Query parameters:
 }
 ```
 
+#### `GET /api/v1/analytics/genealogy/`
+
+Публичный. Родовое дерево персонажа. Рисуется деревом (вау). По связям MARRIED_TO, CHILD_OF, SIBLING_OF
+
+Query parameters:
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `slug` | string | slug начального узла, обязательно |
+| `depth` | int | уровни предков-потомков, 1-5, default 3 |
+| `include_spouses` | bool | default true, включать ли MARRIED_TO |
+| `include siblinga` | bool | default false, включать ли SIBLING_OF |
+
+{
+  "root": {
+    "slug": "frodo-baggins",
+    "type": "character",
+    "name": "Frodo Baggins",
+    "race_slug": "hobbits",
+    "race_name": "Hobbits",
+    "imageUrl": "https://cdn.example.com/frodo.jpg"
+  },
+  "nodes": [
+    {
+      "slug": "drogo-baggins",
+      "type": "character",
+      "name": "Drogo Baggins",
+      "gender": "male",
+      "imageUrl": null,
+      "role": "ancestor",
+      "race_slug": "hobbits",
+      "race_name": "Hobbits",
+      "generation": -1
+    },
+    {
+      "slug": "primula-brandybuck",
+      "type": "character",
+      "name": "Primula Brandybuck",
+      "gender": "female",
+      "imageUrl": null,
+      "role": "ancestor",
+      "race_slug": "hobbits",
+      "race_name": "Hobbits",
+      "generation": -1
+    }
+  ],
+  "edges": [
+    {
+      "from": "frodo-baggins",
+      "to": "drogo-baggins",
+      "type": "CHILD_OF"
+    },
+    {
+      "from": "frodo-baggins",
+      "to": "primula-brandybuck",
+      "type": "CHILD_OF"
+    },
+    {
+      "from": "drogo-baggins",
+      "to": "primula-brandybuck",
+      "type": "MARRIED_TO"
+    }
+  ],
+  "stats": {
+    "ancestors": 2,
+    "descendants": 0,
+    "spouses": 0
+  }
+}
+
+Будем ли передавать какие-то атрибуты сущности - наверно нет, т.к. а зачем. Но можем, если надо. Гендер скорее всего передавать будем - чтобы делать вот это вот девочки слева, мальчики справа. Скорее всего также будем передавать имя + слаг расы.
+
 #### `GET /api/v1/analytics/custom/`
 
 Публичный. Кастомизируемая статистика - данные для построения графика по выбранным атрибутам.
@@ -1598,24 +1731,34 @@ Query parameters:
 | Параметр | Тип | Описание |
 |----------|-----|----------|
 | `entity_type` | string | тип сущности, обязательно |
-| `x_attr` | string | атрибут для группировки (ось X) |
-| `y_attr` | string | атрибут для агрегации (ось Y) |
-| `agg` | `count` | функция агрегации; default `count` |
+| `attr` | string | атрибут для группировки (ось X) |
+| `group_by` | string | атрибут для агрегации (ось Y) |
 | фильтры каталога | | те же параметры, что в `GET /characters/` и т.д. |
 
 Ответ 200:
 ```json
-// GET /api/v1/analytics/custom/?entity_type=character&x_attr=race&y_attr=gender&agg=count&is_alive=true
+Без group_by - простая гистограмма: массив объектов x (значение атрибута) и value (количество).
 {
-  "entityType": "character",
-  "xAttr":      "race",
-  "yAttr":      "gender",
-  "agg":        "count",
+  "entity_type": "character",
+  "attr":       "race",
+  "group_by":   "gender",
   "data": [
     { "x": "Hobbits", "y": "male",   "value": 8  },
     { "x": "Hobbits", "y": "female", "value": 4  },
     { "x": "Elves",   "y": "male",   "value": 21 },
     { "x": "Elves",   "y": "female", "value": 18 }
+  ]
+}
+С group_by - сгруппированная (stacked) гистограмма. Ответ содержит список всех встреченных значений группировки (groups) и массив data, где каждый элемент кроме x содержит свойства с именами из groups и значениями-количествами.
+
+{
+  "entity_type": "character",
+  "attr": "race",
+  "group_by": "gender",
+  "groups": ["male", "female", "unknown"],
+  "data": [
+    { "x": "Hobbit", "male": 8, "female": 3, "unknown": 1 },
+    { "x": "Elf",    "male": 6, "female": 4, "unknown": 0 }
   ]
 }
 ```

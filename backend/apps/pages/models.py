@@ -15,18 +15,17 @@ from __future__ import annotations
 
 # Pyright is being silly with these imports :(
 from neomodel import (
-    StructuredRel,  # type: ignore
-    StructuredNode,  # type: ignore
-    StringProperty,  # type: ignore
+    ArrayProperty,  # type: ignore
     DateTimeProperty,  # type: ignore
     IntegerProperty,  # type: ignore
-    ArrayProperty,  # type: ignore
-    RelationshipTo,  # type: ignore
     RelationshipFrom,  # type: ignore
+    RelationshipTo,  # type: ignore
+    StringProperty,  # type: ignore
+    StructuredNode,  # type: ignore
+    StructuredRel,  # type: ignore
     ZeroOrMore,  # type: ignore
     ZeroOrOne,  # type: ignore
 )
-
 
 # Relationship models (edges with properties)
 

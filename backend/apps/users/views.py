@@ -1,30 +1,28 @@
-from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework import status, serializers
+from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.exceptions import TokenError
-
-from drf_spectacular.utils import extend_schema, inline_serializer
 
 from .models import User
 from .serializers import (
-    RegisterSerializer,
-    AuthUserSerializer,
     AuthResponseSerializer,
-    MeSerializer,
-    MePatchSerializer,
+    AuthUserSerializer,
     CustomTokenObtainPairSerializer,
+    LogoutSerializer,
+    MePatchSerializer,
+    MeSerializer,
+    RegisterSerializer,
     TokenPairSerializer,
-    LogoutSerializer
 )
 from .services import get_liked_pages
-
 
 # Swagger schema for /me response (includes likedPages from service)
 

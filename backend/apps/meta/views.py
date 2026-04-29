@@ -1,9 +1,8 @@
-from rest_framework import serializers
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework import status
-from drf_spectacular.utils import extend_schema
 
 NODE_TYPES = [
     {"type": "character", "label": "Character", "pluralLabel": "Characters"},
@@ -42,7 +41,7 @@ RELATION_TYPES = [
     {"type": "PART_OF", "label": "Part of", "from": ["event"], "to": ["event"]},
     {"type": "OCCURRED_DURING", "label": "Occurred during", "from": ["event"], "to": ["timeline"]},
     {"type": "BASED_IN", "label": "Based in", "from": ["organization"], "to": ["location"]},
-    {"type": "IS_SPOKEN_BY", "label": "Is spoken by", "from": ["race"], "to": ["language"]},
+    {"type": "SPOKEN_BY", "label": "Is spoken by", "from": ["race"], "to": ["language"]},
     {"type": "SPOKEN_IN", "label": "Spoken in", "from": ["language"], "to": ["location"]},
     {"type": "WRITTEN_IN", "label": "Written in", "from": ["language"], "to": ["script"]},
 ]

@@ -1,11 +1,10 @@
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiParameter,
     extend_schema,
     inline_serializer,
 )
-from drf_spectacular.types import OpenApiTypes
-
-from rest_framework import status, serializers
+from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,11 +16,10 @@ from .serializers import PageUpdateSerializer
 from .services import (
     delete_page,
     get_page,
-    update_page,
     like_page,
     unlike_page,
+    update_page,
 )
-
 
 # Inline response schema for drf-spectacular
 # TODO: move to an appropriate place
