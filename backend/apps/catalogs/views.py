@@ -16,6 +16,7 @@ from apps.users.permissions import IsAdminRole
 from .constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from .filters import (
     CharacterFilter,
+    CypherWhereFilter,
     EventFilter,
     ItemFilter,
     LanguageFilter,
@@ -24,7 +25,6 @@ from .filters import (
     RaceFilter,
     ScriptFilter,
     TimelineFilter,
-    CypherWhereFilter,
 )
 from .serializers import (
     CharacterOutputSerializer,
