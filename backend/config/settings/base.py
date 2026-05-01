@@ -238,6 +238,18 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'lotr-wiki',
+    }
+}
+
+# How long (seconds) to cache the global analytics result.
+# Each Gunicorn worker caches independently (LocMemCache is per-process).
+# Replace with a shared cache (Redis) if staleness becomes a concern.
+ANALYTICS_GLOBAL_CACHE_TTL: int = 300  # 5 minutes
+
 # Logging
 LOGGING = {
     'version': 1,

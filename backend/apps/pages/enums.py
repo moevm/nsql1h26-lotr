@@ -65,3 +65,11 @@ class RelType(StrEnum):
     SPOKEN_BY = 'SPOKEN_BY'
     SPOKEN_IN = 'SPOKEN_IN'
     WRITTEN_IN = 'WRITTEN_IN'
+
+class SocRelTypes(StrEnum):
+    LIKED = 'LIKED'
+    WROTE = 'WROTE'
+    ON = 'ON'
+    IN_CATEGORY = 'IN_CATEGORY'
+    HAS_ARTICLE = 'HAS_ARTICLE'
+    SUBCATEGORY_OF = 'SUBCATEGORY_OF'
