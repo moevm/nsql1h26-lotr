@@ -1,10 +1,10 @@
-'''
+"""
 Serializers for the analytics app.
 
 These are read-only output serializers used by drf-spectacular for OpenAPI
 schema generation.  The actual data is assembled as plain dicts in services.py
 and returned directly - DRF serializes them without a model binding.
-'''
+"""
 
 from rest_framework import serializers
 
@@ -57,10 +57,14 @@ class _TopConnectedItemSerializer(serializers.Serializer):
 
 class _TopConnectedSerializer(serializers.Serializer):
     characters = _TopConnectedItemSerializer(many=True)
+    races = _TopConnectedItemSerializer(many=True)
     locations = _TopConnectedItemSerializer(many=True)
     events = _TopConnectedItemSerializer(many=True)
     organizations = _TopConnectedItemSerializer(many=True)
     items = _TopConnectedItemSerializer(many=True)
+    timelines = _TopConnectedItemSerializer(many=True)
+    languages = _TopConnectedItemSerializer(many=True)
+    scripts = _TopConnectedItemSerializer(many=True)
 
 
 class _PageEngagementSerializer(serializers.Serializer):
@@ -73,7 +77,7 @@ class _PageEngagementSerializer(serializers.Serializer):
 
 
 class GlobalStatsSerializer(serializers.Serializer):
-    '''Read-only response shape for GET /analytics/global/.'''
+    """Read-only response shape for GET /analytics/global/."""
 
     counts = _CountsSerializer()
     characters_by_race = _CharacterByRaceSerializer(many=True)
