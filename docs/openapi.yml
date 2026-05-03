@@ -981,11 +981,18 @@ components:
       properties:
         id:
           type: string
-          format: uuid
+          description: >
+            Neo4j element ID of the comment node (e.g. "4:abc123:0").
+            Pass this value verbatim (do NOT percent-encode colons) to
+            DELETE /pages/{slug}/comments/{id}/.
         text:
           type: string
+          minLength: 1
+          maxLength: 300
         author:
           type: object
+          required:
+            - username
           properties:
             username:
               type: string
@@ -1003,6 +1010,7 @@ components:
         text:
           type: string
           minLength: 1
+          maxLength: 300
     Category:
       type: object
       required:
@@ -2107,6 +2115,12 @@ paths:
                         type: array
                         items:
                           $ref: "#/components/schemas/Comment"
+        "404":
+          description: Page not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       tags:
         - pages
@@ -2139,6 +2153,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Page not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /pages/{slug}/comments/{id}:
     delete:
       tags:
@@ -2156,12 +2182,21 @@ paths:
         - name: id
           in: path
           required: true
+          description: >
+            Neo4j element ID of the comment (e.g. "4:abc123:0").
+            Do NOT percent-encode the colons.
           schema:
             type: string
             format: uuid
       responses:
         "204":
-          description: Comment deleted
+          description: Comment deleted successfully
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "403":
           description: No permission to delete
           content:
