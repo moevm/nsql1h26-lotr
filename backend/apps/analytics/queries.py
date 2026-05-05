@@ -18,9 +18,11 @@ characters_by_race
     A character with no OF_RACE relationship is excluded
     (MATCH, not OPTIONAL MATCH) - unknown race characters don't pollute the chart.
 '''
-from apps.pages.enums import EntityType, SocRelTypes
+from apps.pages.enums import SocRelTypes
 
 from .constants import MOST_COMMENTED_LIMIT, MOST_LIKED_LIMIT
+
+# Global statistics endpoint
 
 # Counts
 
@@ -151,4 +153,72 @@ RETURN
     p.names[0] AS name,
     labels(p) AS lbls,
     comment_count AS count
+'''
+
+
+# Neighbors endpoint
+
+
+NEIGHBORS_ROOT_QUERY = '''\
+MATCH (root:Page {slug: $slug})
+OPTIONAL MATCH (root)-[:HAS_ARTICLE]->(a:Article)
+RETURN
+    root.slug AS slug,
+    root.names AS names,
+    labels(root) AS node_labels,
+    a.imageUrl AS image_url
+LIMIT 1
+'''
+
+
+# TODO: switch from formatting depth to apoc procedures
+# Parameters:
+#   $slug - root page slug (string)
+#   $depth - maximum traversal depth: 1 or 2 (integer)
+#   $node_labels - list of Neo4j labels to accept as neighbors, or null for all
+#   $limit - maximum number of distinct neighbor nodes to return (integer)
+NEIGHBORS_NODES_QUERY = '''\
+MATCH (root:Page {{slug: $slug}})
+MATCH path = (root)-[*1..{depth}]-(nb:Page)
+WHERE nb <> root
+    AND ALL(n IN nodes(path) WHERE n:Page)
+    AND (
+        $node_labels IS NULL
+        OR ALL(n IN nodes(path) WHERE
+            n = root
+            OR any(lbl IN labels(n) WHERE lbl IN $node_labels)
+        )
+    )
+    AND (
+        $rel_types IS NULL
+        OR ALL(r IN relationships(path) WHERE type(r) IN $rel_types)
+    )
+WITH DISTINCT nb
+LIMIT $limit
+OPTIONAL MATCH (nb)-[:HAS_ARTICLE]->(a:Article)
+RETURN
+    nb.slug AS slug,
+    nb.names AS names,
+    labels(nb) AS node_labels,
+    a.imageUrl AS image_url
+'''
+
+
+# Parameters:
+#   $slugs - list of page slugs to use as the node set (root + neighbors)
+#   $rel_types - list of relationship type strings to include, or null for all
+#
+# Directed match avoids returning duplicate rows for the same underlying
+# relationship.  The direction information (from/to) is preserved in the
+# response so the frontend can render arrows correctly if needed.
+NEIGHBORS_EDGES_QUERY = '''\
+MATCH (a:Page)-[r]->(b:Page)
+WHERE a.slug IN $slugs
+    AND b.slug IN $slugs
+    AND ($rel_types IS NULL OR type(r) IN $rel_types)
+RETURN
+    a.slug AS from_slug,
+    b.slug AS to_slug,
+    type(r) AS rel_type,
+    properties(r) AS rel_properties
 '''

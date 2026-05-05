@@ -122,7 +122,7 @@ select = [
     "PT",
     "PLE",
     "PLW",
-    "ARG"
+    "ARG",
 ]
 # add "DOC", "D" ??
 ignore = ["B905"]

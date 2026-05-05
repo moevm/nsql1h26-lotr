@@ -9,6 +9,8 @@ and returned directly - DRF serializes them without a model binding.
 from rest_framework import serializers
 
 
+# Global stats endpoint
+
 class _CountsSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     characters = serializers.IntegerField()
@@ -89,3 +91,76 @@ class GlobalStatsSerializer(serializers.Serializer):
     top_connected = _TopConnectedSerializer()
     most_liked = _PageEngagementSerializer(many=True)
     most_commented = _PageEngagementSerializer(many=True)
+
+
+# Neighbors endpoint
+
+class _PageSummarySerializer(serializers.Serializer):
+    '''Minimal page representation used in neighbors root and node lists.'''
+
+    slug = serializers.CharField()
+    type = serializers.CharField(
+        help_text='Entity type derived from the Neo4j label (e.g. "character).'
+    )
+    name = serializers.CharField(allow_null=True)
+    image_url = serializers.CharField(allow_null=True)
+
+
+class _NeighborEdgeSerializer(serializers.Serializer):
+    '''
+    A directed lore edge between two nodes in the neighbor subgraph.
+
+    `from` and `to` are Python keywords;
+    DRF does not allow them as class-level attribute names.
+    The standard workaround is to declare the fields via
+    `_declared_fields` after class definition so the metaclass
+    never sees the bare name ``from``.
+    '''
+    type = serializers.CharField(help_text='Relationship type, e.g. OF_RACE.')
+    properties = serializers.DictField(
+        child=serializers.JSONField(),
+        allow_empty=True,
+        help_text='Edge properties (e.g. role, fromDate) — empty dict when none.',
+    )
+
+
+# Monkey-patch "from" and "to" fields after class creation to avoid the
+# SyntaxError that would result from using reserved keywords as class attrs.
+_NeighborEdgeSerializer._declared_fields['from'] = serializers.CharField(
+    help_text='Slug of the source node.'
+)
+_NeighborEdgeSerializer._declared_fields['to'] = serializers.CharField(
+    help_text='Slug of the target node.'
+)
+
+
+class _NeighborStatsSerializer(serializers.Serializer):
+    total_neighbors = serializers.IntegerField(
+        help_text='Number of neighbour nodes returned (respects limit and filters).'
+    )
+    by_type = serializers.DictField(
+        child=serializers.IntegerField(),
+        help_text='Count of neighbour nodes per entity type.',
+    )
+    by_relation = serializers.DictField(
+        child=serializers.IntegerField(),
+        help_text='Count of edges per relationship type.',
+    )
+
+
+class NeighborsResponseSerializer(serializers.Serializer):
+    '''Read-only reponse shape for GET /analytics/neighbors/.'''
+
+    root_node = _PageSummarySerializer(help_text='The queried page.')
+    nodes = _PageSummarySerializer(
+        many=True,
+        help_text='Neighbor nodes reachable within the requested depth.'
+    )
+    edges = _NeighborEdgeSerializer(
+        many=True,
+        help_text=(
+            'Induced subgraph: all directed lore edges whose both endpoints '
+            'are present in root + nodes.'
+        ),
+    )
+    stats = _NeighborStatsSerializer()

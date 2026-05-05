@@ -1262,7 +1262,7 @@ components:
     NeighborsResponse:
       type: object
       properties:
-        root:
+        root_node:
           $ref: "#/components/schemas/PageSummary"
         nodes:
           type: array
