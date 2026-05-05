@@ -61,7 +61,7 @@ const SearchBar: React.FC = () => {
   const handleResultClick = (result: SearchResult) => {
     setQuery('');
     setShowDropdown(false);
-    navigate(`/entity/${result.type}/${result.slug}`);
+    navigate(`/pages/${result.slug}`);
   };
 
   return (

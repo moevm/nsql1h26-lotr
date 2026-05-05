@@ -10,7 +10,9 @@ import { useCreateOrganization } from '../api/generated/organizations/organizati
 import { useCreateLanguage } from '../api/generated/languages/languages';
 import { useCreateScript } from '../api/generated/scripts/scripts';
 import { useCreateTimeline } from '../api/generated/timelines/timelines';
+import { useToast } from '../context/ToastContext';
 import AddRelationForm from '../components/AddRelationForm';
+import ErrorModal from '../components/ErrorModal';
 
 interface RelationItem {
   target?: { slug: string; type: string; name: string; image_url: string };
@@ -22,6 +24,10 @@ const CreatePage: React.FC = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorStatusCode, setErrorStatusCode] = useState<number | undefined>(undefined);
 
   // Общие поля
   const [namesInput, setNamesInput] = useState('');
@@ -210,7 +216,8 @@ const CreatePage: React.FC = () => {
     e.preventDefault();
     const errorMsg = validateRequired();
     if (errorMsg) {
-      alert(errorMsg);
+      setErrorMessage(errorMsg);
+      setErrorModalOpen(true);
       return;
     }
 
@@ -330,7 +337,8 @@ const CreatePage: React.FC = () => {
       const result = await createMutation.mutateAsync({ data: requestBody });
       const newSlug = result.slug || result.data?.slug;
       await queryClient.invalidateQueries({ queryKey: [`/${type}s`] });
-      navigate(`/entity/${type}/${newSlug}`);
+      showToast(`Page created successfully!`);
+      navigate(`/pages/${newSlug}`);
     } catch (err: any) {
       console.error('Creation failed:', err);
       const serverError = err.response?.data;
@@ -342,7 +350,10 @@ const CreatePage: React.FC = () => {
       } else if (typeof serverError === 'string') {
         errorMessage = serverError;
       }
-      alert(errorMessage);
+      const statusCode = err.response?.status;
+      setErrorStatusCode(statusCode);
+      setErrorMessage(errorMessage);
+      setErrorModalOpen(true);
     }
   };
 
@@ -594,6 +605,17 @@ const CreatePage: React.FC = () => {
             {createMutation.isPending ? 'Creating...' : 'Create'}
           </button>
           <button type="button" onClick={() => navigate(`/${type}s`)}>Cancel</button>
+        </div>
+
+        {/* Форма ошибки */}
+        <div className="edit-page">
+          {errorModalOpen && (
+            <ErrorModal
+              message={errorMessage}
+              statusCode={errorStatusCode}
+              onClose={() => setErrorModalOpen(false)}
+            />
+          )}
         </div>
       </form>
     </div>

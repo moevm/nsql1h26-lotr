@@ -2,9 +2,9 @@ import { defineConfig } from 'orval';
 
 export default defineConfig({
   api: {
-    input: './openapi.yml',
+    input: '../docs/openapi.yml',
     output: {
-      mode: 'tags-split',          // разделить по тегам
+      mode: 'tags-split',          // разделить по тегам (characters, locations...)
       target: './src/api/generated',
       client: 'react-query',       // генерировать хуки для react-query
       schemas: './src/api/generated/models',

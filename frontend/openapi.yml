@@ -1049,7 +1049,6 @@ components:
         - slug
         - type
         - name
-        - names
       properties:
         slug:
           type: string
@@ -1057,10 +1056,6 @@ components:
           type: string
         name:
           type: string
-        names:
-          type: array
-          items:
-            type: string
         image_url:
           type: string
           nullable: true

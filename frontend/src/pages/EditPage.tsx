@@ -1,9 +1,12 @@
+// src/pages/EditPage.tsx
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetPage, useUpdatePage } from '../api/generated/pages/pages';
 import type { PageUpdateRequest } from '../api/generated/models';
+import { useToast } from '../context/ToastContext';
 import AddRelationForm from '../components/AddRelationForm';
+import ErrorModal from '../components/ErrorModal';
 
 interface RelationItem {
   target?: {
@@ -26,9 +29,13 @@ interface RelationGroup {
 }
 
 const EditPage: React.FC = () => {
-  const { type: currentEntityType, slug } = useParams<{ type: string; slug: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorStatusCode, setErrorStatusCode] = useState<number | undefined>(undefined);
   const { data: page, isLoading, error } = useGetPage(slug!);
   const pageData = page as any;
   const updateMutation = useUpdatePage();
@@ -46,10 +53,13 @@ const EditPage: React.FC = () => {
   const [showAddOutgoingForm, setShowAddOutgoingForm] = useState(false);
   const [showAddIncomingForm, setShowAddIncomingForm] = useState(false);
 
+  // Тип сущности получаем из загруженных данных
+  const currentEntityType = pageData?.type;
+
   useEffect(() => {
     if (pageData) {
       setNames(pageData.names || []);
-      setNamesInput((pageData.names || []).join(', '))
+      setNamesInput((pageData.names || []).join(', '));
       setArticleText(pageData.article?.text || '');
       setArticleImage_url(pageData.article?.image_url || null);
       setAttributes(pageData.attributes || {});
@@ -153,6 +163,7 @@ const EditPage: React.FC = () => {
     }
     setShowAddOutgoingForm(false);
   };
+
   const handleAddIncomingRelation = (relationType: string, relation: RelationItem) => {
     const existingGroupIndex = incomingGroups.findIndex(g => g.relationType === relationType);
     if (existingGroupIndex !== -1) {
@@ -175,7 +186,8 @@ const EditPage: React.FC = () => {
 
     const parsedNames = namesInput.split(',').map(s => s.trim()).filter(s => s !== '');
     if (parsedNames.length === 0) {
-      alert('At least one name must be specified');
+      setErrorMessage('At least one name must be specified');
+      setErrorModalOpen(true);
       return;
     }
 
@@ -202,29 +214,23 @@ const EditPage: React.FC = () => {
       Object.entries(finalAttributes).filter(([_, v]) => v !== undefined)
     );
 
-    // Формируем исходящие связи
     const outgoingObj: Record<string, any[]> = {};
     outgoingGroups.forEach(group => {
       if (group.relationType && group.items.length) {
-        outgoingObj[group.relationType] = group.items.map(item => {
-          return {
-            slug: item.target?.slug || '',
-            properties: {},
-          };
-        });
+        outgoingObj[group.relationType] = group.items.map(item => ({
+          slug: item.target?.slug || '',
+          properties: {},
+        }));
       }
     });
 
-    // Формируем входящие связи
     const incomingObj: Record<string, any[]> = {};
     incomingGroups.forEach(group => {
       if (group.relationType && group.items.length) {
-        incomingObj[group.relationType] = group.items.map(item => {
-          return {
-            slug: item.from?.slug || '',
-            properties: {},
-          };
-        });
+        incomingObj[group.relationType] = group.items.map(item => ({
+          slug: item.from?.slug || '',
+          properties: {},
+        }));
       }
     });
 
@@ -244,19 +250,19 @@ const EditPage: React.FC = () => {
     try {
       await updateMutation.mutateAsync({ slug: slug!, data: updateData });
       await queryClient.invalidateQueries({ queryKey: [`/pages/${slug}`] });
-      navigate(`/entity/${currentEntityType}/${slug}`);
+      showToast(`Page updated successfully!`);
+      navigate(`/pages/${slug}`);
     } catch (err: any) {
       const serverError = err.response?.data;
       console.error('Update failed:', serverError || err.message);
       let errorMsg = 'Update failed.';
-      if (serverError?.error?.message) {
-        errorMsg = serverError.error.message;
-      } else if (serverError?.message) {
-        errorMsg = serverError.message;
-      } else if (typeof serverError === 'string') {
-        errorMsg = serverError;
-      }
-      alert(errorMsg);
+      if (serverError?.error?.message) errorMsg = serverError.error.message;
+      else if (serverError?.message) errorMsg = serverError.message;
+      else if (typeof serverError === 'string') errorMsg = serverError;
+      const statusCode = err.response?.status;
+      setErrorStatusCode(statusCode);
+      setErrorMessage(errorMsg);
+      setErrorModalOpen(true);
     }
   };
 
@@ -307,20 +313,12 @@ const EditPage: React.FC = () => {
           {currentEntityType === 'character' && (
             <div className="attribute-row">
               <label>Gender</label>
-              <select
-                value={genderInput}
-                onChange={e => setGenderInput(e.target.value)}
-              >
+              <select value={genderInput} onChange={e => setGenderInput(e.target.value)}>
                 <option value="unknown">unknown</option>
                 <option value="male">male</option>
                 <option value="female">female</option>
               </select>
-              <button
-                type="button"
-                onClick={() => setGenderInput('')}
-              >
-                Clear
-              </button>
+              <button type="button" onClick={() => setGenderInput('')}>Clear</button>
             </div>
           )}
           {Object.entries(attributes)
@@ -353,41 +351,25 @@ const EditPage: React.FC = () => {
                   onChange={e => updateOutgoingGroupType(gIdx, e.target.value)}
                   placeholder="for example, friend_of"
                 />
-                <button type="button" onClick={() => removeOutgoingGroup(gIdx)}>Удалить группу</button>
+                <button type="button" onClick={() => removeOutgoingGroup(gIdx)}>Delete group</button>
               </div>
               {group.items.map((item, iIdx) => (
                 <div key={iIdx} className="relation-item">
                   <div className="relation-field">
                     <label>target slug:</label>
-                    <input
-                      value={item.target?.slug ?? ''}
-                      onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.slug', e.target.value)}
-                      placeholder="slug"
-                    />
+                    <input value={item.target?.slug ?? ''} onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.slug', e.target.value)} placeholder="slug" />
                   </div>
                   <div className="relation-field">
                     <label>target type:</label>
-                    <input
-                      value={item.target?.type ?? ''}
-                      onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.type', e.target.value)}
-                      placeholder="character, location..."
-                    />
+                    <input value={item.target?.type ?? ''} onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.type', e.target.value)} placeholder="character, location..." />
                   </div>
                   <div className="relation-field">
                     <label>target name:</label>
-                    <input
-                      value={item.target?.name ?? ''}
-                      onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.name', e.target.value)}
-                      placeholder="Name"
-                    />
+                    <input value={item.target?.name ?? ''} onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.name', e.target.value)} placeholder="Name" />
                   </div>
                   <div className="relation-field">
                     <label>target image_url:</label>
-                    <input
-                      value={item.target?.image_url ?? ''}
-                      onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.image_url', e.target.value)}
-                      placeholder="image URL"
-                    />
+                    <input value={item.target?.image_url ?? ''} onChange={e => updateOutgoingItem(gIdx, iIdx, 'target.image_url', e.target.value)} placeholder="image URL" />
                   </div>
                   <button type="button" onClick={() => removeOutgoingItem(gIdx, iIdx)}>Delete relation</button>
                 </div>
@@ -395,20 +377,24 @@ const EditPage: React.FC = () => {
               <button type="button" onClick={() => addOutgoingItem(gIdx)}>+ Add relationship of this type</button>
             </div>
           ))}
-          <button type="button" onClick={() => setShowAddOutgoingForm(true)}>+ Add new outgoing relation</button>
-          {showAddOutgoingForm && (
-            <AddRelationForm
-              direction="outgoing"
-              onAdd={(relationType, relation) => handleAddOutgoingRelation(relationType, relation)}
-              currentEntityType={currentEntityType!}
-              onCancel={() => setShowAddOutgoingForm(false)}
-            />
+          {currentEntityType && (
+            <>
+              <button type="button" onClick={() => setShowAddOutgoingForm(true)}>+ Add new outgoing relation</button>
+              {showAddOutgoingForm && (
+                <AddRelationForm
+                  direction="outgoing"
+                  onAdd={(relationType, relation) => handleAddOutgoingRelation(relationType, relation)}
+                  currentEntityType={currentEntityType}
+                  onCancel={() => setShowAddOutgoingForm(false)}
+                />
+              )}
+            </>
           )}
         </section>
 
         {/* Входящие связи */}
         <section>
-          <h2>Incoming relation</h2>
+          <h2>Incoming relations</h2>
           {incomingGroups.map((group, gIdx) => (
             <div key={gIdx} className="relation-group">
               <div className="relation-group-header">
@@ -418,41 +404,25 @@ const EditPage: React.FC = () => {
                   onChange={e => updateIncomingGroupType(gIdx, e.target.value)}
                   placeholder="for example, member_of"
                 />
-                <button type="button" onClick={() => removeIncomingGroup(gIdx)}>Удалить группу</button>
+                <button type="button" onClick={() => removeIncomingGroup(gIdx)}>Delete group</button>
               </div>
               {group.items.map((item, iIdx) => (
                 <div key={iIdx} className="relation-item">
                   <div className="relation-field">
                     <label>source slug:</label>
-                    <input
-                      value={item.from?.slug ?? ''}
-                      onChange={e => updateIncomingItem(gIdx, iIdx, 'from.slug', e.target.value)}
-                      placeholder="slug"
-                    />
+                    <input value={item.from?.slug ?? ''} onChange={e => updateIncomingItem(gIdx, iIdx, 'from.slug', e.target.value)} placeholder="slug" />
                   </div>
                   <div className="relation-field">
-                    <label>source typeа:</label>
-                    <input
-                      value={item.from?.type ?? ''}
-                      onChange={e => updateIncomingItem(gIdx, iIdx, 'from.type', e.target.value)}
-                      placeholder="character, location..."
-                    />
+                    <label>source type:</label>
+                    <input value={item.from?.type ?? ''} onChange={e => updateIncomingItem(gIdx, iIdx, 'from.type', e.target.value)} placeholder="character, location..." />
                   </div>
                   <div className="relation-field">
                     <label>source name:</label>
-                    <input
-                      value={item.from?.name ?? ''}
-                      onChange={e => updateIncomingItem(gIdx, iIdx, 'from.name', e.target.value)}
-                      placeholder="Name"
-                    />
+                    <input value={item.from?.name ?? ''} onChange={e => updateIncomingItem(gIdx, iIdx, 'from.name', e.target.value)} placeholder="Name" />
                   </div>
                   <div className="relation-field">
                     <label>source image_url:</label>
-                    <input
-                      value={item.from?.image_url ?? ''}
-                      onChange={e => updateIncomingItem(gIdx, iIdx, 'from.image_url', e.target.value)}
-                      placeholder="image URL"
-                    />
+                    <input value={item.from?.image_url ?? ''} onChange={e => updateIncomingItem(gIdx, iIdx, 'from.image_url', e.target.value)} placeholder="image URL" />
                   </div>
                   <button type="button" onClick={() => removeIncomingItem(gIdx, iIdx)}>Delete relation</button>
                 </div>
@@ -460,14 +430,18 @@ const EditPage: React.FC = () => {
               <button type="button" onClick={() => addIncomingItem(gIdx)}>+ Add relationship of this type</button>
             </div>
           ))}
-          <button type="button" onClick={() => setShowAddIncomingForm(true)}>+ Add new incoming relation</button>
-          {showAddIncomingForm && (
-            <AddRelationForm
-              direction="incoming"
-              onAdd={(relationType, relation) => handleAddIncomingRelation(relationType, relation)}
-              currentEntityType={currentEntityType!}
-              onCancel={() => setShowAddIncomingForm(false)}
-            />
+          {currentEntityType && (
+            <>
+              <button type="button" onClick={() => setShowAddIncomingForm(true)}>+ Add new incoming relation</button>
+              {showAddIncomingForm && (
+                <AddRelationForm
+                  direction="incoming"
+                  onAdd={(relationType, relation) => handleAddIncomingRelation(relationType, relation)}
+                  currentEntityType={currentEntityType}
+                  onCancel={() => setShowAddIncomingForm(false)}
+                />
+              )}
+            </>
           )}
         </section>
 
@@ -475,8 +449,12 @@ const EditPage: React.FC = () => {
           <button type="submit" disabled={updateMutation.isPending}>
             {updateMutation.isPending ? 'Saving...' : 'Save changes'}
           </button>
-          <button type="button" onClick={() => navigate(`/entity/${currentEntityType}/${slug}`)}>Cancel</button>
+          <button type="button" onClick={() => navigate(`/pages/${slug}`)}>Cancel</button>
         </div>
+
+        {errorModalOpen && (
+          <ErrorModal message={errorMessage} statusCode={errorStatusCode} onClose={() => setErrorModalOpen(false)} />
+        )}
       </form>
     </div>
   );

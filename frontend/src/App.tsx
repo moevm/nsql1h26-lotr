@@ -27,6 +27,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import GlobalStatsPage from './pages/GlobalStatsPage';
 import CustomStatsPage from './pages/CustomStatsPage';
 import SearchBar from './components/SearchBar';
+import { ToastProvider } from './context/ToastContext';
 
 
 // Компонент, который использует авторизацию
@@ -99,8 +100,8 @@ const AppContent: React.FC = () => {
           <Route path="/scripts" element={<ScriptsPage />} />
           <Route path="/create/:type" element={<CreatePage />} />
 
-          <Route path="/entity/:type/:slug" element={<EntityPage />} />
-          <Route path="/edit/:type/:slug" element={<EditPage />} />
+          <Route path="/pages/:slug" element={<EntityPage />} />
+          <Route path="/edit/:slug" element={<EditPage />} />
 
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
@@ -112,9 +113,7 @@ const AppContent: React.FC = () => {
       {showAuthModal && (
         <AuthModal
           onClose={() => setShowAuthModal(false)}
-          onSuccess={() => {
-            setShowAuthModal(false);
-          }}
+          onSuccess={() => setShowAuthModal(false)}
         />
       )}
     </BrowserRouter>
@@ -125,7 +124,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <AppContent />
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
     </AuthProvider>
   );
 };

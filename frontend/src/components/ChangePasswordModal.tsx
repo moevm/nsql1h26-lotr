@@ -3,14 +3,13 @@ import { IoClose } from 'react-icons/io5';
 import { useAuth } from '../context/AuthContext';
 import type { UpdateMeRequest } from '../api/generated/models';
 
-interface EditProfileModalProps {
+interface ChangePasswordModalProps {
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose, onSuccess }) => {
-  const { user, updateUser } = useAuth();
-  const [email, setEmail] = useState(user?.email || '');
+const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ onClose, onSuccess }) => {
+  const { updateUser } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,77 +17,67 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose, onSuccess 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      setError('Email обязателен');
-      return;
-    }
     if (!currentPassword) {
-      setError('Текущий пароль обязателен для любых изменений');
+      setError('Current password is required');
       return;
     }
-    if (newPassword && newPassword !== confirmPassword) {
-      setError('Новый пароль и подтверждение не совпадают');
+    if (!newPassword) {
+      setError('New password is required');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('New password and confirmation do not match');
       return;
     }
     const updateData: UpdateMeRequest = {
-      email,
+      password: newPassword,
       password_current: currentPassword,
     };
-    if (newPassword) {
-      updateData.password = newPassword;
-    }
     const success = await updateUser(updateData);
     if (success) {
       onClose();
       onSuccess?.();
     } else {
-      setError('Не удалось обновить профиль. Проверьте правильность текущего пароля.');
+      setError('Failed to change password. Check your current password.');
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <button className="modal-close-btn" onClick={onClose}>
             <IoClose size="24px" />
           </button>
-          <h2>Редактировать профиль</h2>
+          <h2>Change Password</h2>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            <label>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <label>Текущий пароль (обязательно)</label>
+            <label>Current Password</label>
             <input
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
             />
-            <label>Новый пароль (оставьте пустым, чтобы не менять)</label>
+            <label>New Password</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
+              required
             />
-            <label>Подтверждение нового пароля</label>
+            <label>Confirm New Password</label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              required
             />
             {error && <div className="error-message">{error}</div>}
           </div>
           <div className="modal-footer">
-            <button type="submit" className="save-btn">
-              Сохранить
-            </button>
+            <button type="submit" className="save-btn">Save</button>
           </div>
         </form>
       </div>
@@ -96,4 +85,4 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose, onSuccess 
   );
 };
 
-export default EditProfileModal;
+export default ChangePasswordModal;

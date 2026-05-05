@@ -28,7 +28,7 @@ const GenericCatalogPage: React.FC<GenericCatalogPageProps> = ({
         </div>
         <div className="cards-grid">
           {data.map(item => (
-            <Link key={item.slug} to={`/entity/${entityType}/${item.slug}`} className="link-card-link">
+            <Link key={item.slug} to={`/pages/${item.slug}`} className="link-card-link">
               <div className="link-card">
                 <div className="link-card-name">{item.name}</div>
                 {item.preview && item.preview.length > 0 && (
