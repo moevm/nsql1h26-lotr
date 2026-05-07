@@ -7,6 +7,7 @@ Global stats note:
     successful import so the next request recomputes fresh numbers.
 '''
 
+from collections import Counter
 from typing import Any
 
 from django.conf import settings
@@ -180,7 +181,7 @@ def _parse_depth(raw: str | None) -> int:
     value = _parse_bounded_int(raw, 'depth', default=1, min_val=1, max_val=2)
 
     if value not in NEIGHBORS_ALLOWED_DEPTHS:
-        raise ValidationError({'depth': ['Must de 1 or 2.']})
+        raise ValidationError({'depth': ['Must be 1 or 2.']})
 
     return value
 
@@ -289,19 +290,11 @@ def neighbors(
         for e in repo.get_induced_edges(all_slugs, rel_types)
     ]
 
-    # TODO: check if can be simplified by Counter
-    by_type: dict[str, int] = {}
-    for node in nodes:
-        key = str(node['type'])
-        by_type[key] = by_type.get(key, 0) + 1
-
-    by_relation: dict[str, int] = {}
-    for edge in edges:
-        key = str(edge['type'])
-        by_relation[key] = by_relation.get(key, 0) + 1
+    by_type = dict(Counter(str(node['type']) for node in nodes))
+    by_relation = dict(Counter(str(edge['type']) for edge in edges))
 
     return {
-        'root': root,
+        'root_node': root,
         'nodes': nodes,
         'edges': edges,
         'stats': {
