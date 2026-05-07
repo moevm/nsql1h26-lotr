@@ -22,7 +22,7 @@ TypedDict vs dataclass:
 from dataclasses import dataclass, field
 from typing import Protocol, TypedDict, runtime_checkable
 
-from neomodel import db  # type: ignore[attr-defined]
+from neomodel import db  # type: ignore
 
 from .queries import (
     CHARACTERS_BY_GENDER_QUERY,
@@ -35,14 +35,17 @@ from .queries import (
     MOST_COMMENTED_QUERY,
     MOST_LIKED_QUERY,
     NEIGHBORS_EDGES_QUERY,
-    NEIGHBORS_NODES_QUERY,
+    NEIGHBORS_NODES_TEMPLATE,
     NEIGHBORS_ROOT_QUERY,
+    PAGE_BATCH_IMAGES_QUERY,
+    SHORTEST_PATH_TEMPLATE,
     TOP_CONNECTED_LABELS,
     top_connected_query,
 )
 from .utils import entity_type_from_labels, rows_to_dicts
 
 # Value-object types
+
 
 # Global stats
 
@@ -98,6 +101,7 @@ class PageEngagement(TypedDict):
     type: str
     count: int
 
+
 # Neighbors
 @dataclass(frozen=True)
 class PageRow:
@@ -117,6 +121,29 @@ class EdgeRow:
     to_slug: str
     rel_type: str
     rel_properties: dict = field(default_factory=dict)
+
+
+# Shortest path
+
+@dataclass(frozen=True)
+class PathRelRow:
+    '''A single relationship on the shortest path between i-th and i+1-th node'''
+
+    rel_type: str
+    rel_properties: dict = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ShortestPathResult:
+    '''Raw result of the shortest path Cypher query'''
+
+    path_nodes: list[PageRow]
+    path_rels: list[PathRelRow]
+
+    @property
+    def length(self) -> int:
+        '''Number of hops in the path ( = number of relationships)'''
+        return len(self.path_rels)
 
 
 # Repository interfaces (Protocols)
@@ -216,6 +243,39 @@ class NeighborsRepositoryProtocol(Protocol):
         '''
         ...
 
+
+@runtime_checkable
+class ShortestPathRepositoryProtocol(Protocol):
+    '''Interface for the shortest path repository'''
+
+    def get_page(self, slug: str) -> PageRow | None:
+        '''
+        Return display data for a single :Page node, or None if absent
+
+        Used to validate that both endpoint nodes exist before search.
+        '''
+        ...
+
+    def find_shortest_path(
+        self,
+        from_slug: str,
+        to_slug: str,
+        node_labels: list[str] | None,
+        rel_types: list[str] | None,
+        max_depth: int,
+    ) -> ShortestPathResult | None:
+        '''
+        Return the shortest :Page path between two nodes, or None if no path exists.
+        '''
+        ...
+
+    def get_pages_images_urls(self, slugs: list[str]) -> dict[str, str | None]:
+        '''
+        Return a slug -> image_url mapping for the given page slugs.
+
+        Used to enrich path nodes with image_url in a single extra round-trip.
+        '''
+        ...
 
 
 # Neo4j repository implementations
@@ -389,7 +449,6 @@ class Neo4jGlobalStatsRepository:
         return most_commented
 
 
-# TODO: remove
 class Neo4jNeighborsRepository:
     '''Concrete neighbors repository backed by Neo4j.'''
     def get_root(self, slug: str) -> PageRow | None:
@@ -404,7 +463,7 @@ class Neo4jNeighborsRepository:
         limit: int,
     ) -> list[PageRow]:
         result_rows, meta = db.cypher_query(
-            NEIGHBORS_NODES_QUERY.format(depth=depth),
+            NEIGHBORS_NODES_TEMPLATE.format(depth=depth),
             {
                 'slug': slug,
                 # 'depth': depth,
@@ -446,3 +505,68 @@ class Neo4jNeighborsRepository:
             )
             for r in rows_to_dicts(result_rows, meta)
         ]
+
+
+class Neo4jShortestPathRepository:
+    '''Concrete shortest path repository backed by Neo4j'''
+
+    def get_page(self, slug: str) -> PageRow | None:
+        return _fetch_page(slug)
+
+    def find_shortest_path(
+        self,
+        from_slug: str,
+        to_slug: str,
+        node_labels: list[str] | None,
+        rel_types: list[str] | None,
+        max_depth: int,
+    ) -> ShortestPathResult | None:
+        result_rows, meta = db.cypher_query(
+            SHORTEST_PATH_TEMPLATE.format(max_depth=max_depth),
+            {
+                'from_slug': from_slug,
+                'to_slug': to_slug,
+                'node_labels': node_labels,
+                'rel_types': rel_types,
+            },
+        )
+        if not result_rows:
+            return None
+
+        row = rows_to_dicts(result_rows, meta)[0]
+
+        path_nodes = [
+            PageRow(
+                slug=n['slug'],
+                names=n['names'] or [],
+                node_labels=n['node_labels'] or [],
+                image_url=None,  # enriched separately
+            )
+            for n in (row['path_nodes'] or [])
+        ]
+        path_rels = [
+            PathRelRow(
+                rel_type=r['rel_type'],
+                rel_properties=r['rel_properties'] or {},
+            )
+            for r in (row['path_rels'] or [])
+        ]
+
+        return ShortestPathResult(
+            path_nodes=path_nodes,
+            path_rels=path_rels,
+        )
+
+    def get_pages_images_urls(self, slugs: list[str]) -> dict[str, str | None]:
+        if not slugs:
+            return {}
+
+        result_rows, meta = db.cypher_query(
+            PAGE_BATCH_IMAGES_QUERY,
+            {'slugs': slugs},
+        )
+
+        return {
+            r['slug']: r['image_url']
+            for r in rows_to_dicts(result_rows, meta)
+        }

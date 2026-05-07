@@ -109,12 +109,14 @@ LIMIT 5
 RETURN n.slug AS slug, n.names[0] AS name, connections AS connections_count
 '''
 
+
 def top_connected_query(label: str) -> str:
     '''Build a top-connected query for the given :Page sub-label.'''
     return _TOP_CONNECTED_TEMPLATE.format(
         label=label,
         excluded=f'[{', '.join('\'' + str(x) + '\'' for x in SocRelTypes)}]',
     )
+
 
 TOP_CONNECTED_LABELS = [
     'Character',
@@ -174,10 +176,11 @@ LIMIT 1
 # TODO: switch from formatting depth to apoc procedures
 # Parameters:
 #   $slug - root page slug (string)
-#   $depth - maximum traversal depth: 1 or 2 (integer)
 #   $node_labels - list of Neo4j labels to accept as neighbors, or null for all
 #   $limit - maximum number of distinct neighbor nodes to return (integer)
-NEIGHBORS_NODES_QUERY = '''\
+#   depth - maximum traversal depth: 1 or 2 (integer), formatted into query, because
+#       Neo4j does not allow [*1..$depth]
+NEIGHBORS_NODES_TEMPLATE = '''\
 MATCH (root:Page {{slug: $slug}})
 MATCH path = (root)-[*1..{depth}]-(nb:Page)
 WHERE nb <> root
@@ -221,4 +224,52 @@ RETURN
     b.slug AS to_slug,
     type(r) AS rel_type,
     properties(r) AS rel_properties
+'''
+
+
+# Shortest path endpoint
+
+
+# Parameters:
+#   $from_slug - slug of the start page (string)
+#   $to_slug - slug of the end page (string)
+#   $node_labels - list of Neo4j labels to allow on intermediate path nodes,
+#       or null for all :Page node types
+#   $rel_types - list of relationship type strings; path is rejected if any
+#       relationship is not in this list; null means all types allowed
+#   max_depth - maximum traversal depth, 1–15; formatted into query, because
+#       Neo4j does not allow [*1..$depth]
+SHORTEST_PATH_TEMPLATE = '''\
+MATCH (a:Page {{slug: $from_slug}})
+WITH a
+MATCH (b:Page {{slug: $to_slug}})
+WITH a, b
+MATCH path = shortestPath((a)-[*1..{max_depth}]-(b))
+WITH path, relationships(path) AS rels, nodes(path) AS ns
+WHERE ALL(n IN ns WHERE
+    n = a
+    OR n = b
+    OR (n:Page
+        AND (
+            $node_labels IS NULL
+            OR ANY(lbl IN labels(n) WHERE lbl IN $node_labels)
+        )
+    )
+)
+    AND ($rel_types IS NULL
+        OR ALL(r IN rels WHERE type(r) IN $rel_types))
+RETURN
+    [n IN ns | {{slug: n.slug, names: n.names, node_labels: labels(n)}}] AS path_nodes,
+    [r IN rels | {{rel_type: type(r), rel_properties: properties(r)}}] AS path_rels
+'''
+
+
+# Fetch image URLs for a batch of page slugs in a single round-trip.
+# Used to enrich path nodes after the main shortest-path query.
+# Parameters:
+#   $slugs - list of page slugs (strings)
+PAGE_BATCH_IMAGES_QUERY = '''\
+MATCH (n:Page)-[:HAS_ARTICLE]->(a:Article)
+WHERE n.slug IN $slugs
+RETURN n.slug AS slug, a.imageUrl AS image_url
 '''

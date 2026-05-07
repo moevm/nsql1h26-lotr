@@ -20,13 +20,19 @@ from .constants import (
     NEIGHBORS_ALLOWED_DEPTHS,
     NEIGHBORS_DEFAULT_LIMIT,
     NEIGHBORS_MAX_LIMIT,
+    SHORTEST_PATH_DEFAULT_MAX_DEPTH,
+    SHORTEST_PATH_MAX_ALLOWED_DEPTH,
+    SHORTEST_PATH_MIN_DEPTH,
 )
 from .repository import (
     GlobalStatsRepositoryProtocol,
     NeighborsRepositoryProtocol,
     Neo4jGlobalStatsRepository,
     Neo4jNeighborsRepository,
+    Neo4jShortestPathRepository,
     PageRow,
+    ShortestPathRepositoryProtocol,
+    ShortestPathResult,
 )
 
 GLOBAL_STATS_CACHE_KEY = 'analytics:global_stats'
@@ -41,7 +47,7 @@ _VALID_REL_TYPES: frozenset[str] = frozenset(RelType)
 
 _default_global_stats_repo: GlobalStatsRepositoryProtocol = Neo4jGlobalStatsRepository()
 _default_neighbors_repo: NeighborsRepositoryProtocol = Neo4jNeighborsRepository()
-
+_default_shortest_path_repo: ShortestPathRepositoryProtocol = Neo4jShortestPathRepository()
 
 
 def _assemble(repo: GlobalStatsRepositoryProtocol) -> dict[str, Any]:
@@ -190,6 +196,17 @@ def _parse_limit(raw: str | None) -> int:
     )
 
 
+def _parse_max_depth(raw: str | None) -> int:
+    '''Parse the `max_depth` parameter. Default: 10, max: 15'''
+    return _parse_bounded_int(
+        raw,
+        'max_depth',
+        default=SHORTEST_PATH_DEFAULT_MAX_DEPTH,
+        min_val=SHORTEST_PATH_MIN_DEPTH,
+        max_val=SHORTEST_PATH_MAX_ALLOWED_DEPTH,
+    )
+
+
 # Public API
 
 def global_stats(
@@ -212,6 +229,7 @@ def global_stats(
     cache.set(GLOBAL_STATS_CACHE_KEY, result, ttl)
 
     return result
+
 
 def invalidate_global_stats_cache() -> None:
     '''
@@ -291,4 +309,109 @@ def neighbors(
             'by_type': by_type,
             'by_relation': by_relation,
         },
+    }
+
+
+def shortest_path(
+        raw_from: str,
+        raw_to: str,
+        raw_through_nodes: str | None,
+        raw_through_rels: str | None,
+        raw_max_depth: str | None,
+        *,
+        repo: ShortestPathRepositoryProtocol = _default_shortest_path_repo,
+) -> dict[str, Any]:
+    '''
+    Find and return the shortest lore path between two wiki pages.
+
+    Flow:
+        Validate all parameters (400 on bad input).
+        Reject from_slug == to_slug (400).
+        Verify both endpoint nodes exist (404 if either missing).
+        Run the shortestPath Cypher query.
+        Not found -> {found: false}.
+        Found -> enrich path nodes with image_url, build step chain.
+
+    shortestPath() caveat:
+        If the absolute shortest path violates through_nodes/through_rels
+        filters, the query returns nothing — it does NOT try the next-shortest
+        valid path.  Known Neo4j behaviour; document in the UI if needed.
+    '''
+    from_slug = raw_from.strip()
+    to_slug = raw_to.strip()
+    node_labels = _parse_node_types(raw_through_nodes)
+    rel_types = _parse_rel_types(raw_through_rels)
+    max_depth = _parse_max_depth(raw_max_depth)
+
+    if from_slug == to_slug:
+        raise ValidationError(
+            {
+                'from': ['"from" and "to" nust be different slugs.']
+            }
+        )
+
+    from_row = repo.get_page(from_slug)
+    if from_row is None:
+        raise NotFound(detail=f'Page with slug "{from_slug}" not found.')
+
+    to_row = repo.get_page(to_slug)
+    if to_row is None:
+        raise NotFound(detail=f'Page with slug "{to_slug}" not found.')
+
+    from_summary = _page_summary(from_row)
+    to_summary = _page_summary(to_row)
+
+    result: ShortestPathResult | None = repo.find_shortest_path(
+        from_slug=from_slug,
+        to_slug=to_slug,
+        node_labels=node_labels,
+        rel_types=rel_types,
+        max_depth=max_depth,
+    )
+
+    if result is None:
+        return {
+            'found': False,
+            'length': None,
+            'from': from_summary,
+            'to': to_summary,
+            'path': [],
+        }
+
+    path_slugs = [n.slug for n in result.path_nodes]
+    image_map = repo.get_pages_images_urls(path_slugs)
+
+    enriched_nodes = [
+        _page_summary(
+            PageRow(
+                slug=n.slug,
+                names=n.names,
+                node_labels=n.node_labels,
+                image_url=image_map.get(n.slug)
+            )
+        )
+        for n in result.path_nodes
+    ]
+
+    steps = [
+        {
+            'node': node_summary,
+            'edge_to_next': (
+                {
+                    'type': result.path_rels[i].rel_type,
+                    'properties': result.path_rels[i].rel_properties,
+                }
+                if i < len(result.path_rels)
+                else None
+            ),
+        }
+        for i, node_summary in enumerate(enriched_nodes)
+    ]
+
+    return {
+        'found': True,
+        'length': result.length,
+        'from': from_summary,
+        'to': to_summary,
+        'path': steps,
     }

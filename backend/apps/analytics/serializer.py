@@ -8,8 +8,8 @@ and returned directly - DRF serializes them without a model binding.
 
 from rest_framework import serializers
 
-
 # Global stats endpoint
+
 
 class _CountsSerializer(serializers.Serializer):
     total = serializers.IntegerField()
@@ -114,7 +114,7 @@ class _NeighborEdgeSerializer(serializers.Serializer):
     DRF does not allow them as class-level attribute names.
     The standard workaround is to declare the fields via
     `_declared_fields` after class definition so the metaclass
-    never sees the bare name ``from``.
+    never sees the bare name `from`.
     '''
     type = serializers.CharField(help_text='Relationship type, e.g. OF_RACE.')
     properties = serializers.DictField(
@@ -164,3 +164,58 @@ class NeighborsResponseSerializer(serializers.Serializer):
         ),
     )
     stats = _NeighborStatsSerializer()
+
+
+class _PathEdgeSerializer(serializers.Serializer):
+    '''Edge between two consecutive nodes in the shortest path.'''
+
+    type = serializers.CharField(help_text='Relationship type, e.g. OF_RACE')
+    properties = serializers.DictField(
+        child=serializers.JSONField(),
+        allow_empty=True,
+        help_text='Edge properties as stored in Neo4j (empty dict when none).'
+    )
+
+
+class _PathStepSerializer(serializers.Serializer):
+    '''One step in the ordered shortest path chain.'''
+
+    node = _PageSummarySerializer(help_text='The page at this step.')
+    edge_to_next = _PathEdgeSerializer(
+        allow_null=True,
+        help_text=(
+            'Edge leading to the next step.  Null for the last node in the path.'
+        ),
+    )
+
+
+class ShortestPathResponseSerializer(serializers.Serializer):
+    '''
+    Read-only reponse shape for GET /analytics/shortest-path/.
+
+    `from` and `to` are Python reserved keywords; they are declared via
+    `_declared_fields` after class creation to avoid a SyntaxError.
+    '''
+
+    found = serializers.BooleanField(
+        help_text='True if a path was found within max_depth hops.'
+    )
+    length = serializers.IntegerField(
+        allow_null=True,
+        help_text='Number of hops in the shortest path; null when found=False'
+    )
+    path = _PathStepSerializer(
+        many=True,
+        help_text=(
+            'Ordered chain of path steps from start to end node. '
+            'Empty list when found=false.'
+        ),
+    )
+
+
+ShortestPathResponseSerializer._declared_fields['from'] = _PageSummarySerializer(
+    help_text='PageSummary of the start node (always present, even when found=false).'
+)
+ShortestPathResponseSerializer._declared_fields['to'] = _PageSummarySerializer(
+    help_text='PageSummary of the end node (always present, even when found=false).'
+)
