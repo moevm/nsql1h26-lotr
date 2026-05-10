@@ -145,7 +145,6 @@ h1 {
 .categories-list a:hover {
   font-family: 'Ringbearer';
   color: #c7b198;
-  text-decoration: underline;
 }
 
 /* Страница каталога (общий контейнер) */
@@ -1290,6 +1289,151 @@ h1 {
 
 .toast-close-btn:hover {
   color: #f5e7d9;
+}
+
+/* Стили для страницы категорий */
+.categories-root-page,
+.category-detail {
+  color: #ffffff;
+  padding: 1rem 7rem;
+}
+
+/* Заголовок "Categories" */
+.categories-root-page .catalog-title-1 {
+  margin-bottom: 2rem;
+}
+
+.catalog-title-1, .category-detail h1, .category-detail h2 {
+  color: #ffffff;
+  font-weight: normal;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Список корневых категорий – вертикальный список */
+.root-categories-list {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+}
+.root-category-item {
+  margin: 1.8rem 1rem;
+  cursor: pointer;
+}
+.root-category-name {
+  font-size: 1.7rem;
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.root-category-name:hover {
+  color: #c7b198;
+}
+
+/* Детальная страница категории */
+.category-detail {
+  padding-left: 5rem;
+}
+
+.category-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #f5e7d9;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.back-button:hover {
+  color: #c7b198;
+}
+
+.category-detail h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+/* Секции подкатегорий и страниц */
+.category-children-section,
+.category-pages-section {
+  margin-top: 1.5rem;
+}
+
+.category-children-section h2,
+.category-pages-section h2 {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #f8e9e1;
+  margin-bottom: 2rem;
+  padding-left: 1rem;
+}
+
+/* Список подкатегорий */
+.subcategories-list {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+}
+
+.subcategories-list li {
+  margin: 2rem 2rem;
+}
+
+.category-link {
+  background: none;
+  border: none;
+  color: #ffffff;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 1.3rem;
+  padding: 0;
+}
+
+.category-link:hover {
+  color: #c7b198;
+}
+
+.badge {
+  margin-left: 0.5rem;
+  font-size: 1rem;
+  color: #cccccc;
+}
+
+/* Список страниц */
+.pages-list {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+}
+
+.pages-list li {
+  margin: 2rem 2rem;
+}
+
+.page-link {
+  background: none;
+  border: none;
+  color: #ffffff;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 1.3rem;
+  padding: 0;
+}
+
+.page-link:hover {
+  color: #c7b198;
+}
+
+/* Сообщение об отсутствии данных */
+.category-detail p {
+  color: #e7c9b7;
+  font-style: italic;
+  margin-top: 1.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 1.3rem;
 }
 
 /* Для экранов меньше 1200px */
