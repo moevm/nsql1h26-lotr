@@ -259,12 +259,14 @@ def get_category_detail(
         'name': detail.name,
         'created_at': detail.created_at,
         'parent_slug': detail.parent_slug,
+        'child_count': len(children),
+        'page_count': total_pages_count,
         'parent': parent,
         'children': children,
         'pages': {
             'count': total_pages_count,
-            'next': next_page,
-            'previous': prev_page,
+            'next': next_page if next_page is not None else None,
+            'previous': prev_page if prev_page is not None else None,
             'results': page_items,
         },
     }

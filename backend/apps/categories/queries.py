@@ -16,7 +16,7 @@ WHERE
     ($name IS NULL OR toLower(c.name) CONTAINS toLower($name))
     AND CASE
         WHEN $parent = 'root' THEN NOT exists((c)-[:SUBCATEGORY_OF]->(:Category))
-        WHEN $parent IS NOT NULL THEN exists((c)-[:SUBCATEGORY_OF]->(parent:Category {slug: $parent}))
+        WHEN $parent IS NOT NULL THEN exists((c)-[:SUBCATEGORY_OF]->(:Category {slug: $parent}))
         ELSE true
     END
 RETURN count(c) AS total
@@ -28,7 +28,7 @@ WHERE
     ($name IS NULL OR toLower(c.name) CONTAINS toLower($name))
     AND CASE
         WHEN $parent = 'root' THEN NOT exists((c)-[:SUBCATEGORY_OF]->(:Category))
-        WHEN $parent IS NOT NULL THEN exists((c)-[:SUBCATEGORY_OF]->(parent:Category {slug: $parent}))
+        WHEN $parent IS NOT NULL THEN exists((c)-[:SUBCATEGORY_OF]->(:Category {slug: $parent}))
         ELSE true
     END
 OPTIONAL MATCH (c)<-[:SUBCATEGORY_OF]-(child:Category)
@@ -36,7 +36,7 @@ OPTIONAL MATCH (c)<-[:IN_CATEGORY]-(page:Page)
 RETURN
     c.slug AS slug,
     c.name AS name,
-    c.createdAt AS created_at,
+    toString(c.createdAt) AS created_at,
     coalesce( [(c)-[:SUBCATEGORY_OF]->(p:Category) | p.slug][0], '' ) AS parent_slug,
     count(DISTINCT child) AS child_count,
     count(DISTINCT page) AS page_count
@@ -61,7 +61,7 @@ FOREACH (_ IN CASE WHEN parent IS NOT NULL THEN [1] ELSE [] END |
 RETURN
     c.slug AS slug,
     c.name AS name,
-    c.createdAt AS created_at,
+    toString(c.createdAt) AS created_at,
     coalesce(parent.slug, '') AS parent_slug,
     0 AS child_count,
     0 AS page_count
@@ -91,7 +91,7 @@ OPTIONAL MATCH (child)<-[:IN_CATEGORY]-(child_page:Page)
 RETURN
     c.slug AS slug,
     c.name AS name,
-    c.createdAt AS created_at,
+    toString(c.createdAt) AS created_at,
     parent.slug AS parent_slug,
     parent.name AS parent_name,
     collect(DISTINCT {
@@ -140,7 +140,7 @@ FOREACH (_ IN CASE WHEN newParent IS NOT NULL THEN [1] ELSE [] END |
 RETURN
     c.slug AS slug,
     c.name AS name,
-    c.createdAt AS created_at,
+    toString(c.createdAt) AS created_at,
     newParent.slug AS parent_slug,
     0 AS child_count,   -- will be recomputed if needed
     0 AS page_count

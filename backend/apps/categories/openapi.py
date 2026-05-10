@@ -15,6 +15,7 @@ from .serializers import (
     CategoryDetailOutputSerializer,
     CategoryTreeItemSerializer,
     CategoryUpdateInputSerializer,
+    ErrorResponseSerializer,
     PaginatedCategoryListSerializer,
 )
 
@@ -122,10 +123,10 @@ list_create_view_schema = extend_schema_view(
         request=CategoryCreateInputSerializer,
         responses={
             201: CategoryDetailOutputSerializer,
-            400: OpenApiTypes.OBJECT,
-            404: OpenApiTypes.OBJECT,
-            409: OpenApiTypes.OBJECT,
-            422: OpenApiTypes.OBJECT,
+            400: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+            409: ErrorResponseSerializer,
+            422: ErrorResponseSerializer,
         },
     ),
 )
@@ -158,7 +159,7 @@ detail_view_schema = extend_schema_view(
         ],
         responses={
             200: CategoryDetailOutputSerializer,
-            404: OpenApiTypes.OBJECT,
+            404: ErrorResponseSerializer,
         },
         auth=[],
     ),
@@ -170,9 +171,9 @@ detail_view_schema = extend_schema_view(
         request=CategoryUpdateInputSerializer,
         responses={
             200: CategoryDetailOutputSerializer,
-            400: OpenApiTypes.OBJECT,
-            404: OpenApiTypes.OBJECT,
-            422: OpenApiTypes.OBJECT,
+            400: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+            422: ErrorResponseSerializer,
         },
     ),
     delete=extend_schema(
@@ -184,7 +185,7 @@ detail_view_schema = extend_schema_view(
         parameters=[_SLUG_PATH_PARAM],
         responses={
             204: OpenApiResponse(description='Category deleted.'),
-            404: OpenApiTypes.OBJECT,
+            404: ErrorResponseSerializer,
         },
     ),
 )

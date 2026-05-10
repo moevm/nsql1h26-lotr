@@ -69,8 +69,8 @@ class PageSummarySerializer(serializers.Serializer):
 
 class PaginatedPagesSerializer(serializers.Serializer):
     count = serializers.IntegerField()
-    next = serializers.IntegerField(allow_null=True)
-    previous = serializers.IntegerField(allow_null=True)
+    next = serializers.CharField(allow_null=True)
+    previous = serializers.CharField(allow_null=True)
     results = PageSummarySerializer(many=True)
 
 
@@ -79,6 +79,8 @@ class CategoryDetailOutputSerializer(serializers.Serializer):
     name = serializers.CharField()
     created_at = serializers.DateTimeField()
     parent_slug = serializers.CharField(allow_null=True)
+    child_count = serializers.IntegerField()
+    page_count = serializers.IntegerField()
     parent = ParentInfoSerializer(allow_null=True)
     children = ChildCategorySerializer(many=True)
     pages = PaginatedPagesSerializer()
@@ -105,3 +107,10 @@ class CategoryTreeItemSerializer(serializers.Serializer):
     name = serializers.CharField()
     page_count = serializers.IntegerField()
     children = serializers.ListField(child=serializers.DictField())
+
+
+class ErrorResponseSerializer(serializers.Serializer):
+    error = serializers.DictField(
+        child=serializers.CharField(),
+        help_text='Error object with code, message, and optional fields.',
+    )
