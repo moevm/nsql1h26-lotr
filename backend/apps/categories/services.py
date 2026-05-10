@@ -5,88 +5,104 @@ Business logic for category endpoints.
 from typing import Any
 
 from django.utils.text import slugify
-from neomodel import db
 from rest_framework.exceptions import NotFound, ValidationError
 
-from apps.categories.queries import (
-    CATEGORY_COUNT_QUERY,
-    CATEGORY_CREATE_QUERY,
-    CATEGORY_DELETE_QUERY,
-    CATEGORY_DETAIL_PAGES_COUNT_QUERY,
-    CATEGORY_DETAIL_PAGES_QUERY,
-    CATEGORY_DETAIL_QUERY,
-    CATEGORY_LIST_QUERY,
-    CATEGORY_TREE_QUERY,
-    CATEGORY_UPDATE_QUERY,
-    CYCLE_CHECK_QUERY,
+from apps.catalogs.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from apps.categories.repository import (
+    CategoryRepositoryProtocol,
+    Neo4jCategoryRepository,
 )
-from apps.pages.models import Category
+
+_default_repo = Neo4jCategoryRepository()
 
 
-def _neo4j_dt_to_iso(dt: Any) -> str | None:
-    '''Convert a Neo4j DateTime object to an ISO-8601 string, or None'''
-    if dt is None:
-        return None
-
-    if hasattr(dt, 'isoformat'):
-        return dt.isoformat()
-
-    return str(dt)
+def _parse_int(value: str | None, default: int) -> int:
+    '''Parse a query-param string to an integer, returning default on error.'''
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
 
 
 def _validate_sort(sort: str | None) -> str:
-    allowed = ['name']
+    '''Whitelist sort field for categories endpoints.'''
+    allowed = ['name', 'slug']
     if sort and sort not in allowed:
-        raise ValidationError({'sort': f'Sort must be one of: {", ".join(allowed)}.'})
-    return sort or 'name'
+        raise ValidationError({
+            'sort': f'Sort must be one of: {", ".join(allowed)}.'
+        })
+    return sort or 'slug'
 
 
-def _check_cycle(slug: str, new_parent: str) -> None:
+def _check_cycle(slug: str, new_parent: str,
+                 repo: CategoryRepositoryProtocol) -> None:
     if new_parent == slug:
-        raise ValidationError({'parent_slug': ['A category cannot be its own parent.']})
-    rows, _ = db.cypher_query(
-        CYCLE_CHECK_QUERY,
-        {'slug': slug, 'parent_slug': new_parent},
-    )
-    if rows and rows[0][0]:
         raise ValidationError(
-            {'parent_slug': ['This would create a cycle in the category tree.']}
+            {'parent_slug': ['A category cannot be its own parent.']},
+            code='CYCLE_DETECTED',
+        )
+    if repo.would_create_cycle(slug, new_parent):
+        raise ValidationError(
+            {'parent_slug': ['This would create a cycle in the category tree.']},
+            code='CYCLE_DETECTED',
         )
 
 
 def list_categories(
-    page: int,
-    page_size: int,
-    name: str | None = None,
-    parent: str | None = None,
+    raw_page: str | None = None,
+    raw_page_size: str | None = None,
+    raw_name: str | None = None,
+    raw_parent: str | None = None,
+    raw_sort: str | None = None,
+    raw_order: str | None = None,
+    *,
+    repo: CategoryRepositoryProtocol = _default_repo,
 ) -> dict[str, Any]:
+    page = max(1, _parse_int(raw_page, 1))
+    page_size = min(
+        MAX_PAGE_SIZE,
+        max(1, _parse_int(raw_page_size, DEFAULT_PAGE_SIZE)),
+    )
     skip = (page - 1) * page_size
-    count_rows, _ = db.cypher_query(
-        CATEGORY_COUNT_QUERY, {'name': name, 'parent': parent}
-    )
-    total = int(count_rows[0][0]) if count_rows else 0
 
+    name = raw_name.strip() if raw_name else None
+    parent = raw_parent.strip() if raw_parent else None
+    sort_field = _validate_sort(raw_sort)
+    order = (raw_order or 'asc').strip().lower()
+    if order not in ('asc', 'desc'):
+        order = 'asc'
+
+    total = repo.count_categories(name=name, parent=parent)
     if total == 0:
-        return {'count': 0, 'next': None, 'previous': None, 'results': []}
+        return {
+            'count': 0,
+            'next': None,
+            'previous': None,
+            'results': [],
+        }
 
-    rows, meta = db.cypher_query(
-        CATEGORY_LIST_QUERY,
-        {'name': name, 'parent': parent, 'skip': skip, 'limit': page_size},
+    rows = repo.list_categories(
+        name=name,
+        parent=parent,
+        skip=skip,
+        limit=page_size,
+        sort=sort_field,
+        order=order,
     )
-    raw_rows = [dict(zip(meta, row)) for row in rows]
 
-    results = []
-    for row in raw_rows:
-        results.append(
-            {
-                'slug': row['slug'],
-                'name': row['name'],
-                'parent_slug': row['parent_slug'] or None,
-                'child_count': int(row['child_count']),
-                'page_count': int(row['page_count']),
-                'created_at': _neo4j_dt_to_iso(row.get('created_at')),
-            }
-        )
+    results = [
+        {
+            'slug': r.slug,
+            'name': r.name,
+            'parent_slug': r.parent_slug,
+            'child_count': r.child_count,
+            'page_count': r.page_count,
+            'created_at': r.created_at,
+        }
+        for r in rows
+    ]
 
     total_pages = max(1, (total + page_size - 1) // page_size)
     next_page = page + 1 if page < total_pages else None
@@ -104,6 +120,8 @@ def create_category(
     slug: str | None,
     name: str,
     parent_slug: str | None = None,
+    *,
+    repo: CategoryRepositoryProtocol = _default_repo,
 ) -> dict[str, Any]:
     name = name.strip()
     if not name:
@@ -112,9 +130,11 @@ def create_category(
     if not slug:
         slug = slugify(name)
         if not slug:
-            raise ValidationError({'slug': ['Couldnt generate valid slug from name.']})
+            raise ValidationError(
+                {'slug': ['Could not generate a valid slug from the name.']}
+            )
 
-    if Category.nodes.filter(slug=slug).exists():
+    if repo.category_exists(slug):
         raise ValidationError({'slug': ['Category with this slug already exists.']})
 
     effective_parent = parent_slug.strip() if parent_slug else None
@@ -124,142 +144,121 @@ def create_category(
                 {'parent_slug': ['A category cannot be its own parent.']},
                 code='CYCLE_DETECTED',
             )
-        if not Category.nodes.filter(slug=effective_parent).exists():
+        if not repo.parent_exists(effective_parent):
             raise NotFound(
                 f"Parent category '{effective_parent}' does not exist.",
                 code='NOT_FOUND',
             )
 
-    rows, meta = db.cypher_query(
-        CATEGORY_CREATE_QUERY,
-        {
-            'slug': slug,
-            'name': name,
-            'parent_slug': effective_parent or None,
-        },
+    repo.create_category(
+        slug=slug,
+        name=name,
+        parent_slug=effective_parent,
     )
-    raw = dict(zip(meta, rows[0]))
 
-    return {
-        'slug': raw['slug'],
-        'name': raw['name'],
-        'parent_slug': raw['parent_slug'] or None,
-        'child_count': int(raw['child_count']),
-        'page_count': int(raw['page_count']),
-        'created_at': _neo4j_dt_to_iso(raw.get('created_at')),
-    }
+    return get_category_detail(slug=slug, repo=repo)
 
 
-def get_category_tree(root: str | None = None) -> list[dict[str, Any]]:
-    """
-    Return full category tree, optionally rooted at `root`.
-    Builds tree from a flat list of categories with parent_slug.
-    """
-    rows, meta = db.cypher_query(CATEGORY_TREE_QUERY, {})
-    all_cats = [dict(zip(meta, row)) for row in rows]
-
-    slug_to_node: dict[str, dict] = {}
-    for cat in all_cats:
-        slug_to_node[cat['slug']] = {
-            'slug': cat['slug'],
-            'name': cat['name'],
-            'page_count': int(cat['page_count']),
+def get_category_tree(
+    root: str | None = None,
+    *,
+    repo: CategoryRepositoryProtocol = _default_repo,
+) -> list[dict[str, Any]]:
+    flat = repo.get_category_tree()
+    slug_to_node: dict[str, dict[str, Any]] = {}
+    for cat in flat:
+        slug_to_node[cat.slug] = {
+            'slug': cat.slug,
+            'name': cat.name,
+            'page_count': cat.page_count,
             'children': [],
         }
 
     roots = []
-    for cat in all_cats:
-        node = slug_to_node[cat['slug']]
-        parent = cat['parent_slug']
-        if parent and parent in slug_to_node:
-            slug_to_node[parent]['children'].append(node)
+    for cat in flat:
+        node = slug_to_node[cat.slug]
+        if cat.parent_slug and cat.parent_slug in slug_to_node:
+            slug_to_node[cat.parent_slug]['children'].append(node)
         else:
             roots.append(node)
 
     if root:
-        def find_subtree(slug: str):
-            if slug in slug_to_node:
-                return slug_to_node[slug]
-            raise NotFound(f"Category '{slug}' not found.")
-
-        return [find_subtree(root)]
+        if root not in slug_to_node:
+            raise NotFound(f"Category '{root}' not found.")
+        return [slug_to_node[root]]
 
     return roots
 
 
 def get_category_detail(
     slug: str,
-    page: int,
-    page_size: int,
-    types: str | None = None,
-    sort: str | None = None,
+    raw_page: str | None = None,
+    raw_page_size: str | None = None,
+    raw_types: str | None = None,
+    raw_sort: str | None = None,
+    *,
+    repo: CategoryRepositoryProtocol = _default_repo,
 ) -> dict[str, Any]:
-    _validate_sort(sort)
+    _validate_sort(raw_sort)
 
-    rows, meta = db.cypher_query(CATEGORY_DETAIL_QUERY, {'slug': slug})
-    if not rows:
+    detail = repo.get_category_detail(slug)
+    if detail is None:
         raise NotFound(f"Category '{slug}' does not exist.")
-    raw = dict(zip(meta, rows[0]))
 
     parent = None
-    if raw['parent_slug']:
+    if detail.parent_slug:
         parent = {
-            'slug': raw['parent_slug'],
-            'name': raw['parent_name'],
+            'slug': detail.parent_slug,
+            'name': detail.parent_name,
         }
 
-    children = []
-    if raw['children']:
-        for child in raw['children']:
-            children.append(
-                {
-                    'slug': child['slug'],
-                    'name': child['name'],
-                    'page_count': int(child['page_count']),
-                }
-            )
+    children = [
+        {
+            'slug': c.slug,
+            'name': c.name,
+            'page_count': c.page_count,
+        }
+        for c in detail.children
+    ]
 
     type_list = None
-    if types:
-        type_list = [t.strip() for t in types.split(',') if t.strip()]
+    if raw_types:
+        type_list = [t.strip() for t in raw_types.split(',') if t.strip()]
 
-    count_rows, _ = db.cypher_query(
-        CATEGORY_DETAIL_PAGES_COUNT_QUERY,
-        {'slug': slug, 'types': type_list},
+    page = max(1, _parse_int(raw_page, 1))
+    page_size = min(
+        MAX_PAGE_SIZE,
+        max(1, _parse_int(raw_page_size, DEFAULT_PAGE_SIZE)),
     )
-    total_pages_count = int(count_rows[0][0]) if count_rows else 0
-
     skip = (page - 1) * page_size
-    pages_rows, pages_meta = db.cypher_query(
-        CATEGORY_DETAIL_PAGES_QUERY,
-        {
-            'slug': slug,
-            'types': type_list,
-            'skip': skip,
-            'limit': page_size,
-        },
+
+    total_pages_count = repo.count_detail_pages(slug, type_list)
+
+    sort_field = _validate_sort(raw_sort)
+    page_rows = repo.list_detail_pages(
+        slug, type_list, skip, page_size,
+        sort=sort_field, order='asc',
     )
-    page_items = []
-    for prow in pages_rows:
-        rec = dict(zip(pages_meta, prow))
-        page_items.append(
-            {
-                'slug': rec['slug'],
-                'type': rec['type'],
-                'name': rec['name'],
-                'image_url': rec.get('image_url'),
-            }
-        )
+
+    page_items = [
+        {
+            'slug': pr.slug,
+            'type': pr.type,
+            'name': pr.name,
+            'image_url': pr.image_url,
+        }
+        for pr in page_rows
+    ]
 
     total_pages = max(1, (total_pages_count + page_size - 1) // page_size)
     next_page = page + 1 if page < total_pages else None
     prev_page = page - 1 if page > 1 else None
 
     return {
-        'slug': raw['slug'],
-        'name': raw['name'],
-        'created_at': _neo4j_dt_to_iso(raw.get('created_at')),
-        'parent_slug': raw['parent_slug'],
+        'slug': detail.slug,
+        'name': detail.name,
+        'created_at': detail.created_at,
+        'parent_slug': detail.parent_slug,
         'parent': parent,
         'children': children,
         'pages': {
@@ -275,8 +274,10 @@ def update_category(
     slug: str,
     name: str | None = None,
     parent_slug: str | None = None,
+    *,
+    repo: CategoryRepositoryProtocol = _default_repo,
 ) -> dict[str, Any]:
-    if not Category.nodes.filter(slug=slug).exists():
+    if not repo.category_exists(slug):
         raise NotFound(f"Category '{slug}' does not exist.")
 
     if name is not None:
@@ -284,28 +285,26 @@ def update_category(
         if not name:
             raise ValidationError({'name': ['Name must not be empty.']})
     else:
+        from apps.pages.models import Category
         name = Category.nodes.get(slug=slug).name
 
     if parent_slug is not None and parent_slug != slug:
-        _check_cycle(slug, parent_slug)
+        _check_cycle(slug, parent_slug, repo)
 
-    rows, meta = db.cypher_query(
-        CATEGORY_UPDATE_QUERY,
-        {'slug': slug, 'name': name, 'parent_slug': parent_slug or None},
+    repo.update_category(
+        slug=slug,
+        name=name,
+        parent_slug=parent_slug if parent_slug is not None else None,
     )
-    raw = dict(zip(meta, rows[0]))
 
-    return {
-        'slug': raw['slug'],
-        'name': raw['name'],
-        'parent_slug': raw['parent_slug'] or None,
-        'child_count': int(raw['child_count']),
-        'page_count': int(raw['page_count']),
-        'created_at': _neo4j_dt_to_iso(raw.get('created_at')),
-    }
+    return get_category_detail(slug=slug, repo=repo)
 
 
-def delete_category(slug: str) -> None:
-    if not Category.nodes.filter(slug=slug).exists():
+def delete_category(
+    slug: str,
+    *,
+    repo: CategoryRepositoryProtocol = _default_repo,
+) -> None:
+    if not repo.category_exists(slug):
         raise NotFound(f"Category '{slug}' does not exist.")
-    db.cypher_query(CATEGORY_DELETE_QUERY, {'slug': slug})
+    repo.delete_category(slug)
