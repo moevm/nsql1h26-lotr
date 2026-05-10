@@ -287,7 +287,7 @@ h1 {
   gap: 2rem;
 }
 
-.catalog-header-actions .add-button {
+.add-button {
   background-color: #8b5a2b;
   border: none;
   color: white;
@@ -301,7 +301,7 @@ h1 {
   transition: background-color 0.2s;
 }
 
-.catalog-header-actions .add-button:hover {
+.add-button:hover {
   background-color: #6b3e1a;
 }
 
@@ -1301,6 +1301,14 @@ h1 {
 /* Заголовок "Categories" */
 .categories-root-page .catalog-title-1 {
   margin-bottom: 2rem;
+}
+
+.categories-header {
+  margin-left: -2rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 5rem;
 }
 
 .catalog-title-1, .category-detail h1, .category-detail h2 {

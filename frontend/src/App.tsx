@@ -17,6 +17,7 @@ import ItemsPage from './pages/ItemsPage';
 import LanguagesPage from './pages/LanguagesPage';
 import ScriptsPage from './pages/ScriptsPage';
 import CategoriesPage from './pages/CategoriesPage';
+import CreateCategoryPage from './pages/CreateCategoryPage';
 import AuthModal from './components/AuthModal';
 import ProfilePage from './pages/ProfilePage';
 import { useAuth, AuthProvider } from './context/AuthContext';
@@ -89,6 +90,7 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/categories/:slug" element={<CategoriesPage />} />
+          <Route path="/categories/create" element={<CreateCategoryPage />} />
 
           <Route path="/characters" element={<CharactersPage />} />
           <Route path="/races" element={<RacesPage />} />

@@ -1,7 +1,7 @@
-// src/pages/CategoriesPage.tsx
-import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useListCategories, useGetCategory } from '../api/generated/categories/categories';
+import { useAuth } from '../context/AuthContext';
+import { FaPlus } from 'react-icons/fa';
 import type { CategoryListItem, CategoryDetail } from '../api/generated/models';
 
 // Компонент для отображения списка корневых категорий (можно оставить карточки или тоже сделать списком – по желанию)
@@ -85,7 +85,7 @@ const CategoryDetailView: React.FC<{ slug: string }> = ({ slug }) => {
       )}
 
       {(!category.children || category.children.length === 0) && (!category.pages?.results?.length) && (
-        <p>No subcategories or pages found.</p>
+        <p>No subcategories or pages found</p>
       )}
     </div>
   );
@@ -94,9 +94,14 @@ const CategoryDetailView: React.FC<{ slug: string }> = ({ slug }) => {
 const CategoriesPage: React.FC = () => {
   const { slug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleSelectCategory = (categorySlug: string) => {
     navigate(`/categories/${categorySlug}`);
+  };
+
+  const handleCreateCategory = () => {
+    navigate('/categories/create');
   };
 
   if (slug) {
@@ -104,7 +109,14 @@ const CategoriesPage: React.FC = () => {
   } else {
     return (
       <div className="categories-root-page">
-        <h1 className="catalog-title-1">Categories</h1>
+        <div className="categories-header">
+          <h1 className="catalog-title">Categories</h1>
+          {user?.role === 'admin' && (
+            <button className="add-button" onClick={handleCreateCategory}>
+              <FaPlus /> Add new category
+            </button>
+          )}
+        </div>
         <RootCategoriesList onSelectCategory={handleSelectCategory} />
       </div>
     );
