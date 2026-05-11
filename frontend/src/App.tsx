@@ -5,6 +5,7 @@ import { SiRelay } from "react-icons/si";
 import { FaUserCircle } from "react-icons/fa";
 import { IoMdMore } from "react-icons/io";
 import { BiSolidCategory } from "react-icons/bi";
+import { TbDownload, TbUpload } from "react-icons/tb";
 import './App.css';
 import HomePage from './pages/HomePage';
 import CharactersPage from './pages/CharactersPage';
@@ -29,18 +30,28 @@ import GlobalStatsPage from './pages/GlobalStatsPage';
 import CustomStatsPage from './pages/CustomStatsPage';
 import SearchBar from './components/SearchBar';
 import { ToastProvider } from './context/ToastContext';
+import AdminDropdown from './components/AdminDropdown';
 
 
 // Компонент, который использует авторизацию
 const AppContent: React.FC = () => {
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleProfileClick = () => {
     if (!user) {
       setShowAuthModal(true);
     }
   };
+
+  const handleMoreClick = () => {
+    if (user?.role === 'admin') {
+      setIsDropdownOpen(prev => !prev);
+    }
+  };
+
+  const closeDropdown = () => setIsDropdownOpen(false);
 
   return (
     <BrowserRouter>
@@ -78,11 +89,14 @@ const AppContent: React.FC = () => {
             <FaUserCircle />
           </div>
         </Link>
-        <button className="nav-btn">
-          <div className="icon-with-text">
-            <IoMdMore />
+        {user?.role === 'admin' && (
+          <div className="nav-btn more-btn-wrapper" onClick={handleMoreClick}>
+            <div className="icon-with-text">
+              <IoMdMore />
+            </div>
+            {isDropdownOpen && <AdminDropdown isOpen={isDropdownOpen} onClose={closeDropdown} />}
           </div>
-        </button>
+        )}
       </div>
 
       <div className="main-container">
