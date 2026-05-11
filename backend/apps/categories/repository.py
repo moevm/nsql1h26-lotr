@@ -24,6 +24,7 @@ from apps.categories.queries import (
     CATEGORY_TREE_QUERY,
     CATEGORY_UPDATE_QUERY,
     CYCLE_CHECK_QUERY,
+    CATEGORY_NAME_QUERY,
 )
 from apps.categories.utils import neo4j_dt_to_iso, rows_to_dicts
 from apps.pages.models import Category
@@ -95,6 +96,9 @@ class CategoryRepositoryProtocol(Protocol):
     ) -> list[CategoryRow]:
         ...
 
+    def get_name(self, slug: str) -> str | None:
+        ...
+
     def get_category_tree(self) -> list[CategoryTreeRow]:
         ...
 
@@ -164,6 +168,12 @@ class Neo4jCategoryRepository:
             raise ValueError(f"Invalid sort field: {sort}")
         direction = 'ASC' if order.lower() == 'asc' else 'DESC'
         return f'ORDER BY {allowed[sort]} {direction}'
+
+    def get_name(self, slug: str) -> str | None:
+        rows, meta = db.cypher_query(CATEGORY_NAME_QUERY, {'slug': slug})
+        if not rows:
+            return None
+        return rows_to_dicts(rows, meta)[0]['name']
 
     def count_categories(self, name: str | None, parent: str | None) -> int:
         rows, _ = db.cypher_query(

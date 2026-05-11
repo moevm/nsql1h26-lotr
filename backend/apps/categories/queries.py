@@ -161,3 +161,8 @@ CYCLE_CHECK_QUERY = '''\
 MATCH path = (parent:Category {slug: $parent_slug})-[:SUBCATEGORY_OF*1..]->(child:Category {slug: $slug})
 RETURN count(path) > 0 AS would_cycle
 '''
+
+CATEGORY_NAME_QUERY = """\
+MATCH (c:Category {slug: $slug})
+RETURN c.name AS name
+"""

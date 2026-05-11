@@ -283,8 +283,10 @@ def update_category(
         if not name:
             raise ValidationError({'name': ['Name must not be empty.']})
     else:
-        from apps.pages.models import Category
-        name = Category.nodes.get(slug=slug).name
+        old_name = repo.get_name(slug)
+        if old_name is None:
+            raise NotFound(f"Category '{slug}' does not exist.")
+        name = old_name
 
     if parent_slug is not None:
         _check_cycle(slug, parent_slug, repo)
