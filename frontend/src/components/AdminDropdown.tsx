@@ -1,16 +1,17 @@
-// src/components/AdminDropdown.tsx
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaFileImport, FaFileExport, FaUserShield } from 'react-icons/fa';
+import { FaUserShield } from 'react-icons/fa';
+import { TbDownload, TbUpload } from "react-icons/tb";
 import { axiosInstance } from '../api/axios-instance';
 import { useToast } from '../context/ToastContext';
 
 interface AdminDropdownProps {
   isOpen: boolean;
   onClose: () => void;
+  onError: (message: string, statusCode?: number) => void;
 }
 
-const AdminDropdown: React.FC<AdminDropdownProps> = ({ isOpen, onClose }) => {
+const AdminDropdown: React.FC<AdminDropdownProps> = ({ isOpen, onClose, onError }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [importing, setImporting] = useState(false);
@@ -30,7 +31,7 @@ const AdminDropdown: React.FC<AdminDropdownProps> = ({ isOpen, onClose }) => {
   }, [isOpen, onClose]);
 
   const handleExport = async () => {
-    onClose();
+    // Не закрываем меню до завершения
     try {
       const response = await axiosInstance.get('/bulk/export', {
         responseType: 'blob',
@@ -49,25 +50,26 @@ const AdminDropdown: React.FC<AdminDropdownProps> = ({ isOpen, onClose }) => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      showToast('Export started successfully!');
+      onClose();
     } catch (err: any) {
       console.error('Export error:', err);
-      showToast('Export failed: ' + (err.response?.data?.error?.message || err.message));
+      const statusCode = err.response?.status;
+      const message = err.response?.data?.error?.message || err.message || 'Export failed';
+      onError(message, statusCode);
+      onClose();
     }
   };
 
   const handleImportClick = () => {
-    // Не закрываем меню, чтобы компонент не размонтировался до выбора файла
     fileInputRef.current?.click();
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) {
-      onClose(); // если отмена, закрываем меню
+      onClose();
       return;
     }
-    onClose(); // закрываем меню сразу после выбора файла
     setImporting(true);
     const formData = new FormData();
     formData.append('file', file);
@@ -76,14 +78,20 @@ const AdminDropdown: React.FC<AdminDropdownProps> = ({ isOpen, onClose }) => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       const result = response.data;
-      const importedCount = Object.values(result.imported || {}).reduce((a: number, b: number) => a + b, 0);
-      showToast(`Import completed: ${importedCount} items imported, ${result.skipped || 0} skipped.`);
+      showToast('Import completed');
       if (result.errors?.length) {
         console.warn('Import errors:', result.errors);
       }
+      onClose();
     } catch (err: any) {
       console.error('Import error:', err);
-      showToast('Import failed: ' + (err.response?.data?.error?.message || err.message));
+      const statusCode = err.response?.status;
+      let message = err.response?.data?.error?.message || err.message || 'Import failed';
+      if (err.response?.data?.message) {
+        message = err.response.data.message;
+      }
+      onError(message, statusCode);
+      onClose();
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -107,10 +115,10 @@ const AdminDropdown: React.FC<AdminDropdownProps> = ({ isOpen, onClose }) => {
         onChange={handleFileChange}
       />
       <button onClick={handleImportClick} className="dropdown-item" disabled={importing}>
-        <FaFileImport /> {importing ? 'Importing...' : 'Mass import'}
+        <TbDownload /> {importing ? 'Importing...' : 'Bulk import'}
       </button>
       <button onClick={handleExport} className="dropdown-item">
-        <FaFileExport /> Mass export
+        <TbUpload /> Bulk export
       </button>
       <button onClick={handleAdminPanel} className="dropdown-item">
         <FaUserShield /> Admin panel

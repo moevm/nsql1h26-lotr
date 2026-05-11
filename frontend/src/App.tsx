@@ -5,7 +5,6 @@ import { SiRelay } from "react-icons/si";
 import { FaUserCircle } from "react-icons/fa";
 import { IoMdMore } from "react-icons/io";
 import { BiSolidCategory } from "react-icons/bi";
-import { TbDownload, TbUpload } from "react-icons/tb";
 import './App.css';
 import HomePage from './pages/HomePage';
 import CharactersPage from './pages/CharactersPage';
@@ -31,13 +30,18 @@ import CustomStatsPage from './pages/CustomStatsPage';
 import SearchBar from './components/SearchBar';
 import { ToastProvider } from './context/ToastContext';
 import AdminDropdown from './components/AdminDropdown';
-
+import ErrorModal from './components/ErrorModal';
 
 // Компонент, который использует авторизацию
 const AppContent: React.FC = () => {
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ message: string; statusCode?: number } | null>(null);
+
+  const showError = (message: string, statusCode?: number) => {
+    setErrorModal({ message, statusCode });
+  };
 
   const handleProfileClick = () => {
     if (!user) {
@@ -94,7 +98,7 @@ const AppContent: React.FC = () => {
             <div className="icon-with-text">
               <IoMdMore />
             </div>
-            {isDropdownOpen && <AdminDropdown isOpen={isDropdownOpen} onClose={closeDropdown} />}
+            {isDropdownOpen && <AdminDropdown isOpen={isDropdownOpen} onClose={closeDropdown} onError={showError}/>}
           </div>
         )}
       </div>
@@ -131,6 +135,13 @@ const AppContent: React.FC = () => {
         <AuthModal
           onClose={() => setShowAuthModal(false)}
           onSuccess={() => setShowAuthModal(false)}
+        />
+      )}
+      {errorModal && (
+        <ErrorModal
+          message={errorModal.message}
+          statusCode={errorModal.statusCode}
+          onClose={() => setErrorModal(null)}
         />
       )}
     </BrowserRouter>
