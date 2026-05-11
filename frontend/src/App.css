@@ -220,7 +220,7 @@ h1 {
 }
 
 .pagination-container {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -229,7 +229,7 @@ h1 {
 }
 
 .pagination-btn {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   background: #8b5a2b;
   border: none;
   color: white;
@@ -1624,6 +1624,86 @@ h1 {
 
 .dropdown-item:hover {
   background: #8b5a2b;
+}
+
+/* Панель администратора */
+.admin-panel {
+  padding: 1rem 5rem;
+}
+.users-table-container {
+  overflow-x: auto;
+  margin-top: 2rem;
+}
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(61, 51, 33, 0.7);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.users-table th, .users-table td {
+  font-size: 1.1rem;
+  color: #ffffff;
+  padding: 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid #5a4a3a;
+}
+.users-table th {
+  font-size: 1.2rem;
+  background: #574837;
+  color: #f5e7d9;
+}
+.user-link {
+  color: #f5e7d9;
+  text-decoration: underline;
+}
+.user-link:hover {
+  color: #c7b198;
+}
+.delete-user-btn {
+  font-size: 1rem;
+  background: #8b432b;
+  border: none;
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 30px;
+  cursor: pointer;
+}
+.delete-user-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.role-select {
+  display: flex;
+  align-items: center;
+  background: #724f2b;
+  border: none;
+  color: #f5e7d9;
+  padding: 0.3rem 0.8rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+.role-select:hover:not(:disabled) {
+  background: #8b5a2b;
+}
+.role-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+/* Дополнительная информация в публичном профиле */
+.profile-comments {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  color: #313131;
+}
+.admin-back-header {
+  padding: 2rem;
+  padding-top: 0rem;
+  padding-left: 5rem;
+  text-align: left;
 }
 
 /* Для экранов меньше 1200px */

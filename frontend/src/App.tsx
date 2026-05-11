@@ -31,6 +31,8 @@ import SearchBar from './components/SearchBar';
 import { ToastProvider } from './context/ToastContext';
 import AdminDropdown from './components/AdminDropdown';
 import ErrorModal from './components/ErrorModal';
+import AdminPanelPage from './pages/AdminPanelPage';
+import PublicProfilePage from './pages/PublicProfilePage';
 
 // Компонент, который использует авторизацию
 const AppContent: React.FC = () => {
@@ -128,6 +130,8 @@ const AppContent: React.FC = () => {
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/global-stats" element={<GlobalStatsPage />} />
           <Route path="/custom-stats" element={<CustomStatsPage />} />
+          <Route path="/admin" element={<AdminPanelPage />} />
+          <Route path="/admin/users/:username" element={<PublicProfilePage />} />
         </Routes>
       </div>
 
