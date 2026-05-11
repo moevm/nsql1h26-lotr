@@ -21,10 +21,10 @@ from apps.categories.queries import (
     CATEGORY_DETAIL_PAGES_QUERY,
     CATEGORY_DETAIL_QUERY,
     CATEGORY_LIST_QUERY,
+    CATEGORY_NAME_QUERY,
     CATEGORY_TREE_QUERY,
     CATEGORY_UPDATE_QUERY,
     CYCLE_CHECK_QUERY,
-    CATEGORY_NAME_QUERY,
 )
 from apps.categories.utils import neo4j_dt_to_iso, rows_to_dicts
 from apps.pages.models import Category
@@ -162,7 +162,9 @@ class Neo4jCategoryRepository:
             page_count=int(raw['page_count']),
         )
 
-    def _build_order_clause(self, allowed: dict[str, str], sort: str, order: str) -> str:
+    def _build_order_clause(
+            self, allowed: dict[str, str], sort: str, order: str
+            ) -> str:
         '''Build an ORDER BY clause from a whitelist of allowed sort fields.'''
         if sort not in allowed:
             raise ValueError(f"Invalid sort field: {sort}")
@@ -257,7 +259,9 @@ class Neo4jCategoryRepository:
     ) -> list[PageSummaryRow]:
         allowed_sorts = {'slug': 'page.slug', 'name': 'page.names[0]'}
         order_clause = self._build_order_clause(allowed_sorts, sort, order)
-        query = CATEGORY_DETAIL_PAGES_QUERY.replace('ORDER BY page.slug ASC', order_clause)
+        query = CATEGORY_DETAIL_PAGES_QUERY.replace(
+            'ORDER BY page.slug ASC', order_clause
+            )
 
         rows, meta = db.cypher_query(
             query,

@@ -130,7 +130,9 @@ def create_category(
     if not slug:
         slug = slugify(name)
         if not slug:
-            raise ValidationError({'slug': ['Could not generate a valid slug from the name.']})
+            raise ValidationError(
+                {'slug': ['Could not generate a valid slug from the name.']}
+                )
 
     if repo.category_exists(slug):
         raise ValidationError({'slug': ['Category with this slug already exists.']})
