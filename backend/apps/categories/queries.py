@@ -144,7 +144,7 @@ RETURN
     c.name AS name,
     toString(c.createdAt) AS created_at,
     newParent.slug AS parent_slug,
-    0 AS child_count,   -- will be recomputed if needed
+    0 AS child_count,
     0 AS page_count
 '''
 

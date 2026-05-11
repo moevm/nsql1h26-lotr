@@ -130,25 +130,20 @@ def create_category(
     if not slug:
         slug = slugify(name)
         if not slug:
-            raise ValidationError(
-                {'slug': ['Could not generate a valid slug from the name.']}
-            )
+            raise ValidationError({'slug': ['Could not generate a valid slug from the name.']})
 
     if repo.category_exists(slug):
         raise ValidationError({'slug': ['Category with this slug already exists.']})
 
     effective_parent = parent_slug.strip() if parent_slug else None
     if effective_parent:
-        if effective_parent == slug:
-            raise ValidationError(
-                {'parent_slug': ['A category cannot be its own parent.']},
-                code='CYCLE_DETECTED',
-            )
         if not repo.parent_exists(effective_parent):
             raise NotFound(
                 f"Parent category '{effective_parent}' does not exist.",
                 code='NOT_FOUND',
             )
+
+        _check_cycle(slug, effective_parent, repo)
 
     repo.create_category(
         slug=slug,
@@ -212,14 +207,15 @@ def get_category_detail(
             'name': detail.parent_name,
         }
 
-    children = [
-        {
-            'slug': c.slug,
-            'name': c.name,
-            'page_count': c.page_count,
-        }
-        for c in detail.children
-    ]
+    children = []
+    if raw_children := detail.children:
+        for child in raw_children:
+            if child.slug is not None:
+                children.append({
+                    'slug': child.slug,
+                    'name': child.name,
+                    'page_count': child.page_count,
+                })
 
     type_list = None
     if raw_types:
@@ -290,7 +286,7 @@ def update_category(
         from apps.pages.models import Category
         name = Category.nodes.get(slug=slug).name
 
-    if parent_slug is not None and parent_slug != slug:
+    if parent_slug is not None:
         _check_cycle(slug, parent_slug, repo)
 
     repo.update_category(
