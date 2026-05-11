@@ -295,10 +295,10 @@ class Neo4jCategoryRepository:
         db.cypher_query(CATEGORY_DELETE_QUERY, {'slug': slug})
 
     def category_exists(self, slug: str) -> bool:
-        return Category.nodes.filter(slug=slug).exists()
+        return bool(Category.nodes.filter(slug=slug))
 
     def parent_exists(self, slug: str) -> bool:
-        return Category.nodes.filter(slug=slug).exists()
+        return bool(Category.nodes.filter(slug=slug))
 
     def would_create_cycle(self, slug: str, parent_slug: str) -> bool:
         rows, _ = db.cypher_query(

@@ -87,7 +87,9 @@ CATEGORY_DETAIL_QUERY = '''\
 MATCH (c:Category {slug: $slug})
 OPTIONAL MATCH (c)-[:SUBCATEGORY_OF]->(parent:Category)
 OPTIONAL MATCH (c)<-[:SUBCATEGORY_OF]-(child:Category)
+WITH c, parent, child
 OPTIONAL MATCH (child)<-[:IN_CATEGORY]-(child_page:Page)
+WITH c, parent, child, count(DISTINCT child_page) AS child_page_count
 RETURN
     c.slug AS slug,
     c.name AS name,
@@ -97,7 +99,7 @@ RETURN
     collect(DISTINCT {
         slug: child.slug,
         name: child.name,
-        page_count: count(DISTINCT child_page)
+        page_count: child_page_count
     }) AS children
 '''
 
