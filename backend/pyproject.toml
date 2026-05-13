@@ -102,6 +102,7 @@ line-length = 88
 indent-width = 4
 
 target-version = "py312"
+preview = true
 
 [tool.ruff.lint]
 # Мб переборщил, но че мы лохи что ли с ошибками сидеть))
@@ -122,7 +123,7 @@ select = [
     "PT",
     "PLE",
     "PLW",
-    "ARG"
+    "ARG",
 ]
 # add "DOC", "D" ??
 ignore = ["B905"]
