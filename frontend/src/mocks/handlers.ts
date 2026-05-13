@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { mockRootCategories, mockCategory } from './data/categories';
 import { mockUsers, updateUserRole, deleteUser, getUserByUsername } from './data/users';
-
+import { mockGlobalStats } from './data/analytics';
 
 export const handlers = [
   http.get('/api/v1/categories', ({ request }) => {
@@ -117,5 +117,9 @@ export const handlers = [
     }
     deleteUser(username as string);
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get('/api/v1/analytics/global', () => {
+    return HttpResponse.json(mockGlobalStats);
   }),
 ];

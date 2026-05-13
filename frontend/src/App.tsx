@@ -24,7 +24,6 @@ import { useAuth, AuthProvider } from './context/AuthContext';
 import EntityPage from './pages/EntityPage';
 import EditPage from './pages/EditPage';
 import CreatePage from './pages/CreatePage';
-import AnalyticsPage from './pages/AnalyticsPage';
 import GlobalStatsPage from './pages/GlobalStatsPage';
 import CustomStatsPage from './pages/CustomStatsPage';
 import SearchBar from './components/SearchBar';
@@ -33,6 +32,9 @@ import AdminDropdown from './components/AdminDropdown';
 import ErrorModal from './components/ErrorModal';
 import AdminPanelPage from './pages/AdminPanelPage';
 import PublicProfilePage from './pages/PublicProfilePage';
+import AnalyticsDropdown from './components/AnalyticsDropdown';
+import GraphPage from './pages/GraphPage';
+import ShortestPathPage from './pages/ShortestPathPage';
 
 // Компонент, который использует авторизацию
 const AppContent: React.FC = () => {
@@ -40,6 +42,12 @@ const AppContent: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [errorModal, setErrorModal] = useState<{ message: string; statusCode?: number } | null>(null);
+  const [isAnalyticsDropdownOpen, setIsAnalyticsDropdownOpen] = useState(false);
+
+  const handleAnalyticsClick = () => {
+    setIsAnalyticsDropdownOpen(prev => !prev);
+  };
+  const closeAnalyticsDropdown = () => setIsAnalyticsDropdownOpen(false);
 
   const showError = (message: string, statusCode?: number) => {
     setErrorModal({ message, statusCode });
@@ -72,12 +80,13 @@ const AppContent: React.FC = () => {
             Categories
           </div>
         </Link>
-        <Link to="/analytics" className="nav-btn">
+        <div className="nav-btn more-btn-wrapper" onClick={handleAnalyticsClick}>
           <div className="icon-with-text">
             <SiRelay />
             Analytics
           </div>
-        </Link>
+          <AnalyticsDropdown isOpen={isAnalyticsDropdownOpen} onClose={closeAnalyticsDropdown} />
+        </div>
         <Link to="/global-stats" className="nav-btn">
           <div className="icon-with-text">
             <FaChartColumn />
@@ -127,11 +136,12 @@ const AppContent: React.FC = () => {
           <Route path="/edit/:slug" element={<EditPage />} />
 
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/global-stats" element={<GlobalStatsPage />} />
           <Route path="/custom-stats" element={<CustomStatsPage />} />
           <Route path="/admin" element={<AdminPanelPage />} />
           <Route path="/admin/users/:username" element={<PublicProfilePage />} />
+          <Route path="/analytics/graph" element={<GraphPage />} />
+          <Route path="/analytics/shortest-path" element={<ShortestPathPage />} />
         </Routes>
       </div>
 
