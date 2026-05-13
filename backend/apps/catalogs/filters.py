@@ -767,3 +767,152 @@ class ScriptFilter:
         )
 
         return _build_where(conditions), params
+
+
+# Filter factory (used by analytics/services.py)
+
+def build_filter_from_params(
+    entity_type: str,
+    params: dict[str, str],
+) -> CypherWhereFilter:
+    '''
+    Build the appropriate CatalogFilter from raw query params.
+
+    Centralises the filter construction that was previously duplicated
+    in each CatalogView.
+    Used by CustomAnalyticsView so it can reuse the same filter logic as
+    the catalog list endpoints.
+
+    Unknown entity_type values are not validated here - the caller (the
+    analytics service) is responsible for validating entity_type
+    against the ATTR_DEFS whitelist before calling this function.
+
+    bool params (is_alive, is_destroyed, is_dissolved) are parsed
+    case-insensitively;
+    any value other than 'true'/'1'/'yes' is False.
+    '''
+
+    def _str(key: str) -> str | None:
+        value = params.get(key)
+        return value if value and value.strip() else None
+
+    def _bool(key: str) -> bool | None:
+        value = params.get(key)
+        if value is None:
+            return None
+
+        normalized = value.strip().lower()
+
+        if normalized in ('true', '1', 'yes'):
+            return True
+        if normalized in ('false', '0', 'no'):
+            return False
+
+        return None
+
+    if entity_type == 'character':
+        return CharacterFilter(
+            name=_str('name'),
+            titles=_str('titles'),
+            gender=_str('gender'),
+            is_alive=_bool('is_alive'),
+            birth_date=_str('birth_date'),
+            death_date=_str('death_date'),
+            hair=_str('hair'),
+            eyes=_str('eyes'),
+            height=_str('height'),
+            weapon=_str('weapon'),
+            clothing=_str('clothing'),
+            notable_for=_str('notable_for'),
+            race=_str('race'),
+            organization=_str('organization'),
+            event=_str('event'),
+            item=_str('item'),
+            location=_str('location'),
+        )
+
+    if entity_type == 'race':
+        return RaceFilter(
+            name=_str('name'),
+            lifespan=_str('lifespan'),
+            avg_height=_str('avg_height'),
+            hair=_str('hair'),
+            eyes=_str('eyes'),
+            skin=_str('skin'),
+            weaponry=_str('weaponry'),
+            clothing=_str('clothing'),
+            distinctions=_str('distinctions'),
+            location=_str('location'),
+        )
+
+    if entity_type == 'location':
+        return LocationFilter(
+            name=_str('name'),
+            entity_type=_str('entity_type'),
+            population=_str('population'),
+            creation_date=_str('creation_date'),
+            destruction_date=_str('destruction_date'),
+            notable_for=_str('notable_for'),
+            is_destroyed=_bool('is_destroyed'),
+            character=_str('character'),
+            event=_str('event'),
+            organization=_str('organization'),
+        )
+
+    if entity_type == 'event':
+        return EventFilter(
+            name=_str('name'),
+            entity_type=_str('entity_type'),
+            start_date=_str('start_date'),
+            end_date=_str('end_date'),
+            casualties=_str('casualties'),
+            notable_for=_str('notable_for'),
+            character=_str('character'),
+            location=_str('location'),
+        )
+
+    if entity_type == 'organization':
+        return OrganizationFilter(
+            name=_str('name'),
+            entity_type=_str('entity_type'),
+            founded_date=_str('founded_date'),
+            dissolved_date=_str('dissolved_date'),
+            clothing=_str('clothing'),
+            weaponry=_str('weaponry'),
+            purpose=_str('purpose'),
+            notable_for=_str('notable_for'),
+            is_dissolved=_bool('is_dissolved'),
+            character=_str('character'),
+            location=_str('location'),
+        )
+
+    if entity_type == 'timeline':
+        return TimelineFilter(
+            name=_str('name'),
+            abbreviation=_str('abbreviation'),
+            start_date=_str('start_date'),
+            end_date=_str('end_date'),
+        )
+
+    if entity_type == 'item':
+        return ItemFilter(
+            name=_str('name'),
+            entity_type=_str('entity_type'),
+            material=_str('material'),
+            notable_for=_str('notable_for'),
+            character=_str('character'),
+        )
+
+    if entity_type == 'language':
+        return LanguageFilter(
+            name=_str('name'),
+            family=_str('family'),
+        )
+
+    if entity_type == 'script':
+        return ScriptFilter(name=_str('name'))
+
+    # Fallback: return an empty ScriptFilter (always produces no WHERE clause).
+    # The caller validates entity_type against ATTR_DEFS before reaching here,
+    # so this branch is unreachable in normal operation.
+    return ScriptFilter()

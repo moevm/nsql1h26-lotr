@@ -40,6 +40,8 @@ from .queries import (
     PAGE_BATCH_IMAGES_QUERY,
     SHORTEST_PATH_TEMPLATE,
     TOP_CONNECTED_LABELS,
+    build_grouped_query,
+    build_simple_query,
     top_connected_query,
 )
 from .utils import entity_type_from_labels, rows_to_dicts
@@ -48,6 +50,20 @@ from .utils import entity_type_from_labels, rows_to_dicts
 
 
 # Global stats
+
+
+_LABEL_TO_PLURAL: dict[str, str] = {
+    'Character': 'characters',
+    'Race': 'races',
+    'Location': 'locations',
+    'Event': 'events',
+    'Organization': 'organizations',
+    'Timeline': 'timelines',
+    'Item': 'items',
+    'Language': 'languages',
+    'Script': 'scripts',
+}
+
 
 class Counts(TypedDict):
     total: int
@@ -144,6 +160,31 @@ class ShortestPathResult:
     def length(self) -> int:
         '''Number of hops in the path ( = number of relationships)'''
         return len(self.path_rels)
+
+
+# Custom analytics
+
+
+class SimpleHistogramRow(TypedDict):
+    '''One x-axis bucket from a no-group_by histogram query'''
+
+    x: str
+    value: int
+
+
+class GroupedHistogramRow(TypedDict):
+    '''
+    One (x, g, value) triple from a grouped histogram query
+
+    x and g may be None when the row comes from an OPTIONAL MATCH path that
+    found no relationship.
+    The repository filters x-nulls in Cypher;
+    g-nulls are left for the service to label as '(unknown)' during pivoting.
+    '''
+
+    x: str | None
+    g: str | None
+    value: int
 
 
 # Repository interfaces (Protocols)
@@ -278,6 +319,48 @@ class ShortestPathRepositoryProtocol(Protocol):
         ...
 
 
+@runtime_checkable
+class CustomAnalyticsRepositoryProtocol(Protocol):
+    '''Interface for the custom analytics histogram repository.'''
+
+    def get_simple_histogram(
+            self,
+            entity_type: str,
+            attr: str,
+            filter_where: str,
+            filter_params: dict,
+            top_n: int,
+    ) -> list[SimpleHistogramRow]:
+        '''
+        Returns x-axis buckets for a histogram with no secondary grouping.
+
+        Rows are ordered by value DESC, x ASC and capped at top_n.
+        Null x-values (entities with no relationship for a REL-mode attr) are excluded.
+        '''
+        ...
+
+    def get_grouped_histogram(
+        self,
+        entity_type: str,
+        attr: str,
+        group_by: str,
+        filter_where: str,
+        filter_params: dict,
+    ) -> list[GroupedHistogramRow]:
+        """
+        Return (x, g, value) triples for a stacked-bar histogram.
+
+        No top_n limit applied here - the caller (service layer) applies it
+        after pivoting, so the full (x, g) matrix is needed.
+        A hard Cypher LIMIT of 2 000 rows prevents unbounded results.
+
+        Constraint: ATTR_DEFS[entity_type][attr].is_rel and
+        ATTR_DEFS[entity_type][group_by].is_rel must NOT both be True.
+        This is validated by the service before calling this method.
+        """
+        ...
+
+
 # Neo4j repository implementations
 
 def _fetch_page(slug: str) -> PageRow | None:
@@ -409,7 +492,7 @@ class Neo4jGlobalStatsRepository:
         top_connected: dict[str, list[TopConnectedItem]] = {}
         for label in TOP_CONNECTED_LABELS:
             tc_rows, tc_meta = db.cypher_query(top_connected_query(label), {})
-            top_connected[label.lower() + 's'] = [
+            top_connected[_LABEL_TO_PLURAL[label]] = [
                 TopConnectedItem(
                     slug=r['slug'],
                     name=r['name'],
@@ -570,3 +653,52 @@ class Neo4jShortestPathRepository:
             r['slug']: r['image_url']
             for r in rows_to_dicts(result_rows, meta)
         }
+
+
+class Neo4jCustomAnalyticsRepository(CustomAnalyticsRepositoryProtocol): # 
+    '''Concrete custom analytics repository backed by Neo4j.'''
+
+    def get_simple_histogram(
+        self,
+        entity_type: str,
+        attr: str,
+        filter_where: str,
+        filter_params: dict,
+        top_n: int
+    ) -> list[SimpleHistogramRow]:
+        query = build_simple_query(entity_type, attr, filter_where)
+        result_rows, meta = db.cypher_query(
+            query,
+            {
+                **filter_params,
+                'top_n': top_n
+            }
+        )
+
+        return [
+            SimpleHistogramRow(
+                x=str(r['x']),
+                value=int(r['value'])
+            )
+            for r in rows_to_dicts(result_rows, meta)
+        ]
+
+    def get_grouped_histogram(
+        self,
+        entity_type: str,
+        attr: str,
+        group_by: str,
+        filter_where: str,
+        filter_params: dict
+    ) -> list[GroupedHistogramRow]:
+        query = build_grouped_query(entity_type, attr, group_by, filter_where)
+        result_rows, meta = db.cypher_query(query, filter_params)
+
+        return [
+            GroupedHistogramRow(
+                x=r['x'],
+                g=r['g'],
+                value=int(r['value'])
+            )
+            for r in rows_to_dicts(result_rows, meta)
+        ]

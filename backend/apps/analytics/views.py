@@ -6,11 +6,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .openapi import (
+    custom_analytics_view_schema,
     global_stats_view_schema,
     neighbors_view_schema,
     shortest_path_view_schema,
 )
-from .services import global_stats, neighbors, shortest_path
+from .serializers import (
+    CustomAnalyticsGroupedSerializer,
+    CustomAnalyticsSimpleSerializer,
+)
+from .services import custom_analytics, global_stats, neighbors, shortest_path
 
 
 class GlobalStatsView(APIView):
@@ -86,3 +91,35 @@ class ShortestPathView(APIView):
             raw_through_rels=request.query_params.get('through_rels'),
             raw_max_depth=request.query_params.get('max_depth'),
         ))
+
+
+class CustomAnalyticsView(APIView):
+    '''
+    GET /api/v1/analytics/custom/
+
+    Return histogram data for a chosen entity type and attribute.
+    '''
+
+    permission_classes = [AllowAny]
+
+    @custom_analytics_view_schema
+    def get(self, request: Request) -> Response:
+        params = dict(request.query_params)
+        flat_params = {
+            k: v[0] if isinstance(v, list) and v else v for k, v in params.items()
+        }
+
+        result = custom_analytics(
+            raw_entity_type=flat_params.get('entity_type'),
+            raw_attr=flat_params.get('attr'),
+            raw_group_by=flat_params.get('group_by'),
+            raw_top_n=flat_params.get('top_n'),
+            query_params=flat_params,
+        )
+
+        if result.get('group_by') is None:
+            serializer = CustomAnalyticsSimpleSerializer
+        else:
+            serializer = CustomAnalyticsGroupedSerializer
+
+        return Response(serializer(result).data)

@@ -13,6 +13,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 from .serializers import (
+    CustomAnalyticsSimpleSerializer,
     GlobalStatsSerializer,
     NeighborsResponseSerializer,
     ShortestPathResponseSerializer,
@@ -95,6 +96,59 @@ _MAX_DEPTH_PARAM = OpenApiParameter(
     description='Maximum number of hops to explore.  Default 10, maximum 15.',
 )
 
+_CUSTOM_ENTITY_TYPE_PARAM = OpenApiParameter(
+    name='entity_type',
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    required=True,
+    description=(
+        'Entity type to query.  Determines which `attr` values and catalog '
+        'filters are applicable.  '
+        'Supported: character, location, event, organization, item.'
+    ),
+    enum=['character', 'location', 'event', 'organization', 'item'],
+)
+
+_CUSTOM_ATTR_PARAM = OpenApiParameter(
+    name='attr',
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    required=True,
+    description=(
+        'Attribute for the X axis (grouping dimension).  '
+        'Allowed values per entity_type:\n'
+        '- character: gender, race, is_alive, organization, timeline\n'
+        '- location:  entity_type, is_destroyed\n'
+        '- event:     entity_type, timeline\n'
+        '- organization: entity_type, is_dissolved\n'
+        '- item:      entity_type, material'
+    ),
+)
+
+_CUSTOM_GROUP_BY_PARAM = OpenApiParameter(
+    name='group_by',
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    required=False,
+    description=(
+        'Optional secondary grouping attribute (stacked-bar dimension).  '
+        'Must differ from `attr`.  '
+        'Cannot be a relationship-traversal attribute when `attr` is also one '
+    ),
+)
+
+_CUSTOM_TOP_N_PARAM = OpenApiParameter(
+    name='top_n',
+    type=OpenApiTypes.INT,
+    location=OpenApiParameter.QUERY,
+    required=False,
+    description=(
+        'Maximum number of X-axis buckets to return.  '
+        'Buckets are ranked by total count descending.  '
+        'Default 20, max 50.  '
+    ),
+)
+
 
 global_stats_view_schema = extend_schema(
     summary='Global wiki statistics',
@@ -160,6 +214,29 @@ shortest_path_view_schema = extend_schema(
         200: ShortestPathResponseSerializer,
         400: None,
         404: None,
+    },
+    auth=[],
+)
+
+
+custom_analytics_view_schema = extend_schema(
+    summary='Custom histogram chart data',
+    description=(
+        'Returns histogram data for a chosen entity type and attribute.  '
+        'Supports optional secondary grouping for stacked-bar charts.  '
+        'All catalog filters for the chosen entity_type are accepted.  '
+        'Public endpoint, no authentication required.'
+    ),
+    tags=['analytics'],
+    parameters=[
+        _CUSTOM_ENTITY_TYPE_PARAM,
+        _CUSTOM_ATTR_PARAM,
+        _CUSTOM_GROUP_BY_PARAM,
+        _CUSTOM_TOP_N_PARAM,
+    ],
+    responses={
+        200: CustomAnalyticsSimpleSerializer,
+        400: None,
     },
     auth=[],
 )

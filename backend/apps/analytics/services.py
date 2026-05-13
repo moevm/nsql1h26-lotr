@@ -1,23 +1,26 @@
 '''
 Layers note:
-    No Cypther and no db import. Repository!! Yay!!!
+    No Cypher and no db import. Repository!! Yay!!!
 
 Global stats note:
     The bulk import endpoint must call invalidate_global_stats_cache() after a
     successful import so the next request recomputes fresh numbers.
 '''
 
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import Any
 
 from django.conf import settings
 from django.core.cache import cache
 from rest_framework.exceptions import NotFound, ValidationError
 
+from apps.catalogs.filters import build_filter_from_params
 from apps.pages.enums import RelType
 from apps.pages.queries import LABEL_TO_TYPE, labels_to_type
 
 from .constants import (
+    CUSTOM_ANALYTICS_TOP_N_DEFAULT,
+    CUSTOM_ANALYTICS_TOP_N_MAX,
     NEIGHBORS_ALLOWED_DEPTHS,
     NEIGHBORS_DEFAULT_LIMIT,
     NEIGHBORS_MAX_LIMIT,
@@ -25,15 +28,20 @@ from .constants import (
     SHORTEST_PATH_MAX_ALLOWED_DEPTH,
     SHORTEST_PATH_MIN_DEPTH,
 )
+from .queries import ATTR_DEFS
 from .repository import (
+    CustomAnalyticsRepositoryProtocol,
     GlobalStatsRepositoryProtocol,
+    GroupedHistogramRow,
     NeighborsRepositoryProtocol,
+    Neo4jCustomAnalyticsRepository,
     Neo4jGlobalStatsRepository,
     Neo4jNeighborsRepository,
     Neo4jShortestPathRepository,
     PageRow,
     ShortestPathRepositoryProtocol,
     ShortestPathResult,
+    SimpleHistogramRow,
 )
 
 GLOBAL_STATS_CACHE_KEY = 'analytics:global_stats'
@@ -49,6 +57,7 @@ _VALID_REL_TYPES: frozenset[str] = frozenset(RelType)
 _default_global_stats_repo: GlobalStatsRepositoryProtocol = Neo4jGlobalStatsRepository()
 _default_neighbors_repo: NeighborsRepositoryProtocol = Neo4jNeighborsRepository()
 _default_shortest_path_repo: ShortestPathRepositoryProtocol = Neo4jShortestPathRepository()
+_default_custom_analytics_repo: CustomAnalyticsRepositoryProtocol = Neo4jCustomAnalyticsRepository()
 
 
 def _assemble(repo: GlobalStatsRepositoryProtocol) -> dict[str, Any]:
@@ -206,6 +215,136 @@ def _parse_max_depth(raw: str | None) -> int:
         min_val=SHORTEST_PATH_MIN_DEPTH,
         max_val=SHORTEST_PATH_MAX_ALLOWED_DEPTH,
     )
+
+
+_SUPPORTED_ENTITY_TYPES: frozenset[str] = frozenset(ATTR_DEFS.keys())
+_ANALYTICS_PARAMS = frozenset({'entity_type', 'attr', 'group_by', 'top_n'})
+
+
+def _validate_entity_type(entity_type: str) -> None:
+    if entity_type not in _SUPPORTED_ENTITY_TYPES:
+        raise ValidationError({
+            'entity_type': [
+                f'"{entity_type}" is not supported for custom analytics. '
+                f'Supported: {", ".join(sorted(_SUPPORTED_ENTITY_TYPES))}.'
+            ]
+        })
+
+
+def _validate_attr(entity_type: str, attr: str, param_name: str = 'attr') -> None:
+    allowed = ATTR_DEFS.get(entity_type, {})
+    if attr not in allowed:
+        raise ValidationError({
+            param_name: [
+                f'"{attr}" is not a valid attribute for entity_type="{entity_type}". '
+                f'Allowed: {", ".join(sorted(allowed))}.'
+            ]
+        })
+
+
+def _validate_group_by(entity_type: str, attr: str, group_by: str) -> None:
+    _validate_attr(entity_type, group_by, param_name='group_by')
+
+    if group_by == attr:
+        raise ValidationError({
+            'group_by': [f'"group_by" must differ from "attr" ("{attr}").']
+        })
+
+    attr_def = ATTR_DEFS[entity_type][attr]
+    group_def = ATTR_DEFS[entity_type][group_by]
+
+    if attr_def.is_rel and group_def.is_rel:
+        raise ValidationError({
+            'group_by': [
+                f'Both attr="{attr}" and group_by="{group_by}" require '
+                f'relationship traversal.  Two REL-mode attributes together '
+                f'produce a Cartesian product and make count() semantically '
+                f'incorrect.  Use a PROP or BOOL attribute for group_by.'
+            ]
+        })
+
+
+def _parse_top_n(raw: str | None) -> int:
+    if raw is None:
+        return CUSTOM_ANALYTICS_TOP_N_DEFAULT
+
+    try:
+        value = int(raw)
+    except (ValueError, TypeError) as exc:
+        raise ValidationError({
+            'top_n': ['Must be an integer.']
+        }) from exc
+
+    if not (1 <= value <= CUSTOM_ANALYTICS_TOP_N_MAX):
+        raise ValidationError({
+            'top_n': [f'Must be between 1 and {CUSTOM_ANALYTICS_TOP_N_MAX}.']
+        })
+
+    return value
+
+
+def _make_simple_response(
+    entity_type: str,
+    attr: str,
+    rows: list[SimpleHistogramRow],
+) -> dict[str, Any]:
+    return {
+        'entity_type': entity_type,
+        'attr': attr,
+        'group_by': None,
+        'data': [
+            {
+                'x': r['x'],
+                'value': r['value'],
+            }
+            for r in rows
+        ],
+    }
+
+
+def _pivot_grouped(
+    rows: list[GroupedHistogramRow],
+    top_n: int,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    '''Pivot flat (x, g, value) rows into stacked-bar format.'''
+    counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    all_groups: set[str] = set()
+
+    for row in rows:
+        x = str(row['x']) if row['x'] is not None else '(unknown)'
+        g = str(row['g']) if row['g'] is not None else '(unknown)'
+        counts[x][g] += row['value']
+        all_groups.add(g)
+
+    ranked_x = sorted(
+        counts.keys(),
+        key=lambda x: -sum(counts[x].values()),
+    )[:top_n]
+
+    groups = sorted(all_groups)
+    data = [
+        {'x': x, **{g: counts[x].get(g, 0) for g in groups}}
+        for x in ranked_x
+    ]
+
+    return groups, data
+
+
+def _make_grouped_response(
+    entity_type: str,
+    attr: str,
+    group_by: str,
+    rows: list[GroupedHistogramRow],
+    top_n: int,
+) -> dict[str, Any]:
+    groups, data = _pivot_grouped(rows, top_n)
+    return {
+        'entity_type': entity_type,
+        'attr': attr,
+        'group_by': group_by,
+        'groups': groups,
+        'data': data,
+    }
 
 
 # Public API
@@ -408,3 +547,50 @@ def shortest_path(
         'to': to_summary,
         'path': steps,
     }
+
+
+def custom_analytics(
+    raw_entity_type: str | None,
+    raw_attr: str | None,
+    raw_group_by: str | None,
+    raw_top_n: str | None,
+    query_params: dict[str, str],
+    *,
+    repo: CustomAnalyticsRepositoryProtocol = _default_custom_analytics_repo
+) -> dict[str, Any]:
+    '''Validate inputs, call the repo, and assemble the histogram response.'''
+    if not raw_entity_type:
+        raise ValidationError({
+            'entity_type': ['This field if required']
+        })
+    if not raw_attr:
+        raise ValidationError({
+            'attr': ['This field is required.']
+        })
+
+    entity_type = raw_entity_type.strip().lower()
+    attr = raw_attr.strip().lower()
+
+    _validate_entity_type(entity_type)
+    _validate_attr(entity_type, attr)
+
+    group_by: str | None = raw_group_by.strip().lower() if raw_group_by else None
+    if group_by:
+        _validate_group_by(entity_type, attr, group_by)
+
+    top_n = _parse_top_n(raw_top_n)
+
+    catalog_params = {k: v for k, v in query_params.items() if k not in _ANALYTICS_PARAMS}
+    filter_obj = build_filter_from_params(entity_type, catalog_params)
+    filter_where, filter_params = filter_obj.to_cypher_where()
+
+    if group_by is None:
+        rows = repo.get_simple_histogram(
+            entity_type, attr, filter_where, filter_params, top_n
+        )
+        return _make_simple_response(entity_type, attr, rows)
+    else:
+        rows = repo.get_grouped_histogram(
+            entity_type, attr, group_by, filter_where, filter_params
+        )
+        return _make_grouped_response(entity_type, attr, group_by, rows, top_n)

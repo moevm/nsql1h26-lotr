@@ -219,3 +219,53 @@ ShortestPathResponseSerializer._declared_fields['from'] = _PageSummarySerializer
 ShortestPathResponseSerializer._declared_fields['to'] = _PageSummarySerializer(
     help_text='PageSummary of the end node (always present, even when found=false).'
 )
+
+
+class _SimpleDataPointSerializer(serializers.Serializer):
+    x = serializers.CharField(help_text='X-axis bucket label.')
+    value = serializers.IntegerField(help_text='Count of entities in this bucket.')
+
+
+class CustomAnalyticsSimpleSerializer(serializers.Serializer):
+    '''
+    Response shape for GET /analytics/custom/ without group_by.
+    '''
+
+    entity_type = serializers.CharField()
+    attr = serializers.CharField()
+    group_by = serializers.CharField(
+        allow_null=True,
+        help_text='Always null for the simple (non-grouped) response.',
+    )
+
+
+CustomAnalyticsSimpleSerializer._declared_fields['data'] = _SimpleDataPointSerializer(
+    many=True,
+    help_text='X-axis buckets ordered by count descending.',
+)
+
+
+class CustomAnalyticsGroupedSerializer(serializers.Serializer):
+    '''
+    Response shape for GET /analytics/custom/ with group_by.
+    '''
+
+    entity_type = serializers.CharField()
+    attr = serializers.CharField()
+    group_by = serializers.CharField(help_text='The secondary grouping attribute name.')
+    groups = serializers.ListField(
+        child=serializers.CharField(),
+        help_text='Sorted list of all group values present in data rows.',
+    )
+
+
+CustomAnalyticsGroupedSerializer._declared_fields['data'] = serializers.ListField(
+        child=serializers.DictField(
+            child=serializers.JSONField(),
+        ),
+        help_text=(
+            'Stacked-bar rows.  Each row contains `x` (string) plus one integer '
+            'key per entry in `groups`.  Rows are ordered by total count descending, '
+            'capped at `top_n`.'
+        ),
+    )
