@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { IoClose } from 'react-icons/io5';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import ErrorModal from './ErrorModal';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -15,6 +17,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const { showToast } = useToast();
+  const [errorModal, setErrorModal] = useState<{ status?: number; message: string } | null>(null);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -23,11 +27,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       return;
     }
     const success = await login(username, password);
-    if (success) {
+    if (success.success) {
+      showToast('User successfully authorized!');
       onClose();
       onSuccess?.();
     } else {
-      setError('Invalid username or password');
+      setErrorModal({ status: success.status, message: success.message || 'Login failed' });
     }
   };
 
@@ -42,16 +47,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
       return;
     }
     const success = await register(username, email, password);
-    if (success) {
+    if (success.success) {
+      showToast('User successfully registered!');
       onClose();
       onSuccess?.();
     } else {
-      setError('User with this username already exists');
+      setErrorModal({ status: success.status, message: success.message || 'Registration failed' });
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <button className="modal-close-btn" onClick={onClose}>
@@ -104,6 +110,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
 
             {error && <div className="error-message">{error}</div>}
           </div>
+          {errorModal && (
+            <ErrorModal
+              message={errorModal.message}
+              statusCode={errorModal.status}
+              onClose={() => setErrorModal(null)}
+            />
+          )}
 
           <div className="modal-footer">
             <button
@@ -116,7 +129,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
             >
               {isLoginMode ? 'Register' : 'Back to Login'}
             </button>
-            <button type="submit" className="register-btn">
+            <button type="submit" className="save-btn">
               {isLoginMode ? 'Log in' : 'Register'}
             </button>
           </div>

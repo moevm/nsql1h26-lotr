@@ -5,8 +5,8 @@ import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthContextType {
   user: MeResponse | null;
-  login: (username: string, password: string) => Promise<boolean>;
-  register: (username: string, email: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<{ success: boolean; status?: number; message?: string }>;
+  register: (username: string, email: string, password: string) => Promise<{ success: boolean; status?: number; message?: string }>;
   updateUser: (data: UpdateMeRequest) => Promise<boolean>;
   logout: () => Promise<void>;
   isLoading: boolean;
@@ -63,14 +63,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [meData]);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<{ success: boolean; status?: number; message?: string }> => {
     try {
       const result = await loginMutation.mutateAsync({ data: { username, password } });
       const authResult = result as unknown as AuthResponse;
       const { user, tokens } = authResult;
       if (!tokens?.access) {
-        console.error('No access token in login response', authResult);
-        return false;
+        return { success: false, status: 400, message: 'Invalid response from server' };
       }
       localStorage.setItem('access_token', tokens.access);
       localStorage.setItem('refresh_token', tokens.refresh);
@@ -80,28 +79,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setUser(meUser);
       await refreshUser();
-      return true;
+      return { success: true };
     } catch (error: any) {
-      console.error('Login failed:', error);
-      const serverError = error.response?.data;
-      let message = 'Incorrect username or password';
-      if (serverError?.error?.message) {
-        message = serverError.error.message;
-      } else if (serverError?.message) {
-        message = serverError.message;
-      }
-      throw new Error(message);
+      const status = error.response?.status;
+      let message = error.response?.data?.error?.message || error.message || 'Login failed';
+      return { success: false, status, message };
     }
   };
 
-  const register = async (username: string, email: string, password: string): Promise<boolean> => {
+  const register = async (username: string, email: string, password: string): Promise<{ success: boolean; status?: number; message?: string }> => {
     try {
       const result = await registerMutation.mutateAsync({ data: { username, email, password } });
       const authResult = result as unknown as AuthResponse;
       const { user, tokens } = authResult;
       if (!tokens?.access) {
-        console.error('No access token in register response', authResult);
-        return false;
+        return { success: false, status: 400, message: 'Invalid response from server' };
       }
       localStorage.setItem('access_token', tokens.access);
       localStorage.setItem('refresh_token', tokens.refresh);
@@ -111,17 +103,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setUser(meUser);
       await refreshUser();
-      return true;
+      return { success: true };
     } catch (error: any) {
-      console.error('Registration failed:', error);
-      const serverError = error.response?.data;
-      let message = 'Registration failed';
-      if (serverError?.error?.message) {
-        message = serverError.error.message;
-      } else if (serverError?.message) {
-        message = serverError.message;
-      }
-      throw new Error(message);
+      const status = error.response?.status;
+      let message = error.response?.data?.error?.message || error.message || 'Registration failed';
+      return { success: false, status, message };
     }
   };
 
