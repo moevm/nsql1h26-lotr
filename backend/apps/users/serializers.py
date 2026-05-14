@@ -8,6 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.users.models import User
 
+# Auth serializers (used by /auth/ endpoints)
+
 
 class AuthUserSerializer(serializers.ModelSerializer):
     '''User representation for login/register response'''
@@ -181,3 +183,68 @@ class LogoutSerializer(serializers.Serializer):
     '''The client must senf its current refresh token to be blacklisted'''
 
     refresh = serializers.CharField()
+
+
+# User-management serializers (used by /users/* endpoints)
+
+
+class PageSummarySerializer(serializers.Serializer):
+    '''
+    Minimal page representation returned inside user-related responses.
+    '''
+
+    slug = serializers.CharField()
+    type = serializers.CharField(
+        help_text='Entity type (character, race, location, ...).'
+    )
+    name = serializers.CharField(allow_null=True)
+    image_url = serializers.CharField(allow_null=True)
+
+
+class UserAdminListSerializer(serializers.ModelSerializer):
+    '''
+    User representation for GET /users/ (admin-only list).
+
+    Returns all fields that an administrator needs: email, role, join date.
+    '''
+    created_at = serializers.DateTimeField(source='date_joined', read_only=True)
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'role', 'avatar_url', 'created_at')
+        read_only_fields = ('username', 'email', 'role', 'avatar_url', 'created_at')
+
+
+class UserPublicProfileSerializer(serializers.Serializer):
+    '''
+    Schema-only serializer for GET /users/{username}/.
+    '''
+
+    username = serializers.CharField()
+    avatar_url = serializers.URLField(allow_null=True)
+    created_at = serializers.DateTimeField()
+    comments_count = serializers.IntegerField()
+    liked_pages_total = serializers.IntegerField()
+    liked_pages = PageSummarySerializer(many=True)
+
+
+class UserRoleSerializer(serializers.ModelSerializer):
+    '''
+    Input serializer for PATCH /users/{username}/.
+    '''
+
+    class Meta:
+        model = User
+        fields = ('role',)
+
+
+class PaginatedPageSummarySerializer(serializers.Serializer):
+    '''
+    Schema-only serializer for GET /users/{username}/liked/ response.
+    Mirrors the standard PaginatedResponse + PageSummary results shape.
+    '''
+
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = PageSummarySerializer(many=True)

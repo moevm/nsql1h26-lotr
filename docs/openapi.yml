@@ -1123,6 +1123,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PageSummary"
+        liked_pages_total:
+          type: integer
     UserRoleUpdateRequest:
       type: object
       required:
