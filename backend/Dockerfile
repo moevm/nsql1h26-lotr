@@ -6,6 +6,7 @@ ENV PYTHONUNBUFFERED=1 \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     gcc \
+    gosu \
     && rm -rf /var/lib/apt/lists*
 
 WORKDIR /app
@@ -24,7 +25,7 @@ RUN groupadd --gid 1001 appgroup \
 
 RUN mkdir -p /app/db && chown -R appuser:appgroup /app
 
-USER appuser
+RUN mkdir -p /shared && chmod 1777 /shared
 
 EXPOSE 8080
 

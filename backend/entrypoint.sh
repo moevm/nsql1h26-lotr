@@ -2,6 +2,13 @@
 
 set -e  # blow up on any error
 
+if [ "$(id -u)" = "0" ]; then
+    echo "[entrypoint] Running as root, fixing /shared permissions..."
+    chmod 1777 /shared
+
+    exec gosu appuser "$0" "$@"
+fi
+
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
