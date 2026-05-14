@@ -5,8 +5,8 @@ ENV PYTHONUNBUFFERED=1 \
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-    gcc \
-    gosu \
+    gcc=4:14.2.0-1 \
+    gosu=1.17-3+b4 \
     && rm -rf /var/lib/apt/lists*
 
 WORKDIR /app
