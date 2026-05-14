@@ -66,4 +66,4 @@ docker compose build --no-cache && docker compose up
 
 ### Послесловие
 
-Нам было сложно.
+Нам было сложно. 
