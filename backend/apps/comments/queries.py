@@ -25,7 +25,7 @@ RETURN
     u.django_id AS author_django_id,
     c.createdAt AS created_at,
     c.updatedAt AS updated_at
-ORDER BY c.createdAt ASC
+ORDER BY c.createdAt DESC
 SKIP $skip
 LIMIT $limit
 '''
