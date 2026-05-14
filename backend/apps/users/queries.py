@@ -58,5 +58,5 @@ LIMIT $limit
 DELETE_USER_NEO4J_QUERY = '''\
 OPTIONAL MATCH (u:User {django_id: $django_id})
 OPTIONAL MATCH (u)-[:WROTE]->(c:Comment)
-DETACH DELTE u, c
+DETACH DELETE u, c
 '''

@@ -107,6 +107,7 @@ _TOP_CONNECTED_TEMPLATE = """\
 MATCH (n:{label})
 WITH n,
      size([(n)-[r]-() WHERE NOT type(r) IN {excluded} | r]) AS connections
+WHERE connections > 0
 ORDER BY connections DESC, n.names[0] ASC
 LIMIT 5
 RETURN n.slug AS slug, n.names[0] AS name, connections AS connections_count
