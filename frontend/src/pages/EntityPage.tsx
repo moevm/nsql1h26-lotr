@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FaHeart, FaRegHeart, FaEdit, FaTimes } from 'react-icons/fa';
-import { MdOutlineFileDownload, MdOutlineFileUpload } from 'react-icons/md';
 import { SiRelay } from 'react-icons/si';
 import { useGetPage, useLikePage, useUnlikePage, useDeletePage, useGetComments, useAddComment, useDeleteComment, useUpdateComment } from '../api/generated/pages/pages';
 import type { LikeStateResponse, Comment } from '../api/generated/models';
@@ -369,8 +368,6 @@ const EntityPage: React.FC = () => {
           <div className="entity-left-header">
             <h1 className="entity-title">{mainName}</h1>
             <div className="entity-actions">
-              <button className="icon-btn" title="Export"><MdOutlineFileDownload /></button>
-              <button className="icon-btn" title="Import"><MdOutlineFileUpload /></button>
               <span className="entity-dates">Created: {created_at} | Updated: {updated_at}</span>
               {user?.role === 'admin' && <button className="delete-btn" title="Delete" onClick={handleDelete}>Delete page</button>}
             </div>
@@ -462,7 +459,13 @@ const EntityPage: React.FC = () => {
               {liked ? <FaHeart /> : <FaRegHeart />} {likes_count}
             </button>
             {user?.role === 'admin' && <button className="icon-btn" onClick={handleEditClick}><FaEdit /></button>}
-            <button className="icon-btn" disabled><SiRelay /></button>
+            <button
+              className="icon-btn"
+              onClick={() => navigate(`/analytics/shortest-path?from=${slug}`)}
+              title="Shortest path from this entity"
+            >
+              <SiRelay />
+            </button>
           </div>
           <div className="entity-card">
             <img src={article.image_url || '/images/default-avatar.png'} alt={mainName} className="entity-image" />

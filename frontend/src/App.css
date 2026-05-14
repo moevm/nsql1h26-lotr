@@ -1973,6 +1973,10 @@ h1 {
 .build-graph-btn:hover {
   background: #724419;
 }
+.build-graph-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .graph-visualization-container {
   width: 100%;
@@ -2057,27 +2061,50 @@ h1 {
   cursor: not-allowed;
 }
 
-/* .apply-stats-filters-btn {
-  background: #8b5a2b;
-  border: none;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 30px;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.apply-stats-filters-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-} */
-
 .chart-stats-container {
   margin-top: 2rem;
   background: none;
   border-radius: 16px;
   padding: 1rem;
 }
+
+/* Кратчайший путь */
+.path-result-container {
+  margin-top: 2rem;
+  color: #ffebe4;
+  font-size: 1.5rem;
+  padding: 1rem;
+}
+.path-steps {
+  font-size: 1.3rem;
+  margin-left: 1.5rem;
+  line-height: 1.6;
+}
+.path-steps li {
+  margin: 0.5rem 0;
+}
+.path-link {
+  color: #f5e7d9;
+}
+.path-link:hover {
+  text-decoration: underline;
+  color: #c7b198;
+}
+.max-depth-input {
+  background: #2c2a28;
+  border: 1px solid #8b5a2b;
+  color: #f5e7d9;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px;
+  width: 80px;
+  text-align: center;
+}
+
+.max-depth-input:focus {
+  outline: none;
+  border-color: #c7b198;
+}
+
 
 /* Для экранов меньше 1200px */
 @media (max-width: 1200px) {
