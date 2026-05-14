@@ -2,7 +2,7 @@ import { defineConfig } from 'orval';
 
 export default defineConfig({
   api: {
-    input: '../docs/openapi.yml',
+    input: './openapi.yml',
     output: {
       mode: 'tags-split',          // разделить по тегам (characters, locations...)
       target: './src/api/generated',

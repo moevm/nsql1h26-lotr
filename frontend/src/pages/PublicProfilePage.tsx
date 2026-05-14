@@ -1,19 +1,14 @@
 import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { FaHeart } from 'react-icons/fa';
 import { useGetUserProfile, useGetUserLikedPages } from '../api/generated/users/users';
 
 const PublicProfilePage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
-  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const pageSize = 20;
   const { data: profile, isLoading: profileLoading, error: profileError } = useGetUserProfile(username!);
   const { data: likedData, isLoading: likedLoading } = useGetUserLikedPages(username!, { page, page_size: pageSize });
-
-  const handleBack = () => {
-    navigate('/admin');
-  };
 
   if (profileLoading) return <div className="loader">Loading profile...</div>;
   if (profileError) return <div className="error">User not found.</div>;
@@ -28,9 +23,6 @@ const PublicProfilePage: React.FC = () => {
 
   return (
     <>
-      <div className="admin-back-header">
-        <button className="back-button" onClick={handleBack}>← Back</button>
-      </div>
       <div className="profile-page-container">
         <div className="profile-card-left">
           <div className="profile-avatar">

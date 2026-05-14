@@ -17,7 +17,6 @@ import ItemsPage from './pages/ItemsPage';
 import LanguagesPage from './pages/LanguagesPage';
 import ScriptsPage from './pages/ScriptsPage';
 import CategoriesPage from './pages/CategoriesPage';
-import CreateCategoryPage from './pages/CreateCategoryPage';
 import AuthModal from './components/AuthModal';
 import ProfilePage from './pages/ProfilePage';
 import { useAuth, AuthProvider } from './context/AuthContext';
@@ -119,7 +118,6 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/categories/:slug" element={<CategoriesPage />} />
-          <Route path="/categories/create" element={<CreateCategoryPage />} />
 
           <Route path="/characters" element={<CharactersPage />} />
           <Route path="/races" element={<RacesPage />} />
@@ -139,7 +137,7 @@ const AppContent: React.FC = () => {
           <Route path="/global-stats" element={<GlobalStatsPage />} />
           <Route path="/custom-stats" element={<CustomStatsPage />} />
           <Route path="/admin" element={<AdminPanelPage />} />
-          <Route path="/admin/users/:username" element={<PublicProfilePage />} />
+          <Route path="/users/:username" element={<PublicProfilePage />} />
           <Route path="/analytics/graph" element={<GraphPage />} />
           <Route path="/analytics/shortest-path" element={<ShortestPathPage />} />
         </Routes>

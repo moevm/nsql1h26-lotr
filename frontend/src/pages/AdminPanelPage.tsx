@@ -74,7 +74,7 @@ const AdminPanelPage: React.FC = () => {
             {users.map((user: AdminUser) => (
               <tr key={user.username}>
                 <td>
-                  <Link to={`/admin/users/${user.username}`} className="user-link">
+                  <Link to={`/users/${user.username}`} className="user-link">
                     {user.username}
                   </Link>
                 </td>

@@ -398,7 +398,12 @@ const EntityPage: React.FC = () => {
                   </div>
                   <div className="comment-content">
                     <div className="comment-header">
-                      <strong className="comment-author">{comment.author?.username}</strong>
+                      <Link 
+                        to={user?.username === comment.author?.username ? "/profile" : `/users/${comment.author?.username}`}
+                        className="comment-author-link"
+                      >
+                        <strong>{comment.author?.username}</strong>
+                      </Link>
                       <span className="comment-date">{new Date(comment.created_at).toLocaleString()}</span>
                     </div>
                     {editingCommentId === comment.id ? (
